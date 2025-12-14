@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface ToggleButtonProps {
   options: string[];
@@ -13,21 +13,37 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
   selectedIndex,
   onSelect,
 }) => {
+  const { theme } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: theme.cardBackgroundElevated,
+        borderColor: theme.border,
+      }
+    ]}>
       {options.map((option, index) => (
         <TouchableOpacity
           key={option}
           style={[
             styles.option,
-            index === selectedIndex && styles.selectedOption,
+            index === selectedIndex && [
+              styles.selectedOption,
+              { backgroundColor: theme.primary }
+            ],
           ]}
           onPress={() => onSelect(index)}
+          activeOpacity={0.7}
         >
           <Text
             style={[
               styles.optionText,
-              index === selectedIndex && styles.selectedText,
+              { color: theme.textSecondary },
+              index === selectedIndex && [
+                styles.selectedText,
+                { color: theme.textInverse }
+              ],
             ]}
           >
             {option}
@@ -41,28 +57,23 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   option: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 6,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  selectedOption: {
-    backgroundColor: Colors.textPrimary,
-  },
+  selectedOption: {},
   optionText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
   selectedText: {
-    color: Colors.background,
+    fontWeight: '600',
   },
 });

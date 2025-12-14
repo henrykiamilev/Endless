@@ -6,8 +6,10 @@ import {
   ScrollView,
   SafeAreaView,
   FlatList,
+  TouchableOpacity,
 } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 import {
   QuickActionCard,
   PlayOfWeekCard,
@@ -38,6 +40,8 @@ const mockSessions: Session[] = [
 ];
 
 export const HomeScreen: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
+
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -46,20 +50,39 @@ export const HomeScreen: React.FC = () => {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back, Will</Text>
-          <Text style={styles.dateText}>{formattedDate}</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
+              <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                <Text style={[styles.logoText, { color: theme.textPrimary }]}>∞</Text>
+              </View>
+              <View>
+                <Text style={[styles.welcomeText, { color: theme.textPrimary }]}>Welcome back, Will</Text>
+                <Text style={[styles.dateText, { color: theme.textSecondary }]}>{formattedDate}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.themeToggle, { backgroundColor: theme.cardBackground }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={theme.isDark ? 'sunny' : 'moon'}
+                size={20}
+                color={theme.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Quick Actions</Text>
           <View style={styles.quickActionsRow}>
             <QuickActionCard
               title="Today's Drills"
@@ -81,7 +104,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Plays of the Week */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Plays of the Week</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Plays of the Week</Text>
           <FlatList
             data={mockPlaysOfWeek}
             horizontal
@@ -94,7 +117,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Recent Sessions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Sessions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Sessions</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -120,45 +143,70 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   welcomeText: {
-    color: Colors.textPrimary,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
   },
   dateText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   section: {
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    marginBottom: 28,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 19,
+    fontWeight: '700',
+    marginBottom: 14,
   },
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   playsListContainer: {
-    paddingRight: 16,
+    paddingRight: 20,
   },
   sessionsContainer: {
-    paddingRight: 16,
+    paddingRight: 20,
   },
   bottomPadding: {
     height: 100,

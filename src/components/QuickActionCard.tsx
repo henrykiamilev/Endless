@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface QuickActionCardProps {
   title: string;
@@ -16,47 +16,59 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
   icon,
   onPress,
 }) => {
+  const { theme } = useTheme();
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={24} color={Colors.textPrimary} />
+    <TouchableOpacity
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
+          shadowColor: theme.shadowColor,
+        }
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: theme.cardBackgroundElevated }]}>
+        <Ionicons name={icon} size={22} color={theme.primary} />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.cardBackgroundLight,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
-    color: Colors.textPrimary,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 2,
   },
   subtitle: {
-    color: Colors.textSecondary,
-    fontSize: 10,
+    fontSize: 11,
     textAlign: 'center',
   },
 });

@@ -7,3 +7,4 @@ export { SwingVideoCard } from './SwingVideoCard';
 export { StatBar } from './StatBar';
 export { RoundHistoryCard } from './RoundHistoryCard';
 export { ToggleButton } from './ToggleButton';
+export { EndlessLogo, EndlessLogoSimple } from './EndlessLogo';

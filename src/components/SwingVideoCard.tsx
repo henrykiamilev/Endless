@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { SwingVideo } from '../types';
 
 interface SwingVideoCardProps {
@@ -10,24 +10,37 @@ interface SwingVideoCardProps {
 }
 
 export const SwingVideoCard: React.FC<SwingVideoCardProps> = ({ video, onPress }) => {
+  const { theme } = useTheme();
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.thumbnailContainer}>
+    <TouchableOpacity
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
+          shadowColor: theme.shadowColor,
+        }
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.thumbnailContainer, { backgroundColor: theme.cardBackgroundElevated }]}>
         {video.thumbnail ? (
           <Image source={{ uri: video.thumbnail }} style={styles.thumbnail} />
         ) : (
           <View style={[styles.thumbnail, styles.placeholderThumbnail]}>
-            <Ionicons name="videocam" size={24} color={Colors.textSecondary} />
+            <Ionicons name="videocam" size={22} color={theme.primary} />
           </View>
         )}
       </View>
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>{video.title}</Text>
-        <Text style={styles.type}>{video.type} • {video.date}</Text>
-        <Text style={styles.description} numberOfLines={2}>{video.description}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{video.title}</Text>
+        <Text style={[styles.type, { color: theme.textSecondary }]}>{video.type} • {video.date}</Text>
+        <Text style={[styles.description, { color: theme.textMuted }]} numberOfLines={2}>{video.description}</Text>
       </View>
       <TouchableOpacity style={styles.moreButton}>
-        <Ionicons name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
+        <Ionicons name="ellipsis-vertical" size={18} color={theme.textSecondary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -36,26 +49,27 @@ export const SwingVideoCard: React.FC<SwingVideoCardProps> = ({ video, onPress }
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   thumbnailContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: 64,
+    height: 64,
+    borderRadius: 10,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: 14,
   },
   thumbnail: {
     width: '100%',
     height: '100%',
   },
   placeholderThumbnail: {
-    backgroundColor: Colors.cardBackgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -64,19 +78,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: Colors.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   type: {
-    color: Colors.textSecondary,
-    fontSize: 11,
+    fontSize: 12,
     marginBottom: 4,
   },
   description: {
-    color: Colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 16,
   },
   moreButton: {
     justifyContent: 'center',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface StatBarProps {
   label: string;
@@ -15,15 +15,19 @@ export const StatBar: React.FC<StatBarProps> = ({
   percentage,
   showPercentageBar = true
 }) => {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value}{typeof value === 'number' && percentage !== undefined ? '%' : ''}</Text>
+        <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
+        <Text style={[styles.value, { color: theme.textPrimary }]}>
+          {value}{typeof value === 'number' && percentage !== undefined ? '%' : ''}
+        </Text>
       </View>
       {showPercentageBar && percentage !== undefined && (
-        <View style={styles.barContainer}>
-          <View style={[styles.bar, { width: `${percentage}%` }]} />
+        <View style={[styles.barContainer, { backgroundColor: theme.cardBackgroundElevated }]}>
+          <View style={[styles.bar, { width: `${percentage}%`, backgroundColor: theme.primary }]} />
         </View>
       )}
     </View>
@@ -32,31 +36,27 @@ export const StatBar: React.FC<StatBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   label: {
-    color: Colors.textSecondary,
     fontSize: 14,
   },
   value: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   barContainer: {
-    height: 4,
-    backgroundColor: Colors.cardBackgroundLight,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
   },
   bar: {
     height: '100%',
-    backgroundColor: Colors.accent,
-    borderRadius: 2,
+    borderRadius: 3,
   },
 });

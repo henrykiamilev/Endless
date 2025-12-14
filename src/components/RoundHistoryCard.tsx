@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { RoundHistory } from '../types';
 
 interface RoundHistoryCardProps {
@@ -10,15 +10,21 @@ interface RoundHistoryCardProps {
 }
 
 export const RoundHistoryCard: React.FC<RoundHistoryCardProps> = ({ round, onPress }) => {
+  const { theme } = useTheme();
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.container, { borderBottomColor: theme.border }]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
       <View style={styles.leftContent}>
-        <Text style={styles.course}>{round.course}</Text>
-        <Text style={styles.date}>{round.date}</Text>
+        <Text style={[styles.course, { color: theme.textPrimary }]}>{round.course}</Text>
+        <Text style={[styles.date, { color: theme.textSecondary }]}>{round.date}</Text>
       </View>
       <View style={styles.rightContent}>
-        <Text style={styles.score}>{round.score}</Text>
-        <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+        <Text style={[styles.score, { color: theme.primary }]}>{round.score}</Text>
+        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
       </View>
     </TouchableOpacity>
   );
@@ -29,30 +35,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   leftContent: {
     flex: 1,
   },
   course: {
-    color: Colors.textPrimary,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
   },
   date: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: 3,
   },
   rightContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   score: {
-    color: Colors.textPrimary,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     marginRight: 8,
   },

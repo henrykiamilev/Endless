@@ -9,7 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { SwingVideoCard } from '../components';
 import { SwingVideo } from '../types';
 
@@ -33,6 +33,7 @@ const mockSwingVideos: SwingVideo[] = [
 const courseFilters = ['Oakmont CC', 'Pebble Beach', 'Del Mar'];
 
 export const EndlessAIScreen: React.FC = () => {
+  const { theme } = useTheme();
   const [prompt, setPrompt] = useState('');
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
 
@@ -45,33 +46,52 @@ export const EndlessAIScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Endless AI</Text>
+          <View style={styles.headerRow}>
+            <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.logoText, { color: theme.textPrimary }]}>∞</Text>
+            </View>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Endless AI</Text>
+          </View>
         </View>
 
         {/* Create Highlight Reel Section */}
         <View style={styles.section}>
-          <View style={styles.highlightCard}>
+          <View style={[
+            styles.highlightCard,
+            {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+              shadowColor: theme.shadowColor,
+            }
+          ]}>
             <View style={styles.highlightHeader}>
-              <View style={styles.aiIconContainer}>
-                <Ionicons name="sparkles" size={24} color={Colors.accent} />
+              <View style={[styles.aiIconContainer, { backgroundColor: `${theme.primary}20` }]}>
+                <Ionicons name="sparkles" size={24} color={theme.primary} />
               </View>
               <View style={styles.highlightTitleContainer}>
-                <Text style={styles.highlightTitle}>Create Highlight Reel</Text>
-                <Text style={styles.highlightSubtitle}>Powered by AI</Text>
+                <Text style={[styles.highlightTitle, { color: theme.textPrimary }]}>Create Highlight Reel</Text>
+                <Text style={[styles.highlightSubtitle, { color: theme.textSecondary }]}>Powered by AI</Text>
               </View>
             </View>
 
             <TextInput
-              style={styles.promptInput}
+              style={[
+                styles.promptInput,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  color: theme.textPrimary,
+                  borderColor: theme.border,
+                }
+              ]}
               placeholder='Describe your perfect highlight reel... (e.g., "Create a 2-minute reel focusing on my short game and driving accuracy from my last 5 matches.")'
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               multiline
               numberOfLines={4}
               value={prompt}
@@ -85,14 +105,16 @@ export const EndlessAIScreen: React.FC = () => {
                   key={course}
                   style={[
                     styles.courseChip,
-                    selectedCourses.includes(course) && styles.courseChipSelected,
+                    { backgroundColor: theme.cardBackgroundElevated, borderColor: theme.border },
+                    selectedCourses.includes(course) && { backgroundColor: theme.primary, borderColor: theme.primary },
                   ]}
                   onPress={() => toggleCourse(course)}
                 >
                   <Text
                     style={[
                       styles.courseChipText,
-                      selectedCourses.includes(course) && styles.courseChipTextSelected,
+                      { color: theme.textSecondary },
+                      selectedCourses.includes(course) && { color: theme.textInverse },
                     ]}
                   >
                     {course}
@@ -101,8 +123,9 @@ export const EndlessAIScreen: React.FC = () => {
               ))}
             </View>
 
-            <TouchableOpacity style={styles.generateButton}>
-              <Text style={styles.generateButtonText}>Generate Highlight Reel</Text>
+            <TouchableOpacity style={[styles.generateButton, { backgroundColor: theme.primary }]}>
+              <Ionicons name="sparkles" size={18} color={theme.textInverse} style={{ marginRight: 8 }} />
+              <Text style={[styles.generateButtonText, { color: theme.textInverse }]}>Generate Highlight Reel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -110,12 +133,12 @@ export const EndlessAIScreen: React.FC = () => {
         {/* My Swing Videos Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Swing Videos</Text>
-            <TouchableOpacity style={styles.addButton}>
-              <Ionicons name="add" size={24} color={Colors.textPrimary} />
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Swing Videos</Text>
+            <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]}>
+              <Ionicons name="add" size={22} color={theme.textInverse} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Upload up to 5 swing videos with annotations
           </Text>
 
@@ -126,9 +149,17 @@ export const EndlessAIScreen: React.FC = () => {
           </View>
 
           {/* Add More Videos CTA */}
-          <TouchableOpacity style={styles.addVideoCard}>
-            <Ionicons name="add-circle-outline" size={32} color={Colors.textSecondary} />
-            <Text style={styles.addVideoText}>Add Swing Video</Text>
+          <TouchableOpacity style={[
+            styles.addVideoCard,
+            {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+            }
+          ]}>
+            <View style={[styles.addVideoIconBg, { backgroundColor: `${theme.primary}20` }]}>
+              <Ionicons name="add" size={28} color={theme.primary} />
+            </View>
+            <Text style={[styles.addVideoText, { color: theme.textSecondary }]}>Add Swing Video</Text>
           </TouchableOpacity>
         </View>
 
@@ -141,106 +172,108 @@ export const EndlessAIScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   title: {
-    color: Colors.textPrimary,
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
   },
   section: {
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    marginBottom: 28,
+    paddingHorizontal: 20,
   },
   highlightCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   highlightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   aiIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(88, 166, 255, 0.15)',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   highlightTitleContainer: {
     flex: 1,
   },
   highlightTitle: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   highlightSubtitle: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: 3,
   },
   promptInput: {
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    padding: 12,
-    color: Colors.textPrimary,
+    borderRadius: 14,
+    padding: 14,
     fontSize: 14,
-    minHeight: 100,
+    minHeight: 110,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 12,
+    marginBottom: 14,
+    lineHeight: 20,
   },
   courseFilters: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   courseChip: {
-    backgroundColor: Colors.cardBackgroundLight,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  courseChipSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
   },
   courseChipText: {
-    color: Colors.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
-  courseChipTextSelected: {
-    color: Colors.textPrimary,
-  },
   generateButton: {
-    backgroundColor: Colors.buttonPrimary,
+    flexDirection: 'row',
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   generateButtonText: {
-    color: Colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -248,42 +281,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '700',
   },
   addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.cardBackgroundLight,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionSubtitle: {
-    color: Colors.textSecondary,
     fontSize: 13,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   swingVideosList: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   addVideoCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    padding: 28,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
     borderStyle: 'dashed',
   },
+  addVideoIconBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   addVideoText: {
-    color: Colors.textSecondary,
     fontSize: 14,
-    marginTop: 8,
+    fontWeight: '500',
   },
   bottomPadding: {
     height: 100,

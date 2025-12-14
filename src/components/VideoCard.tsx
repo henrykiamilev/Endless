@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { Video } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -13,18 +13,26 @@ interface VideoCardProps {
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({ video, onPress }) => {
+  const { theme } = useTheme();
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.thumbnailContainer}>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.8}>
+      <View style={[
+        styles.thumbnailContainer,
+        {
+          backgroundColor: theme.cardBackground,
+          shadowColor: theme.shadowColor,
+        }
+      ]}>
         {video.thumbnail ? (
           <Image source={{ uri: video.thumbnail }} style={styles.thumbnail} />
         ) : (
-          <View style={[styles.thumbnail, styles.placeholderThumbnail]}>
-            <Ionicons name="videocam" size={32} color={Colors.textSecondary} />
+          <View style={[styles.thumbnail, styles.placeholderThumbnail, { backgroundColor: theme.cardBackgroundElevated }]}>
+            <Ionicons name="videocam" size={32} color={theme.primary} />
           </View>
         )}
-        <View style={styles.playButton}>
-          <Ionicons name="play" size={20} color={Colors.textPrimary} />
+        <View style={[styles.playButton, { backgroundColor: theme.primary }]}>
+          <Ionicons name="play" size={18} color={theme.textInverse} />
         </View>
         {video.duration && (
           <View style={styles.durationBadge}>
@@ -32,8 +40,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onPress }) => {
           </View>
         )}
       </View>
-      <Text style={styles.title} numberOfLines={1}>{video.title}</Text>
-      <Text style={styles.date}>{video.date}</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{video.title}</Text>
+      <Text style={[styles.date, { color: theme.textSecondary }]}>{video.date}</Text>
     </TouchableOpacity>
   );
 };
@@ -46,17 +54,19 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     width: '100%',
     height: CARD_WIDTH * 0.75,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 8,
-    backgroundColor: Colors.cardBackground,
+    marginBottom: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   thumbnail: {
     width: '100%',
     height: '100%',
   },
   placeholderThumbnail: {
-    backgroundColor: Colors.cardBackgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -64,36 +74,34 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    transform: [{ translateX: -18 }, { translateY: -18 }],
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingLeft: 2,
   },
   durationBadge: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   durationText: {
-    color: Colors.textPrimary,
-    fontSize: 10,
-    fontWeight: '500',
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   title: {
-    color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
   date: {
-    color: Colors.textSecondary,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 3,
   },
 });

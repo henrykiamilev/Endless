@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { ToggleButton, VideoCard, StatBar, RoundHistoryCard } from '../components';
 import { Video, RoundHistory } from '../types';
 
@@ -27,6 +27,7 @@ const mockRoundHistory: RoundHistory[] = [
 ];
 
 export const VideoLibraryScreen: React.FC = () => {
+  const { theme } = useTheme();
   const [selectedTab, setSelectedTab] = useState(0);
 
   const currentDate = new Date();
@@ -40,15 +41,15 @@ export const VideoLibraryScreen: React.FC = () => {
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Filter Header */}
       <View style={styles.filterHeader}>
-        <Text style={styles.filterText}>Showing matches from October 2025</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="options" size={20} color={Colors.textSecondary} />
+        <Text style={[styles.filterText, { color: theme.textSecondary }]}>Showing matches from October 2025</Text>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: theme.cardBackground }]}>
+          <Ionicons name="options" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Match Videos Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Match Videos</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Match Videos</Text>
       </View>
 
       <View style={styles.videosGrid}>
@@ -65,8 +66,15 @@ export const VideoLibraryScreen: React.FC = () => {
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Recent Round Stats */}
       <View style={styles.statsSection}>
-        <Text style={styles.sectionTitle}>Recent Round Stats</Text>
-        <View style={styles.statsCard}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Round Stats</Text>
+        <View style={[
+          styles.statsCard,
+          {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border,
+            shadowColor: theme.shadowColor,
+          }
+        ]}>
           <StatBar label="Greens in Regulation" value="72" percentage={72} />
           <StatBar label="Fairways Hit" value="65" percentage={65} />
           <StatBar label="Avg Putts per Round" value="28.4" percentage={71} />
@@ -76,21 +84,38 @@ export const VideoLibraryScreen: React.FC = () => {
 
       {/* Launch Monitor Data */}
       <View style={styles.statsSection}>
-        <Text style={styles.sectionTitle}>Launch Monitor Data</Text>
-        <View style={styles.launchMonitorCard}>
-          <Text style={styles.launchMonitorText}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Launch Monitor Data</Text>
+        <View style={[
+          styles.launchMonitorCard,
+          {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border,
+            shadowColor: theme.shadowColor,
+          }
+        ]}>
+          <View style={[styles.launchMonitorIcon, { backgroundColor: `${theme.primary}20` }]}>
+            <Ionicons name="hardware-chip" size={28} color={theme.primary} />
+          </View>
+          <Text style={[styles.launchMonitorText, { color: theme.textSecondary }]}>
             Connect your launch monitor to track club data
           </Text>
-          <TouchableOpacity style={styles.connectButton}>
-            <Text style={styles.connectButtonText}>Connect GCQuad</Text>
+          <TouchableOpacity style={[styles.connectButton, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.connectButtonText, { color: theme.textInverse }]}>Connect GCQuad</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Round History */}
       <View style={styles.statsSection}>
-        <Text style={styles.sectionTitle}>Round History</Text>
-        <View style={styles.roundHistoryCard}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Round History</Text>
+        <View style={[
+          styles.roundHistoryCard,
+          {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border,
+            shadowColor: theme.shadowColor,
+          }
+        ]}>
           {mockRoundHistory.map((round) => (
             <RoundHistoryCard key={round.id} round={round} />
           ))}
@@ -102,16 +127,18 @@ export const VideoLibraryScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.title}>Video Library</Text>
-          <TouchableOpacity style={styles.profileButton}>
-            <Text style={styles.profileInitial}>W</Text>
+          <View>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Video Library</Text>
+            <Text style={[styles.dateText, { color: theme.textSecondary }]}>{formattedDate}</Text>
+          </View>
+          <TouchableOpacity style={[styles.profileButton, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.profileInitial, { color: theme.textInverse }]}>W</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.dateText}>{formattedDate}</Text>
       </View>
 
       {/* Toggle */}
@@ -134,12 +161,11 @@ export const VideoLibraryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
@@ -147,56 +173,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: Colors.textPrimary,
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
   },
   profileButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileInitial: {
-    color: Colors.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   dateText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 4,
   },
   toggleContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   filterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   filterText: {
-    color: Colors.textSecondary,
     fontSize: 13,
   },
   filterButton: {
     padding: 8,
+    borderRadius: 8,
   },
   sectionHeader: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '700',
   },
   videosGrid: {
     flexDirection: 'row',
@@ -204,51 +225,61 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statsSection: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   statsCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   launchMonitorCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  launchMonitorIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   launchMonitorText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   connectButton: {
-    backgroundColor: Colors.cardBackgroundLight,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
   },
   connectButtonText: {
-    color: Colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
   roundHistoryCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginTop: 12,
+    marginTop: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   bottomPadding: {
     height: 100,
