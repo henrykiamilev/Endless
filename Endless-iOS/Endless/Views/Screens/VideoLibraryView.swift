@@ -2,7 +2,10 @@ import SwiftUI
 
 struct VideoLibraryView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
     @State private var selectedTab = 0
+    @State private var showingMenu = false
+    @State private var showingFilter = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -33,7 +36,7 @@ struct VideoLibraryView: View {
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: {}) {
+                Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.theme.textPrimary)
@@ -44,14 +47,16 @@ struct VideoLibraryView: View {
 
                 Spacer()
 
-                Circle()
-                    .fill(themeManager.theme.primary)
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Text("W")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(themeManager.theme.textInverse)
-                    )
+                Button(action: { navigationManager.navigateToSettings() }) {
+                    Circle()
+                        .fill(themeManager.theme.primary)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Text("W")
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundColor(themeManager.theme.textInverse)
+                        )
+                }
             }
             .padding(.bottom, 20)
 
@@ -64,6 +69,9 @@ struct VideoLibraryView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 20)
+        .sheet(isPresented: $showingMenu) {
+            MenuSheetView()
+        }
     }
 
     // MARK: - Video Tab
@@ -78,13 +86,16 @@ struct VideoLibraryView: View {
 
                 Spacer()
 
-                Button(action: {}) {
+                Button(action: { showingFilter = true }) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 16))
                         .foregroundColor(themeManager.theme.textSecondary)
                         .padding(10)
                         .background(themeManager.theme.cardBackground)
                         .cornerRadius(14)
+                }
+                .sheet(isPresented: $showingFilter) {
+                    FilterSheetView()
                 }
             }
             .padding(.horizontal, 20)
@@ -193,7 +204,77 @@ struct VideoLibraryView: View {
     }
 }
 
+// MARK: - Filter Sheet View
+
+struct FilterSheetView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @Environment(\.dismiss) var dismiss
+    @State private var selectedDateRange = "All Time"
+    @State private var selectedCourse = "All Courses"
+
+    private let dateRanges = ["Last 7 Days", "Last 30 Days", "Last 3 Months", "All Time"]
+    private let courses = ["All Courses", "Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Date Range") {
+                    ForEach(dateRanges, id: \.self) { range in
+                        Button(action: { selectedDateRange = range }) {
+                            HStack {
+                                Text(range)
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                                Spacer()
+                                if selectedDateRange == range {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(themeManager.theme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section("Course") {
+                    ForEach(courses, id: \.self) { course in
+                        Button(action: { selectedCourse = course }) {
+                            HStack {
+                                Text(course)
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                                Spacer()
+                                if selectedCourse == course {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(themeManager.theme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Filter Videos")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Reset") {
+                        selectedDateRange = "All Time"
+                        selectedCourse = "All Courses"
+                    }
+                    .foregroundColor(themeManager.theme.textSecondary)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Apply") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundColor(themeManager.theme.primary)
+                }
+            }
+        }
+    }
+}
+
 #Preview {
     VideoLibraryView()
         .environmentObject(ThemeManager())
+        .environmentObject(NavigationManager())
 }

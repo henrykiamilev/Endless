@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
+    @State private var showingMenu = false
+    @State private var showingSignOutAlert = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -52,7 +55,7 @@ struct SettingsView: View {
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: {}) {
+                Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.theme.textPrimary)
@@ -73,6 +76,9 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 24)
+        .sheet(isPresented: $showingMenu) {
+            MenuSheetView()
+        }
     }
 
     // MARK: - Profile Card
@@ -196,7 +202,7 @@ struct SettingsView: View {
     // MARK: - Sign Out Button
 
     private var signOutButton: some View {
-        Button(action: {}) {
+        Button(action: { showingSignOutAlert = true }) {
             HStack(spacing: 10) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: 18))
@@ -208,6 +214,15 @@ struct SettingsView: View {
             .padding(18)
             .background(themeManager.theme.cardBackground)
             .cornerRadius(20)
+        }
+        .alert("Sign Out", isPresented: $showingSignOutAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                // Handle sign out
+                navigationManager.navigateToHome()
+            }
+        } message: {
+            Text("Are you sure you want to sign out?")
         }
     }
 
@@ -296,4 +311,5 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(ThemeManager())
+        .environmentObject(NavigationManager())
 }

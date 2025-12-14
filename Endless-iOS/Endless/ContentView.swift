@@ -1,12 +1,40 @@
 import SwiftUI
 
+// Navigation Manager to handle tab switching across views
+class NavigationManager: ObservableObject {
+    @Published var selectedTab = 0
+    @Published var showVideoDetail = false
+    @Published var selectedVideoId: String?
+    @Published var selectedSessionId: String?
+
+    func navigateToVideo() {
+        selectedTab = 1
+    }
+
+    func navigateToRecord() {
+        selectedTab = 2
+    }
+
+    func navigateToAI() {
+        selectedTab = 3
+    }
+
+    func navigateToSettings() {
+        selectedTab = 4
+    }
+
+    func navigateToHome() {
+        selectedTab = 0
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    @State private var selectedTab = 0
+    @StateObject private var navigationManager = NavigationManager()
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
+            TabView(selection: $navigationManager.selectedTab) {
                 HomeView()
                     .tag(0)
 
@@ -22,9 +50,10 @@ struct ContentView: View {
                 SettingsView()
                     .tag(4)
             }
+            .environmentObject(navigationManager)
 
             // Custom Tab Bar
-            CustomTabBar(selectedTab: $selectedTab)
+            CustomTabBar(selectedTab: $navigationManager.selectedTab)
         }
         .background(themeManager.theme.background)
         .preferredColorScheme(themeManager.isDark ? .dark : .light)
@@ -38,15 +67,23 @@ struct CustomTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             TabBarButton(icon: "house", label: "Home", isSelected: selectedTab == 0) {
-                selectedTab = 0
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 0
+                }
             }
 
             TabBarButton(icon: "video", label: "Video", isSelected: selectedTab == 1) {
-                selectedTab = 1
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 1
+                }
             }
 
             // Center Record Button
-            Button(action: { selectedTab = 2 }) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 2
+                }
+            }) {
                 ZStack {
                     Circle()
                         .fill(themeManager.theme.primary)
@@ -61,11 +98,15 @@ struct CustomTabBar: View {
             .offset(y: -24)
 
             TabBarButton(icon: "sparkles", label: "AI", isSelected: selectedTab == 3) {
-                selectedTab = 3
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 3
+                }
             }
 
             TabBarButton(icon: "gearshape", label: "Settings", isSelected: selectedTab == 4) {
-                selectedTab = 4
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 4
+                }
             }
         }
         .padding(.horizontal, 8)

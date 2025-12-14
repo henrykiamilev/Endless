@@ -58,7 +58,11 @@ struct MockData {
 
     static let playsOfWeek: [PlayOfTheWeek] = [
         PlayOfTheWeek(id: "1", playerName: "Henry Kammler", playerTitle: "Class of 2025", location: "San Diego, CA"),
-        PlayOfTheWeek(id: "2", playerName: "John Smith", playerTitle: "Class of 2024", location: "Los Angeles, CA")
+        PlayOfTheWeek(id: "2", playerName: "John Smith", playerTitle: "Class of 2024", location: "Los Angeles, CA"),
+        PlayOfTheWeek(id: "3", playerName: "Sarah Johnson", playerTitle: "Class of 2025", location: "Scottsdale, AZ"),
+        PlayOfTheWeek(id: "4", playerName: "Mike Chen", playerTitle: "Class of 2026", location: "Austin, TX"),
+        PlayOfTheWeek(id: "5", playerName: "Emma Davis", playerTitle: "Class of 2024", location: "Miami, FL"),
+        PlayOfTheWeek(id: "6", playerName: "Tyler Brooks", playerTitle: "Class of 2025", location: "Denver, CO")
     ]
 
     static let videos: [Video] = [

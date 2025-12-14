@@ -2,7 +2,9 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
     @State private var selectedTab = 0
+    @State private var showingMenu = false
 
     private let navTabs = ["Sessions", "Team", "Profile"]
 
@@ -51,7 +53,7 @@ struct HomeView: View {
     private var heroHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: {}) {
+                Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.theme.textPrimary)
@@ -80,18 +82,23 @@ struct HomeView: View {
                 .lineSpacing(-8)
                 .padding(.bottom, 12)
 
-            HStack(spacing: 4) {
-                Text("STANDINGS")
-                    .font(.system(size: 13, weight: .semibold))
-                    .tracking(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 12))
+            Button(action: { navigationManager.navigateToVideo() }) {
+                HStack(spacing: 4) {
+                    Text("STANDINGS")
+                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(1)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12))
+                }
+                .foregroundColor(themeManager.theme.textSecondary)
             }
-            .foregroundColor(themeManager.theme.textSecondary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 20)
+        .sheet(isPresented: $showingMenu) {
+            MenuSheetView()
+        }
     }
 
     // MARK: - Navigation Tabs
@@ -249,9 +256,15 @@ struct HomeView: View {
 
     private var quickActionsRow: some View {
         HStack(spacing: 10) {
-            QuickActionCard(title: "Today's Drills", subtitle: "5 remaining", icon: "figure.golf")
-            QuickActionCard(title: "Last Session", subtitle: "2 days ago", icon: "clock")
-            QuickActionCard(title: "Recruit Views", subtitle: "12 coaches", icon: "eye")
+            QuickActionCard(title: "Today's Drills", subtitle: "5 remaining", icon: "figure.golf") {
+                navigationManager.navigateToRecord()
+            }
+            QuickActionCard(title: "Last Session", subtitle: "2 days ago", icon: "clock") {
+                navigationManager.navigateToVideo()
+            }
+            QuickActionCard(title: "Recruit Views", subtitle: "12 coaches", icon: "eye") {
+                navigationManager.navigateToAI()
+            }
         }
     }
 
@@ -261,7 +274,10 @@ struct HomeView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
                 ForEach(MockData.playsOfWeek) { play in
-                    PlayOfWeekCard(play: play)
+                    PlayOfWeekCard(play: play) {
+                        navigationManager.selectedVideoId = play.id
+                        navigationManager.navigateToVideo()
+                    }
                 }
             }
             .padding(.trailing, 20)
@@ -276,7 +292,10 @@ struct HomeView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 ForEach(MockData.sessions) { session in
-                    SessionCard(session: session)
+                    SessionCard(session: session) {
+                        navigationManager.selectedSessionId = session.id
+                        navigationManager.navigateToVideo()
+                    }
                 }
             }
             .padding(.trailing, 20)
@@ -301,7 +320,72 @@ struct HomeView: View {
     }
 }
 
+// MARK: - Menu Sheet View
+
+struct MenuSheetView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    menuButton(icon: "house.fill", title: "Home") {
+                        dismiss()
+                        navigationManager.navigateToHome()
+                    }
+                    menuButton(icon: "video.fill", title: "Video Library") {
+                        dismiss()
+                        navigationManager.navigateToVideo()
+                    }
+                    menuButton(icon: "camera.fill", title: "Record Session") {
+                        dismiss()
+                        navigationManager.navigateToRecord()
+                    }
+                    menuButton(icon: "sparkles", title: "Endless AI") {
+                        dismiss()
+                        navigationManager.navigateToAI()
+                    }
+                    menuButton(icon: "gearshape.fill", title: "Settings") {
+                        dismiss()
+                        navigationManager.navigateToSettings()
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Menu")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(themeManager.theme.primary)
+                }
+            }
+        }
+    }
+
+    private func menuButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(themeManager.theme.primary)
+                    .frame(width: 28)
+
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(themeManager.theme.textPrimary)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
 #Preview {
     HomeView()
         .environmentObject(ThemeManager())
+        .environmentObject(NavigationManager())
 }

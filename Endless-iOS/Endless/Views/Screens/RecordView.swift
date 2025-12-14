@@ -3,10 +3,12 @@ import AVFoundation
 
 struct RecordView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
     @State private var isRecording = false
     @State private var isFrontCamera = false
     @State private var hasPermission = false
     @State private var showPermissionAlert = false
+    @State private var selectedMode = 1 // 0 = Photo, 1 = Video, 2 = Slo-Mo
 
     var body: some View {
         ZStack {
@@ -82,7 +84,7 @@ struct RecordView: View {
             // Top controls
             VStack {
                 HStack {
-                    Button(action: {}) {
+                    Button(action: { navigationManager.navigateToHome() }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 22, weight: .medium))
                             .foregroundColor(.white)
@@ -93,7 +95,7 @@ struct RecordView: View {
 
                     Spacer()
 
-                    Button(action: {}) {
+                    Button(action: { /* Toggle flash */ }) {
                         Image(systemName: "bolt.slash.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.white)
@@ -137,7 +139,7 @@ struct RecordView: View {
                 // Main controls
                 HStack(alignment: .center, spacing: 36) {
                     // Gallery button
-                    Button(action: {}) {
+                    Button(action: { navigationManager.navigateToVideo() }) {
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 22))
                             .foregroundColor(.white)
@@ -179,17 +181,18 @@ struct RecordView: View {
 
                 // Mode selector
                 HStack(spacing: 0) {
-                    modeButton("Photo", isSelected: false)
-                    modeButton("Video", isSelected: true)
-                    modeButton("Slo-Mo", isSelected: false)
+                    modeButton("Photo", modeIndex: 0)
+                    modeButton("Video", modeIndex: 1)
+                    modeButton("Slo-Mo", modeIndex: 2)
                 }
                 .padding(.bottom, 100)
             }
         }
     }
 
-    private func modeButton(_ title: String, isSelected: Bool) -> some View {
-        Button(action: {}) {
+    private func modeButton(_ title: String, modeIndex: Int) -> some View {
+        let isSelected = selectedMode == modeIndex
+        return Button(action: { selectedMode = modeIndex }) {
             VStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
@@ -237,4 +240,5 @@ struct RecordView: View {
 #Preview {
     RecordView()
         .environmentObject(ThemeManager())
+        .environmentObject(NavigationManager())
 }

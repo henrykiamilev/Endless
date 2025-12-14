@@ -2,8 +2,11 @@ import SwiftUI
 
 struct EndlessAIView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var navigationManager: NavigationManager
     @State private var prompt = ""
     @State private var selectedCourses: Set<String> = []
+    @State private var showingMenu = false
+    @State private var isGenerating = false
 
     private let courseFilters = ["Oakmont CC", "Pebble Beach", "Del Mar"]
 
@@ -32,7 +35,7 @@ struct EndlessAIView: View {
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: {}) {
+                Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.theme.textPrimary)
@@ -43,14 +46,16 @@ struct EndlessAIView: View {
 
                 Spacer()
 
-                ZStack {
-                    Circle()
-                        .fill(themeManager.theme.cardBackground)
-                        .frame(width: 44, height: 44)
+                Button(action: { navigationManager.navigateToHome() }) {
+                    ZStack {
+                        Circle()
+                            .fill(themeManager.theme.cardBackground)
+                            .frame(width: 44, height: 44)
 
-                    Text("∞")
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundColor(themeManager.theme.primary)
+                        Text("∞")
+                            .font(.system(size: 24, weight: .light))
+                            .foregroundColor(themeManager.theme.primary)
+                    }
                 }
             }
             .padding(.bottom, 20)
@@ -64,6 +69,9 @@ struct EndlessAIView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 20)
+        .sheet(isPresented: $showingMenu) {
+            MenuSheetView()
+        }
     }
 
     // MARK: - Highlight Reel Card
@@ -120,11 +128,24 @@ struct EndlessAIView: View {
                 }
 
                 // Generate button
-                Button(action: {}) {
+                Button(action: {
+                    isGenerating = true
+                    // Simulate generation then navigate to video
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        isGenerating = false
+                        navigationManager.navigateToVideo()
+                    }
+                }) {
                     HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16))
-                        Text("GENERATE REEL")
+                        if isGenerating {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: themeManager.theme.textInverse))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16))
+                        }
+                        Text(isGenerating ? "GENERATING..." : "GENERATE REEL")
                             .font(.system(size: 13, weight: .bold))
                             .tracking(0.5)
                     }
@@ -134,6 +155,7 @@ struct EndlessAIView: View {
                     .background(themeManager.theme.primary)
                     .cornerRadius(28)
                 }
+                .disabled(isGenerating)
             }
             .padding(20)
             .background(themeManager.theme.cardBackground)
@@ -173,7 +195,7 @@ struct EndlessAIView: View {
 
                 Spacer()
 
-                Button(action: {}) {
+                Button(action: { navigationManager.navigateToRecord() }) {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textInverse)
@@ -198,7 +220,7 @@ struct EndlessAIView: View {
             .padding(.bottom, 14)
 
             // Add video card
-            Button(action: {}) {
+            Button(action: { navigationManager.navigateToRecord() }) {
                 VStack(spacing: 12) {
                     Circle()
                         .fill(themeManager.theme.primary.opacity(0.15))
@@ -240,4 +262,5 @@ struct EndlessAIView: View {
 #Preview {
     EndlessAIView()
         .environmentObject(ThemeManager())
+        .environmentObject(NavigationManager())
 }
