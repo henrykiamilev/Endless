@@ -31,9 +31,9 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
   <TouchableOpacity
     style={[styles.settingsItem, { borderBottomColor: theme.border }]}
     onPress={onPress}
-    activeOpacity={0.6}
+    activeOpacity={0.7}
   >
-    <View style={[styles.settingsItemIcon, { backgroundColor: theme.cardBackgroundElevated }]}>
+    <View style={[styles.settingsItemIcon, { backgroundColor: `${theme.primary}15` }]}>
       <Ionicons name={icon} size={20} color={theme.primary} />
     </View>
     <View style={styles.settingsItemContent}>
@@ -57,18 +57,21 @@ export const SettingsScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Settings</Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground }]}>
+              <Ionicons name="menu" size={22} color={theme.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
+            SETTINGS
+          </Text>
         </View>
 
         {/* Profile Section */}
         <View style={styles.section}>
           <TouchableOpacity style={[
             styles.profileCard,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
+            { backgroundColor: theme.cardBackground }
           ]}>
             <View style={[styles.profileAvatar, { backgroundColor: theme.primary }]}>
               <Text style={[styles.profileInitial, { color: theme.textInverse }]}>W</Text>
@@ -83,21 +86,14 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Theme Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Appearance</Text>
-          <View style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
-          ]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>APPEARANCE</Text>
+          <View style={[styles.settingsGroup, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={[styles.settingsItem, { borderBottomColor: theme.border }]}
               onPress={toggleTheme}
-              activeOpacity={0.6}
+              activeOpacity={0.7}
             >
-              <View style={[styles.settingsItemIcon, { backgroundColor: theme.cardBackgroundElevated }]}>
+              <View style={[styles.settingsItemIcon, { backgroundColor: `${theme.primary}15` }]}>
                 <Ionicons name={theme.isDark ? 'moon' : 'sunny'} size={20} color={theme.primary} />
               </View>
               <View style={styles.settingsItemContent}>
@@ -106,9 +102,9 @@ export const SettingsScreen: React.FC = () => {
                   {theme.isDark ? 'Dark mode' : 'Light mode'}
                 </Text>
               </View>
-              <View style={[styles.themeBadge, { backgroundColor: theme.cardBackgroundElevated }]}>
+              <View style={[styles.themeBadge, { backgroundColor: theme.backgroundSecondary }]}>
                 <Text style={[styles.themeBadgeText, { color: theme.textSecondary }]}>
-                  {theme.isDark ? 'Dark' : 'Light'}
+                  {theme.isDark ? 'DARK' : 'LIGHT'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -117,15 +113,8 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
-          <View style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
-          ]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ACCOUNT</Text>
+          <View style={[styles.settingsGroup, { backgroundColor: theme.cardBackground }]}>
             <SettingsItem
               icon="person-outline"
               title="Edit Profile"
@@ -153,15 +142,8 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Preferences</Text>
-          <View style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
-          ]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>PREFERENCES</Text>
+          <View style={[styles.settingsGroup, { backgroundColor: theme.cardBackground }]}>
             <SettingsItem
               icon="golf-outline"
               title="Golf Settings"
@@ -184,15 +166,8 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Support Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Support</Text>
-          <View style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
-          ]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>SUPPORT</Text>
+          <View style={[styles.settingsGroup, { backgroundColor: theme.cardBackground }]}>
             <SettingsItem
               icon="help-circle-outline"
               title="Help Center"
@@ -220,10 +195,7 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <TouchableOpacity style={[
             styles.signOutButton,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-            }
+            { backgroundColor: theme.cardBackground }
           ]}>
             <Ionicons name="log-out-outline" size={20} color={theme.error} />
             <Text style={[styles.signOutText, { color: theme.error }]}>Sign Out</Text>
@@ -232,8 +204,8 @@ export const SettingsScreen: React.FC = () => {
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <View style={[styles.logoSmall, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Text style={[styles.logoSmallText, { color: theme.textPrimary }]}>∞</Text>
+          <View style={[styles.logoSmall, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.logoSmallText, { color: theme.primary }]}>∞</Text>
           </View>
           <Text style={[styles.versionText, { color: theme.textMuted }]}>Endless v1.0.0</Text>
         </View>
@@ -256,75 +228,78 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 24,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontSize: 48,
+    fontWeight: '800',
+    letterSpacing: -2,
   },
   section: {
     marginBottom: 28,
     paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 10,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 14,
     marginLeft: 4,
-    letterSpacing: 0.5,
   },
   profileCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   profileAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
   profileInitial: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   profileEmail: {
     fontSize: 14,
-    marginTop: 3,
+    marginTop: 4,
   },
   settingsGroup: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     borderBottomWidth: 1,
   },
   settingsItemIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -334,55 +309,55 @@ const styles = StyleSheet.create({
   },
   settingsItemTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   settingsItemSubtitle: {
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 3,
   },
   themeBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 10,
   },
   themeBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   signOutButton: {
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
   signOutText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     marginLeft: 10,
   },
   versionContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 24,
   },
   logoSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
+    marginBottom: 10,
   },
   logoSmallText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '300',
   },
   versionText: {
     fontSize: 12,
+    fontWeight: '500',
   },
   bottomPadding: {
-    height: 100,
+    height: 120,
   },
 });

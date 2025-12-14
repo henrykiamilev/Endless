@@ -16,45 +16,45 @@ export const PerformanceSnapshot: React.FC<PerformanceSnapshotProps> = ({ onPres
         styles.container,
         {
           backgroundColor: theme.cardBackground,
-          borderColor: theme.border,
-          shadowColor: theme.shadowColor,
         }
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.textPrimary }]}>Performance Snapshot</Text>
-        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+        <View style={[styles.viewButton, { backgroundColor: `${theme.primary}15` }]}>
+          <Text style={[styles.viewButtonText, { color: theme.primary }]}>VIEW ALL</Text>
+        </View>
       </View>
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <View style={[styles.iconBg, { backgroundColor: `${theme.accentBlue}20` }]}>
-            <Ionicons name="golf" size={18} color={theme.accentBlue} />
+          <View style={[styles.iconBg, { backgroundColor: `${theme.accentBlue}15` }]}>
+            <Ionicons name="golf" size={20} color={theme.accentBlue} />
           </View>
           <Text style={[styles.statValue, { color: theme.textPrimary }]}>72%</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>GIR</Text>
+          <Text style={[styles.statLabel, { color: theme.textMuted }]}>GIR</Text>
         </View>
         <View style={styles.statItem}>
-          <View style={[styles.iconBg, { backgroundColor: `${theme.accentGreen}20` }]}>
-            <Ionicons name="flag" size={18} color={theme.accentGreen} />
+          <View style={[styles.iconBg, { backgroundColor: `${theme.accentGreen}15` }]}>
+            <Ionicons name="flag" size={20} color={theme.accentGreen} />
           </View>
           <Text style={[styles.statValue, { color: theme.textPrimary }]}>65%</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>FIR</Text>
+          <Text style={[styles.statLabel, { color: theme.textMuted }]}>FIR</Text>
         </View>
         <View style={styles.statItem}>
-          <View style={[styles.iconBg, { backgroundColor: `${theme.accentYellow}20` }]}>
-            <Ionicons name="ellipse" size={18} color={theme.accentYellow} />
+          <View style={[styles.iconBg, { backgroundColor: `${theme.accentYellow}15` }]}>
+            <Ionicons name="ellipse" size={20} color={theme.accentYellow} />
           </View>
           <Text style={[styles.statValue, { color: theme.textPrimary }]}>28.4</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Putts</Text>
+          <Text style={[styles.statLabel, { color: theme.textMuted }]}>Putts</Text>
         </View>
         <View style={styles.statItem}>
-          <View style={[styles.iconBg, { backgroundColor: `${theme.primary}20` }]}>
-            <Ionicons name="trophy" size={18} color={theme.primary} />
+          <View style={[styles.iconBg, { backgroundColor: `${theme.primary}15` }]}>
+            <Ionicons name="trophy" size={20} color={theme.primary} />
           </View>
           <Text style={[styles.statValue, { color: theme.textPrimary }]}>71.3</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Avg</Text>
+          <Text style={[styles.statLabel, { color: theme.textMuted }]}>Avg</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -63,23 +63,28 @@ export const PerformanceSnapshot: React.FC<PerformanceSnapshotProps> = ({ onPres
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 24,
+    padding: 22,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 22,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  viewButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  viewButtonText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   statsRow: {
     flexDirection: 'row',
@@ -89,19 +94,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 8,
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 10,
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 3,
+    letterSpacing: 0.3,
   },
 });

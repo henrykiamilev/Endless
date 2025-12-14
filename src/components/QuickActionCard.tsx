@@ -24,17 +24,15 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
         styles.container,
         {
           backgroundColor: theme.cardBackground,
-          borderColor: theme.border,
-          shadowColor: theme.shadowColor,
         }
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <View style={[styles.iconContainer, { backgroundColor: theme.cardBackgroundElevated }]}>
-        <Ionicons name={icon} size={22} color={theme.primary} />
+      <View style={[styles.iconContainer, { backgroundColor: `${theme.primary}15` }]}>
+        <Ionicons name={icon} size={24} color={theme.primary} />
       </View>
-      <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>
       <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
     </TouchableOpacity>
   );
@@ -42,33 +40,29 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginHorizontal: 5,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
     textAlign: 'center',
+    fontWeight: '500',
   },
 });

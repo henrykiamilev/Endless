@@ -9,6 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { SwingVideoCard } from '../components';
 import { SwingVideo } from '../types';
@@ -53,92 +54,92 @@ export const EndlessAIScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-              <Text style={[styles.logoText, { color: theme.textPrimary }]}>∞</Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground }]}>
+              <Ionicons name="menu" size={22} color={theme.textPrimary} />
+            </TouchableOpacity>
+            <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground }]}>
+              <Text style={[styles.logoText, { color: theme.primary }]}>∞</Text>
             </View>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Endless AI</Text>
           </View>
+          <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
+            ENDLESS{'\n'}AI
+          </Text>
         </View>
 
         {/* Create Highlight Reel Section */}
         <View style={styles.section}>
-          <View style={[
-            styles.highlightCard,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              shadowColor: theme.shadowColor,
-            }
-          ]}>
-            <View style={styles.highlightHeader}>
-              <View style={[styles.aiIconContainer, { backgroundColor: `${theme.primary}20` }]}>
-                <Ionicons name="sparkles" size={24} color={theme.primary} />
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>CREATE HIGHLIGHT REEL</Text>
+          <View style={[styles.highlightCard, { backgroundColor: theme.cardBackground }]}>
+            <LinearGradient
+              colors={theme.isDark ? ['#1A3A2E', '#0A1A14'] : ['#D4E5DC', '#A8C5B5']}
+              style={styles.highlightGradient}
+            >
+              <View style={[styles.aiIconContainer, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Ionicons name="sparkles" size={32} color="#FFFFFF" />
               </View>
-              <View style={styles.highlightTitleContainer}>
-                <Text style={[styles.highlightTitle, { color: theme.textPrimary }]}>Create Highlight Reel</Text>
-                <Text style={[styles.highlightSubtitle, { color: theme.textSecondary }]}>Powered by AI</Text>
-              </View>
-            </View>
+              <Text style={styles.highlightBadge}>POWERED BY AI</Text>
+            </LinearGradient>
 
-            <TextInput
-              style={[
-                styles.promptInput,
-                {
-                  backgroundColor: theme.backgroundSecondary,
-                  color: theme.textPrimary,
-                  borderColor: theme.border,
-                }
-              ]}
-              placeholder='Describe your perfect highlight reel... (e.g., "Create a 2-minute reel focusing on my short game and driving accuracy from my last 5 matches.")'
-              placeholderTextColor={theme.textMuted}
-              multiline
-              numberOfLines={4}
-              value={prompt}
-              onChangeText={setPrompt}
-            />
+            <View style={styles.highlightContent}>
+              <TextInput
+                style={[
+                  styles.promptInput,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.textPrimary,
+                  }
+                ]}
+                placeholder='Describe your perfect highlight reel...'
+                placeholderTextColor={theme.textMuted}
+                multiline
+                numberOfLines={3}
+                value={prompt}
+                onChangeText={setPrompt}
+              />
 
-            {/* Course Filters */}
-            <View style={styles.courseFilters}>
-              {courseFilters.map((course) => (
-                <TouchableOpacity
-                  key={course}
-                  style={[
-                    styles.courseChip,
-                    { backgroundColor: theme.cardBackgroundElevated, borderColor: theme.border },
-                    selectedCourses.includes(course) && { backgroundColor: theme.primary, borderColor: theme.primary },
-                  ]}
-                  onPress={() => toggleCourse(course)}
-                >
-                  <Text
+              {/* Course Filters */}
+              <View style={styles.courseFilters}>
+                {courseFilters.map((course) => (
+                  <TouchableOpacity
+                    key={course}
                     style={[
-                      styles.courseChipText,
-                      { color: theme.textSecondary },
-                      selectedCourses.includes(course) && { color: theme.textInverse },
+                      styles.courseChip,
+                      { backgroundColor: theme.backgroundSecondary },
+                      selectedCourses.includes(course) && { backgroundColor: theme.primary },
                     ]}
+                    onPress={() => toggleCourse(course)}
                   >
-                    {course}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text
+                      style={[
+                        styles.courseChipText,
+                        { color: theme.textSecondary },
+                        selectedCourses.includes(course) && { color: theme.textInverse },
+                      ]}
+                    >
+                      {course}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <TouchableOpacity style={[styles.generateButton, { backgroundColor: theme.primary }]}>
-              <Ionicons name="sparkles" size={18} color={theme.textInverse} style={{ marginRight: 8 }} />
-              <Text style={[styles.generateButtonText, { color: theme.textInverse }]}>Generate Highlight Reel</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={[styles.generateButton, { backgroundColor: theme.primary }]}>
+                <Ionicons name="sparkles" size={18} color={theme.textInverse} style={{ marginRight: 8 }} />
+                <Text style={[styles.generateButtonText, { color: theme.textInverse }]}>GENERATE REEL</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         {/* My Swing Videos Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Swing Videos</Text>
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>MY SWING VIDEOS</Text>
             <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]}>
-              <Ionicons name="add" size={22} color={theme.textInverse} />
+              <Ionicons name="add" size={20} color={theme.textInverse} />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
             Upload up to 5 swing videos with annotations
           </Text>
 
@@ -153,10 +154,9 @@ export const EndlessAIScreen: React.FC = () => {
             styles.addVideoCard,
             {
               backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
             }
           ]}>
-            <View style={[styles.addVideoIconBg, { backgroundColor: `${theme.primary}20` }]}>
+            <View style={[styles.addVideoIconBg, { backgroundColor: `${theme.primary}15` }]}>
               <Ionicons name="add" size={28} color={theme.primary} />
             </View>
             <Text style={[styles.addVideoText, { color: theme.textSecondary }]}>Add Swing Video</Text>
@@ -179,74 +179,80 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
-  headerRow: {
+  headerTop: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
   },
   logoText: {
     fontSize: 24,
     fontWeight: '300',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
+  heroTitle: {
+    fontSize: 48,
+    fontWeight: '800',
+    letterSpacing: -2,
+    lineHeight: 48,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: 32,
     paddingHorizontal: 20,
   },
-  highlightCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 14,
   },
-  highlightHeader: {
-    flexDirection: 'row',
+  highlightCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  highlightGradient: {
+    padding: 28,
     alignItems: 'center',
-    marginBottom: 18,
   },
   aiIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginBottom: 12,
   },
-  highlightTitleContainer: {
-    flex: 1,
-  },
-  highlightTitle: {
-    fontSize: 18,
+  highlightBadge: {
+    fontSize: 10,
     fontWeight: '700',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.8)',
   },
-  highlightSubtitle: {
-    fontSize: 13,
-    marginTop: 3,
+  highlightContent: {
+    padding: 20,
   },
   promptInput: {
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     fontSize: 14,
-    minHeight: 110,
+    minHeight: 80,
     textAlignVertical: 'top',
-    borderWidth: 1,
-    marginBottom: 14,
+    marginBottom: 16,
     lineHeight: 20,
   },
   courseFilters: {
@@ -255,27 +261,27 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   courseChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 20,
     marginRight: 8,
     marginBottom: 8,
-    borderWidth: 1,
   },
   courseChipText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
   },
   generateButton: {
     flexDirection: 'row',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   generateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -283,14 +289,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-  },
   addButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -302,25 +304,23 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   addVideoCard: {
-    borderRadius: 16,
-    padding: 28,
+    borderRadius: 20,
+    padding: 32,
     alignItems: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
   },
   addVideoIconBg: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   addVideoText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   bottomPadding: {
-    height: 100,
+    height: 120,
   },
 });

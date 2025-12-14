@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { Session } from '../types';
 
@@ -13,21 +14,23 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onPress }) =>
   const { theme } = useTheme();
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={[
-        styles.thumbnailContainer,
-        {
-          backgroundColor: theme.cardBackgroundElevated,
-          shadowColor: theme.shadowColor,
-        }
-      ]}>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.9}>
+      <View style={styles.thumbnailContainer}>
         {session.thumbnail ? (
           <Image source={{ uri: session.thumbnail }} style={styles.thumbnail} />
         ) : (
-          <View style={[styles.thumbnail, styles.placeholderThumbnail]}>
-            <Ionicons name="golf" size={24} color={theme.primary} />
-          </View>
+          <LinearGradient
+            colors={theme.isDark ? ['#1A3A2E', '#0D1F17'] : ['#D4E5DC', '#A8C5B5']}
+            style={[styles.thumbnail, styles.placeholderThumbnail]}
+          >
+            <Ionicons name="golf" size={28} color={theme.primary} style={{ opacity: 0.6 }} />
+          </LinearGradient>
         )}
+        {/* Location badge */}
+        <View style={[styles.locationBadge, { backgroundColor: theme.cardBackground }]}>
+          <Ionicons name="location" size={10} color={theme.textSecondary} />
+          <Text style={[styles.locationText, { color: theme.textSecondary }]}>{session.location}</Text>
+        </View>
       </View>
       <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{session.title}</Text>
       <Text style={[styles.date, { color: theme.textSecondary }]}>{session.date}</Text>
@@ -37,19 +40,16 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onPress }) =>
 
 const styles = StyleSheet.create({
   container: {
-    width: 110,
-    marginRight: 12,
+    width: 140,
+    marginRight: 14,
   },
   thumbnailContainer: {
-    width: 110,
-    height: 85,
-    borderRadius: 12,
+    width: 140,
+    height: 100,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 10,
+    position: 'relative',
   },
   thumbnail: {
     width: '100%',
@@ -59,12 +59,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 13,
+  locationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  locationText: {
+    fontSize: 9,
     fontWeight: '600',
+    marginLeft: 3,
+    letterSpacing: 0.3,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   date: {
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 3,
   },
 });

@@ -22,6 +22,7 @@ export interface Theme {
   accentYellow: string;
   accentRed: string;
   accentBlue: string;
+  accentOlive: string;
 
   // Border colors
   border: string;
@@ -47,6 +48,10 @@ export interface Theme {
   // Shadows
   shadowColor: string;
 
+  // Overlay colors
+  overlayDark: string;
+  overlayLight: string;
+
   // Mode
   isDark: boolean;
 }
@@ -57,17 +62,17 @@ export const DarkTheme: Theme = {
   primaryLight: '#00F5C4',
   primaryDark: '#00B894',
 
-  // Background colors - Deep, rich blacks
-  background: '#0A0A0B',
-  backgroundSecondary: '#111113',
-  cardBackground: '#18181B',
-  cardBackgroundElevated: '#1F1F23',
+  // Background colors - Deep, rich blacks with warmth
+  background: '#0C0C0C',
+  backgroundSecondary: '#141414',
+  cardBackground: '#1A1A1A',
+  cardBackgroundElevated: '#222222',
 
   // Text colors
   textPrimary: '#FFFFFF',
-  textSecondary: '#A1A1AA',
-  textMuted: '#71717A',
-  textInverse: '#0A0A0B',
+  textSecondary: '#9CA3AF',
+  textMuted: '#6B7280',
+  textInverse: '#0C0C0C',
 
   // Accent colors
   accent: '#00D4AA',
@@ -75,10 +80,11 @@ export const DarkTheme: Theme = {
   accentYellow: '#FACC15',
   accentRed: '#EF4444',
   accentBlue: '#3B82F6',
+  accentOlive: '#4A5D23',
 
   // Border colors
-  border: '#27272A',
-  borderLight: '#3F3F46',
+  border: '#2A2A2A',
+  borderLight: '#3A3A3A',
 
   // Status colors
   success: '#22C55E',
@@ -87,18 +93,22 @@ export const DarkTheme: Theme = {
   info: '#3B82F6',
 
   // Tab bar
-  tabBarBackground: '#0A0A0B',
+  tabBarBackground: '#0C0C0C',
   tabBarActive: '#00D4AA',
-  tabBarInactive: '#71717A',
+  tabBarInactive: '#6B7280',
 
   // Button colors
   buttonPrimary: '#00D4AA',
-  buttonPrimaryText: '#0A0A0B',
-  buttonSecondary: '#27272A',
+  buttonPrimaryText: '#0C0C0C',
+  buttonSecondary: '#2A2A2A',
   buttonSecondaryText: '#FFFFFF',
 
   // Shadows
   shadowColor: '#000000',
+
+  // Overlay colors
+  overlayDark: 'rgba(0, 0, 0, 0.7)',
+  overlayLight: 'rgba(0, 0, 0, 0.4)',
 
   isDark: true,
 };
@@ -109,48 +119,53 @@ export const LightTheme: Theme = {
   primaryLight: '#00D4AA',
   primaryDark: '#009B7D',
 
-  // Background colors - Clean whites and grays
-  background: '#FFFFFF',
-  backgroundSecondary: '#F8FAFC',
+  // Background colors - Warm cream/off-white tones
+  background: '#F5F3EF',
+  backgroundSecondary: '#EEEBE5',
   cardBackground: '#FFFFFF',
-  cardBackgroundElevated: '#F1F5F9',
+  cardBackgroundElevated: '#F8F6F2',
 
   // Text colors
-  textPrimary: '#0F172A',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#5C5C5C',
+  textMuted: '#8A8A8A',
   textInverse: '#FFFFFF',
 
   // Accent colors
   accent: '#00B894',
-  accentGreen: '#16A34A',
-  accentYellow: '#EAB308',
-  accentRed: '#DC2626',
+  accentGreen: '#4A5D23',
+  accentYellow: '#C9A227',
+  accentRed: '#C53030',
   accentBlue: '#2563EB',
+  accentOlive: '#4A5D23',
 
   // Border colors
-  border: '#E2E8F0',
-  borderLight: '#CBD5E1',
+  border: '#E5E2DC',
+  borderLight: '#D1CEC6',
 
   // Status colors
-  success: '#16A34A',
-  warning: '#EAB308',
-  error: '#DC2626',
+  success: '#4A5D23',
+  warning: '#C9A227',
+  error: '#C53030',
   info: '#2563EB',
 
   // Tab bar
-  tabBarBackground: '#FFFFFF',
+  tabBarBackground: '#F5F3EF',
   tabBarActive: '#00B894',
-  tabBarInactive: '#94A3B8',
+  tabBarInactive: '#8A8A8A',
 
   // Button colors
   buttonPrimary: '#00B894',
   buttonPrimaryText: '#FFFFFF',
-  buttonSecondary: '#F1F5F9',
-  buttonSecondaryText: '#0F172A',
+  buttonSecondary: '#E5E2DC',
+  buttonSecondaryText: '#1A1A1A',
 
   // Shadows
-  shadowColor: '#64748B',
+  shadowColor: '#5C5C5C',
+
+  // Overlay colors
+  overlayDark: 'rgba(0, 0, 0, 0.6)',
+  overlayLight: 'rgba(0, 0, 0, 0.3)',
 
   isDark: false,
 };

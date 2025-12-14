@@ -19,8 +19,7 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
     <View style={[
       styles.container,
       {
-        backgroundColor: theme.cardBackgroundElevated,
-        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
       }
     ]}>
       {options.map((option, index) => (
@@ -30,7 +29,7 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
             styles.option,
             index === selectedIndex && [
               styles.selectedOption,
-              { backgroundColor: theme.primary }
+              { backgroundColor: theme.textPrimary }
             ],
           ]}
           onPress={() => onSelect(index)}
@@ -46,7 +45,7 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
               ],
             ]}
           >
-            {option}
+            {option.toUpperCase()}
           </Text>
         </TouchableOpacity>
       ))}
@@ -57,23 +56,23 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 4,
-    borderWidth: 1,
   },
   option: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 26,
     alignItems: 'center',
   },
   selectedOption: {},
   optionText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   selectedText: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
