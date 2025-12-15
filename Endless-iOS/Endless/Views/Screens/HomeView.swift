@@ -134,16 +134,15 @@ struct HomeView: View {
                             endPoint: .bottomTrailing
                         )
 
-                        // Decorative elements
+                        // Decorative elements - subtle
                         GeometryReader { geo in
-                            // Abstract shapes suggesting a golf course
                             Circle()
-                                .fill(themeManager.theme.accentGreen.opacity(0.06))
+                                .fill(themeManager.theme.textSecondary.opacity(0.04))
                                 .frame(width: 200, height: 200)
                                 .offset(x: geo.size.width - 80, y: -40)
 
                             Circle()
-                                .fill(themeManager.theme.accentGreen.opacity(0.04))
+                                .fill(themeManager.theme.textSecondary.opacity(0.03))
                                 .frame(width: 150, height: 150)
                                 .offset(x: -40, y: geo.size.height - 80)
 
@@ -155,19 +154,19 @@ struct HomeView: View {
                                     control: CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.45)
                                 )
                             }
-                            .stroke(themeManager.theme.accentGreen.opacity(0.1), lineWidth: 2)
+                            .stroke(themeManager.theme.textSecondary.opacity(0.08), lineWidth: 1.5)
                         }
 
-                        // Golf flag icon
+                        // Golf flag icon - subtle
                         VStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .fill(themeManager.theme.accentGreen.opacity(0.1))
+                                    .fill(themeManager.theme.textSecondary.opacity(0.06))
                                     .frame(width: 80, height: 80)
 
                                 Image(systemName: "flag.fill")
                                     .font(.system(size: 36, weight: .light))
-                                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.4))
+                                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.25))
                             }
                         }
                     }

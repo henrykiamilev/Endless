@@ -31,7 +31,7 @@ struct PlayOfWeekCard: View {
                             Text("FEATURED")
                                 .font(.system(size: 9, weight: .bold))
                                 .tracking(0.5)
-                                .foregroundColor(themeManager.theme.accentGreen)
+                                .foregroundColor(.white)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(.ultraThinMaterial)
@@ -114,25 +114,24 @@ struct PlayOfWeekCard: View {
                 endPoint: .bottomTrailing
             )
 
-            // Decorative elements
+            // Decorative elements - subtle
             GeometryReader { geo in
-                // Abstract golf course shapes
                 Circle()
-                    .fill(themeManager.theme.accentGreen.opacity(0.08))
+                    .fill(themeManager.theme.textSecondary.opacity(0.04))
                     .frame(width: 180, height: 180)
                     .offset(x: geo.size.width - 60, y: -40)
 
                 Circle()
-                    .fill(themeManager.theme.accentGreen.opacity(0.05))
+                    .fill(themeManager.theme.textSecondary.opacity(0.03))
                     .frame(width: 120, height: 120)
                     .offset(x: -30, y: geo.size.height - 60)
             }
 
-            // Golf flag icon
+            // Golf flag icon - subtle
             VStack(spacing: 8) {
                 Image(systemName: "flag.fill")
                     .font(.system(size: 48, weight: .light))
-                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.25))
+                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.15))
             }
         }
     }

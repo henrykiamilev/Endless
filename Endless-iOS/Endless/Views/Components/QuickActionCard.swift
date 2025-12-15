@@ -10,21 +10,16 @@ struct QuickActionCard: View {
     var body: some View {
         Button(action: { action?() }) {
             VStack(spacing: 14) {
-                // Icon with modern styling
+                // Icon with subtle styling
                 ZStack {
-                    // Outer ring
+                    // Simple circle background
                     Circle()
-                        .stroke(themeManager.theme.accentGreen.opacity(0.15), lineWidth: 2)
-                        .frame(width: 52, height: 52)
-
-                    // Inner circle
-                    Circle()
-                        .fill(themeManager.theme.accentGreen.opacity(0.1))
-                        .frame(width: 44, height: 44)
+                        .fill(themeManager.theme.textSecondary.opacity(0.08))
+                        .frame(width: 48, height: 48)
 
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(themeManager.theme.accentGreen)
+                        .foregroundColor(themeManager.theme.textPrimary.opacity(0.7))
                 }
 
                 VStack(spacing: 4) {

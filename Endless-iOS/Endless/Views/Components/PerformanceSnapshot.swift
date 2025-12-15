@@ -103,8 +103,8 @@ struct PerformanceSnapshot: View {
             HStack {
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 8, height: 8)
+                        .fill(themeManager.theme.accentGreen.opacity(0.6))
+                        .frame(width: 6, height: 6)
                     Text("Performance")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
@@ -115,8 +115,8 @@ struct PerformanceSnapshot: View {
                 // Customize button (+ icon)
                 Button(action: { onCustomize?() }) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(themeManager.theme.accentGreen)
+                        .font(.system(size: 22))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.6))
                 }
             }
 
@@ -165,8 +165,8 @@ struct PerformanceSnapshot: View {
         Button(action: { onCustomize?() }) {
             VStack(spacing: 12) {
                 Image(systemName: "plus.circle")
-                    .font(.system(size: 32))
-                    .foregroundColor(themeManager.theme.accentGreen)
+                    .font(.system(size: 28))
+                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
 
                 Text("Add Widgets")
                     .font(.system(size: 14, weight: .semibold))
@@ -175,10 +175,10 @@ struct PerformanceSnapshot: View {
             .frame(maxWidth: .infinity)
             .frame(height: 120)
             .background(themeManager.theme.cardBackground)
-            .cornerRadius(20)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(themeManager.theme.border, style: StrokeStyle(lineWidth: 2, dash: [8]))
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -198,34 +198,29 @@ struct WidgetCard: View {
                 // Top section with icon
                 HStack {
                     ZStack {
-                        // Outer glow
-                        Circle()
+                        // Subtle icon background
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(themeManager.theme.accentGreen.opacity(0.08))
-                            .frame(width: 40, height: 40)
-
-                        // Inner circle
-                        Circle()
-                            .fill(themeManager.theme.accentGreen.opacity(0.15))
-                            .frame(width: 32, height: 32)
+                            .frame(width: 34, height: 34)
 
                         Image(systemName: widget.icon)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(themeManager.theme.accentGreen)
+                            .foregroundColor(themeManager.theme.accentGreen.opacity(0.8))
                     }
 
                     Spacer()
 
-                    // Trend indicator
+                    // Trend indicator - more subtle
                     HStack(spacing: 2) {
                         Image(systemName: "arrow.up.right")
                             .font(.system(size: 9, weight: .bold))
                         Text("+2%")
                             .font(.system(size: 10, weight: .bold))
                     }
-                    .foregroundColor(themeManager.theme.accentGreen)
+                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(themeManager.theme.accentGreen.opacity(0.1))
+                    .background(themeManager.theme.accentGreen.opacity(0.06))
                     .clipShape(Capsule())
                 }
 
@@ -248,27 +243,12 @@ struct WidgetCard: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 120)
-            .background(
-                ZStack {
-                    themeManager.theme.cardBackground
-
-                    // Subtle gradient overlay
-                    LinearGradient(
-                        colors: [
-                            themeManager.theme.accentGreen.opacity(0.03),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            )
+            .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(themeManager.theme.border.opacity(0.5), lineWidth: 1)
+                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 1)
             )
-            .shadow(color: themeManager.theme.accentGreen.opacity(0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -289,7 +269,7 @@ struct WidgetCustomizationSheet: View {
                 VStack(spacing: 8) {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 32))
-                        .foregroundColor(themeManager.theme.accentGreen)
+                        .foregroundColor(themeManager.theme.textPrimary)
 
                     Text("Edit Widgets")
                         .font(.system(size: 22, weight: .bold))
@@ -338,8 +318,8 @@ struct WidgetCustomizationSheet: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(themeManager.theme.accentGreen)
-                    .cornerRadius(28)
+                    .background(themeManager.theme.textPrimary)
+                    .clipShape(Capsule())
                 }
                 .padding(20)
                 .background(themeManager.theme.background)
@@ -381,13 +361,13 @@ struct WidgetSelectionCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(themeManager.theme.accentGreen.opacity(isSelected ? 0.2 : 0.1))
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(themeManager.theme.textSecondary.opacity(isSelected ? 0.12 : 0.06))
                             .frame(width: 32, height: 32)
 
                         Image(systemName: widget.icon)
                             .font(.system(size: 14))
-                            .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                            .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.textMuted)
                     }
 
                     Spacer()
@@ -414,10 +394,10 @@ struct WidgetSelectionCard: View {
             }
             .padding(14)
             .background(themeManager.theme.cardBackground)
-            .cornerRadius(16)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? themeManager.theme.accentGreen : themeManager.theme.border, lineWidth: isSelected ? 2 : 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(isSelected ? themeManager.theme.textPrimary.opacity(0.3) : themeManager.theme.border, lineWidth: isSelected ? 1.5 : 1)
             )
 
             // Toggle button
@@ -428,11 +408,11 @@ struct WidgetSelectionCard: View {
                     Text(isSelected ? "Added" : "Add")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.textSecondary)
+                .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(isSelected ? themeManager.theme.accentGreen.opacity(0.1) : themeManager.theme.cardBackground)
-                .cornerRadius(12)
+                .background(isSelected ? themeManager.theme.textPrimary.opacity(0.08) : themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
     }
@@ -453,13 +433,13 @@ struct EditWidgetValueSheet: View {
                 // Widget preview
                 VStack(spacing: 16) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(themeManager.theme.accentGreen.opacity(0.15))
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(themeManager.theme.textSecondary.opacity(0.1))
                             .frame(width: 72, height: 72)
 
                         Image(systemName: widget.icon)
                             .font(.system(size: 32))
-                            .foregroundColor(themeManager.theme.accentGreen)
+                            .foregroundColor(themeManager.theme.textPrimary)
                     }
 
                     Text(widget.label)
@@ -481,10 +461,10 @@ struct EditWidgetValueSheet: View {
                         .multilineTextAlignment(.center)
                         .padding(20)
                         .background(themeManager.theme.cardBackground)
-                        .cornerRadius(16)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(themeManager.theme.accentGreen.opacity(0.3), lineWidth: 2)
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(themeManager.theme.border, lineWidth: 1)
                         )
                 }
                 .padding(.horizontal, 20)
@@ -507,8 +487,8 @@ struct EditWidgetValueSheet: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(themeManager.theme.accentGreen)
-                    .cornerRadius(28)
+                    .background(themeManager.theme.textPrimary)
+                    .clipShape(Capsule())
                 }
                 .padding(20)
             }
