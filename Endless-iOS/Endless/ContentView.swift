@@ -34,30 +34,38 @@ struct ContentView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var navigationManager = NavigationManager()
 
+    init() {
+        // Hide default TabView appearance
+        UITabBar.appearance().isHidden = true
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
-            TabView(selection: $navigationManager.selectedTab) {
-                HomeView()
-                    .tag(0)
-
-                VideoLibraryView()
-                    .tag(1)
-
-                RecordView()
-                    .tag(2)
-
-                EndlessAIView()
-                    .tag(3)
-
-                SettingsView()
-                    .tag(4)
+            // Content based on selected tab
+            Group {
+                switch navigationManager.selectedTab {
+                case 0:
+                    HomeView()
+                case 1:
+                    VideoLibraryView()
+                case 2:
+                    RecordView()
+                case 3:
+                    EndlessAIView()
+                case 4:
+                    SettingsView()
+                default:
+                    HomeView()
+                }
             }
             .environmentObject(navigationManager)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Custom Tab Bar
             CustomTabBar(selectedTab: $navigationManager.selectedTab)
         }
         .background(themeManager.theme.background)
+        .ignoresSafeArea(.keyboard)
         .preferredColorScheme(themeManager.isDark ? .dark : .light)
     }
 }
@@ -69,107 +77,69 @@ struct CustomTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             TabBarButton(icon: "house", label: "Home", isSelected: selectedTab == 0) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 0
                 }
             }
 
             TabBarButton(icon: "video", label: "Video", isSelected: selectedTab == 1) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 1
                 }
             }
 
-            // Center Record Button with Endless Logo inspired design
+            // Center Record Button with golf green accent
             Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 2
                 }
             }) {
                 ZStack {
-                    // Outer glow
+                    // Main button with golf green
                     Circle()
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    themeManager.theme.primary.opacity(0.3),
-                                    themeManager.theme.primary.opacity(0.1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(width: 72, height: 72)
-                        .blur(radius: 4)
-
-                    // Main button
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.theme.primary,
-                                    themeManager.theme.primary.opacity(0.85)
+                                    themeManager.theme.accentGreen,
+                                    themeManager.theme.accentGreen.opacity(0.85)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 64, height: 64)
-                        .shadow(color: themeManager.theme.primary.opacity(0.5), radius: 16, x: 0, y: 8)
-
-                    // Inner ring
-                    Circle()
-                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                        .frame(width: 52, height: 52)
+                        .frame(width: 60, height: 60)
+                        .shadow(color: themeManager.theme.accentGreen.opacity(0.4), radius: 12, x: 0, y: 6)
 
                     // Icon
                     Image(systemName: selectedTab == 2 ? "camera.fill" : "plus")
-                        .font(.system(size: selectedTab == 2 ? 22 : 26, weight: .semibold))
+                        .font(.system(size: selectedTab == 2 ? 20 : 24, weight: .semibold))
                         .foregroundColor(.white)
-                        .scaleEffect(selectedTab == 2 ? 1.1 : 1.0)
                 }
             }
-            .offset(y: -28)
+            .offset(y: -24)
 
             TabBarButton(icon: "sparkles", label: "AI", isSelected: selectedTab == 3) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 3
                 }
             }
 
             TabBarButton(icon: "gearshape", label: "Settings", isSelected: selectedTab == 4) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 4
                 }
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 14)
-        .padding(.bottom, 30)
+        .padding(.top, 12)
+        .padding(.bottom, 28)
         .background(
-            ZStack {
-                // Background with subtle gradient
-                RoundedRectangle(cornerRadius: 32)
-                    .fill(themeManager.theme.cardBackground)
-
-                // Top highlight
-                RoundedRectangle(cornerRadius: 32)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                themeManager.isDark ? Color.white.opacity(0.1) : Color.white.opacity(0.8),
-                                Color.clear
-                            ],
-                            startPoint: .top,
-                            endPoint: .center
-                        ),
-                        lineWidth: 1
-                    )
-            }
+            themeManager.theme.cardBackground
+                .cornerRadius(28)
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.4 : 0.08), radius: 16, x: 0, y: -2)
         )
         .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.1), radius: 20, x: 0, y: -4)
+        .padding(.bottom, 4)
     }
 }
 
@@ -182,37 +152,27 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 5) {
-                ZStack {
-                    // Selection indicator
-                    if isSelected {
-                        Circle()
-                            .fill(themeManager.theme.primary.opacity(0.12))
-                            .frame(width: 44, height: 44)
-                    }
-
-                    // Icon
-                    Image(systemName: isSelected ? "\(icon).fill" : icon)
-                        .font(.system(size: 21, weight: isSelected ? .semibold : .regular))
-                        .foregroundColor(isSelected ? themeManager.theme.primary : themeManager.theme.tabBarInactive)
-                        .scaleEffect(isSelected ? 1.1 : 1.0)
-                }
-                .frame(width: 44, height: 44)
+            VStack(spacing: 4) {
+                // Icon
+                Image(systemName: isSelected ? "\(icon).fill" : icon)
+                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.tabBarInactive)
+                    .frame(width: 40, height: 40)
 
                 // Label
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
-                    .foregroundColor(isSelected ? themeManager.theme.primary : themeManager.theme.tabBarInactive)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.tabBarInactive)
 
-                // Selection dot
+                // Selection indicator
                 if isSelected {
-                    Circle()
-                        .fill(themeManager.theme.primary)
-                        .frame(width: 4, height: 4)
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(themeManager.theme.accentGreen)
+                        .frame(width: 20, height: 2)
                 } else {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 1)
                         .fill(Color.clear)
-                        .frame(width: 4, height: 4)
+                        .frame(width: 20, height: 2)
                 }
             }
         }

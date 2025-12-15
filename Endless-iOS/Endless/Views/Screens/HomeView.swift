@@ -21,6 +21,20 @@ struct HomeView: View {
                 // Branded Header with Logo
                 brandedHeader
 
+                // Performance Widgets (moved to top)
+                PerformanceSnapshot(
+                    onTap: {
+                        // Navigate to stats tab in video library
+                        navigationManager.videoLibrarySubTab = 1
+                        navigationManager.selectedTab = 1
+                    },
+                    onCustomize: {
+                        showingWidgetCustomization = true
+                    }
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+
                 // Featured Session Card (now clickable)
                 sectionView(label: "UPCOMING SESSION", showViewAll: false) {
                     featuredSessionCard
@@ -39,20 +53,6 @@ struct HomeView: View {
                 // Recent Sessions
                 sectionView(label: "RECENT SESSIONS", showViewAll: true) {
                     sessionsScroll
-                }
-
-                // Performance Snapshot - no View All in section header
-                sectionView(label: "PERFORMANCE", showViewAll: false) {
-                    PerformanceSnapshot(
-                        onTap: {
-                            // Navigate to stats tab in video library
-                            navigationManager.videoLibrarySubTab = 1
-                            navigationManager.selectedTab = 1
-                        },
-                        onCustomize: {
-                            showingWidgetCustomization = true
-                        }
-                    )
                 }
 
                 // Footer branding
@@ -122,36 +122,59 @@ struct HomeView: View {
     private var featuredSessionCard: some View {
         Button(action: { showingSessionEditor = true }) {
             VStack(spacing: 0) {
-                // Image area with gradient overlay
+                // Image area - ready for real course photos
                 ZStack(alignment: .topLeading) {
-                    LinearGradient(
-                        gradient: Gradient(colors: themeManager.isDark ?
-                            [Color(hex: "1C1C1C"), Color(hex: "0A0A0A")] :
-                            [Color(hex: "F0F0F0"), Color(hex: "E0E0E0")]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(height: 200)
-                    .overlay(
-                        ZStack {
-                            // Decorative circles
+                    // Modern placeholder background
+                    ZStack {
+                        LinearGradient(
+                            gradient: Gradient(colors: themeManager.isDark ?
+                                [Color(hex: "1A1A1A"), Color(hex: "0F0F0F")] :
+                                [Color(hex: "F5F5F5"), Color(hex: "E8E8E8")]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+
+                        // Decorative elements
+                        GeometryReader { geo in
+                            // Abstract shapes suggesting a golf course
                             Circle()
-                                .stroke(themeManager.theme.textSecondary.opacity(0.1), lineWidth: 1)
+                                .fill(themeManager.theme.accentGreen.opacity(0.06))
                                 .frame(width: 200, height: 200)
-                                .offset(x: 80, y: -20)
+                                .offset(x: geo.size.width - 80, y: -40)
 
                             Circle()
-                                .stroke(themeManager.theme.textSecondary.opacity(0.1), lineWidth: 1)
-                                .frame(width: 120, height: 120)
-                                .offset(x: -60, y: 60)
+                                .fill(themeManager.theme.accentGreen.opacity(0.04))
+                                .frame(width: 150, height: 150)
+                                .offset(x: -40, y: geo.size.height - 80)
 
-                            Image(systemName: "figure.golf")
-                                .font(.system(size: 56))
-                                .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                            // Horizon line
+                            Path { path in
+                                path.move(to: CGPoint(x: 0, y: geo.size.height * 0.6))
+                                path.addQuadCurve(
+                                    to: CGPoint(x: geo.size.width, y: geo.size.height * 0.55),
+                                    control: CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.45)
+                                )
+                            }
+                            .stroke(themeManager.theme.accentGreen.opacity(0.1), lineWidth: 2)
                         }
-                    )
+
+                        // Golf flag icon
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeManager.theme.accentGreen.opacity(0.1))
+                                    .frame(width: 80, height: 80)
+
+                                Image(systemName: "flag.fill")
+                                    .font(.system(size: 36, weight: .light))
+                                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.4))
+                            }
+                        }
+                    }
+                    .frame(height: 200)
 
                     VStack(alignment: .leading, spacing: 8) {
+                        // Deadline badge
                         Text("PLAY BY MAY 15")
                             .font(.system(size: 10, weight: .bold))
                             .tracking(0.5)
@@ -159,7 +182,7 @@ struct HomeView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(themeManager.theme.textPrimary)
-                            .cornerRadius(16)
+                            .clipShape(Capsule())
 
                         Spacer()
 
@@ -171,15 +194,15 @@ struct HomeView: View {
                                 .font(.system(size: 9, weight: .bold))
                                 .tracking(1)
                         }
-                        .foregroundColor(themeManager.theme.textSecondary)
+                        .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(themeManager.theme.cardBackground.opacity(0.95))
-                        .cornerRadius(14)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
                     }
                     .padding(18)
                 }
-                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
                 // Content area
                 VStack(alignment: .leading, spacing: 12) {
@@ -232,8 +255,12 @@ struct HomeView: View {
                 .padding(20)
             }
             .background(themeManager.theme.cardBackground)
-            .cornerRadius(28)
-            .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 8)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 24, x: 0, y: 12)
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingSessionEditor) {
