@@ -175,13 +175,13 @@ struct BrandedCard<Content: View>: View {
 struct BrandedButton: View {
     let title: String
     var icon: String? = nil
-    var style: ButtonStyle = .primary
+    var style: BrandedButtonStyle = .primary
     var isLoading: Bool = false
     let action: () -> Void
 
     @EnvironmentObject var themeManager: ThemeManager
 
-    enum ButtonStyle {
+    enum BrandedButtonStyle {
         case primary, secondary, outline
     }
 

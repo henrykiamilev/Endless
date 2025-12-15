@@ -3,7 +3,6 @@ import SwiftUI
 struct VideoLibraryView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
-    @State private var selectedTab = 0
     @State private var showingMenu = false
     @State private var showingFilter = false
 
@@ -14,12 +13,12 @@ struct VideoLibraryView: View {
                 brandedHeader
 
                 // Toggle with shadow
-                ToggleButton(options: ["Video", "Stats"], selectedIndex: $selectedTab)
+                ToggleButton(options: ["Video", "Stats"], selectedIndex: $navigationManager.videoLibrarySubTab)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
 
                 // Content
-                if selectedTab == 0 {
+                if navigationManager.videoLibrarySubTab == 0 {
                     videoTabContent
                 } else {
                     statsTabContent
