@@ -3,26 +3,23 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
-    @State private var selectedTab = 0
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
-    @State private var showingPerformanceDetail = false
+    @State private var showingWidgetCustomization = false
 
     // Session data (editable)
     @State private var sessionDate = Date()
     @State private var sessionTime = Date()
     @State private var sessionLocation = "Main, Birchwood Park Golf Centre"
 
-    private let navTabs = ["Sessions", "Team", "Profile"]
+    // User name (could be loaded from UserDefaults or a user model)
+    private let userName = "Henry"
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 // Branded Header with Logo
                 brandedHeader
-
-                // Pill Navigation Tabs
-                navTabsView
 
                 // Featured Session Card (now clickable)
                 sectionView(label: "UPCOMING SESSION", showViewAll: false) {
@@ -44,13 +41,18 @@ struct HomeView: View {
                     sessionsScroll
                 }
 
-                // Performance Snapshot
-                sectionView(label: "PERFORMANCE", showViewAll: true, viewAllAction: {
-                    showingPerformanceDetail = true
-                }) {
-                    PerformanceSnapshot {
-                        showingPerformanceDetail = true
-                    }
+                // Performance Snapshot - no View All in section header
+                sectionView(label: "PERFORMANCE", showViewAll: false) {
+                    PerformanceSnapshot(
+                        onTap: {
+                            // Navigate to stats tab in video library
+                            navigationManager.videoLibrarySubTab = 1
+                            navigationManager.selectedTab = 1
+                        },
+                        onCustomize: {
+                            showingWidgetCustomization = true
+                        }
+                    )
                 }
 
                 // Footer branding
@@ -60,8 +62,8 @@ struct HomeView: View {
             }
         }
         .background(themeManager.theme.background)
-        .sheet(isPresented: $showingPerformanceDetail) {
-            PerformanceDetailView()
+        .sheet(isPresented: $showingWidgetCustomization) {
+            WidgetCustomizationSheet()
         }
     }
 
@@ -77,7 +79,6 @@ struct HomeView: View {
                         .frame(width: 48, height: 48)
                         .background(themeManager.theme.cardBackground)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
@@ -86,83 +87,34 @@ struct HomeView: View {
                 Button(action: { themeManager.toggleTheme() }) {
                     Image(systemName: themeManager.isDark ? "sun.max.fill" : "moon.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(themeManager.theme.primary)
+                        .foregroundColor(themeManager.theme.textSecondary)
                         .frame(width: 48, height: 48)
                         .background(themeManager.theme.cardBackground)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
                 }
 
                 // Endless Logo
                 EndlessLogo(size: 48, showText: false)
                     .padding(.leading, 8)
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
 
-            // Large title with branding
-            HStack(alignment: .bottom, spacing: 12) {
-                Text("ALL\nSESSIONS")
-                    .font(.system(size: 52, weight: .heavy))
-                    .tracking(-2)
-                    .foregroundColor(themeManager.theme.textPrimary)
-                    .lineSpacing(-8)
+            // Welcome message
+            Text("Welcome,")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(themeManager.theme.textSecondary)
 
-                Spacer()
-            }
-            .padding(.bottom, 12)
-
-            Button(action: { navigationManager.navigateToVideo() }) {
-                HStack(spacing: 6) {
-                    Text("VIEW STANDINGS")
-                        .font(.system(size: 12, weight: .bold))
-                        .tracking(1)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundColor(themeManager.theme.primary)
-            }
+            Text(userName)
+                .font(.system(size: 42, weight: .heavy))
+                .tracking(-1)
+                .foregroundColor(themeManager.theme.textPrimary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
-        .padding(.bottom, 24)
+        .padding(.bottom, 28)
         .sheet(isPresented: $showingMenu) {
             MenuSheetView()
         }
-    }
-
-    // MARK: - Navigation Tabs
-
-    private var navTabsView: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(navTabs.enumerated()), id: \.offset) { index, tab in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = index
-                    }
-                }) {
-                    Text(tab.uppercased())
-                        .font(.system(size: 12, weight: .bold))
-                        .tracking(0.8)
-                        .foregroundColor(selectedTab == index ?
-                            themeManager.theme.textInverse :
-                            themeManager.theme.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            selectedTab == index ?
-                            themeManager.theme.textPrimary :
-                            Color.clear
-                        )
-                        .cornerRadius(26)
-                }
-            }
-        }
-        .padding(4)
-        .background(themeManager.theme.cardBackground)
-        .cornerRadius(30)
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 32)
     }
 
     // MARK: - Featured Session Card (Clickable)
@@ -174,8 +126,8 @@ struct HomeView: View {
                 ZStack(alignment: .topLeading) {
                     LinearGradient(
                         gradient: Gradient(colors: themeManager.isDark ?
-                            [Color(hex: "1A3A2E"), Color(hex: "0D1F17")] :
-                            [Color(hex: "D4E5DC"), Color(hex: "A8C5B5")]),
+                            [Color(hex: "1C1C1C"), Color(hex: "0A0A0A")] :
+                            [Color(hex: "F0F0F0"), Color(hex: "E0E0E0")]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -184,18 +136,18 @@ struct HomeView: View {
                         ZStack {
                             // Decorative circles
                             Circle()
-                                .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
+                                .stroke(themeManager.theme.textSecondary.opacity(0.1), lineWidth: 1)
                                 .frame(width: 200, height: 200)
                                 .offset(x: 80, y: -20)
 
                             Circle()
-                                .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
+                                .stroke(themeManager.theme.textSecondary.opacity(0.1), lineWidth: 1)
                                 .frame(width: 120, height: 120)
                                 .offset(x: -60, y: 60)
 
                             Image(systemName: "figure.golf")
                                 .font(.system(size: 56))
-                                .foregroundColor(themeManager.theme.primary.opacity(0.6))
+                                .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
                         }
                     )
 
@@ -206,7 +158,7 @@ struct HomeView: View {
                             .foregroundColor(themeManager.theme.textInverse)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(themeManager.theme.primary)
+                            .background(themeManager.theme.textPrimary)
                             .cornerRadius(16)
 
                         Spacer()
@@ -308,14 +260,13 @@ struct HomeView: View {
     private func playerRow(player: Player) -> some View {
         HStack(spacing: 14) {
             Circle()
-                .fill(player.isCaptain ? themeManager.theme.primary : themeManager.theme.accentBlue)
+                .fill(player.isCaptain ? themeManager.theme.textPrimary : themeManager.theme.accentBlue)
                 .frame(width: 44, height: 44)
                 .overlay(
                     Text(String(player.name.prefix(1)))
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(player.isCaptain ? themeManager.theme.textInverse : .white)
                 )
-                .shadow(color: (player.isCaptain ? themeManager.theme.primary : themeManager.theme.accentBlue).opacity(0.3), radius: 6, x: 0, y: 3)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(player.name)
@@ -333,10 +284,10 @@ struct HomeView: View {
                 Text("CAPTAIN")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(0.8)
-                    .foregroundColor(themeManager.theme.primary)
+                    .foregroundColor(themeManager.theme.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(themeManager.theme.primary.opacity(0.1))
+                    .background(themeManager.theme.textPrimary.opacity(0.1))
                     .cornerRadius(12)
             }
         }
