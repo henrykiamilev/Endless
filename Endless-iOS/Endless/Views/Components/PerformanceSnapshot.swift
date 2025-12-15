@@ -10,36 +10,46 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     var value: String
     var color: String  // Hex color for accent
     var isEnabled: Bool
+    var size: WidgetSize
+
+    enum WidgetSize: String, Codable {
+        case small   // 1x1 square
+        case medium  // 2x1 rectangle
+        case large   // 2x2 square
+    }
 
     static let allWidgets: [PerformanceWidget] = [
-        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "72%", color: "60A5FA", isEnabled: true),
-        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "65%", color: "4ADE80", isEnabled: true),
-        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "28.4", color: "FCD34D", isEnabled: true),
-        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "71.3", color: "F87171", isEnabled: true),
-        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "4.2", color: "A78BFA", isEnabled: false),
-        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "275", color: "FB923C", isEnabled: false),
-        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "58%", color: "2DD4BF", isEnabled: false),
-        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "45%", color: "A3E635", isEnabled: false),
-        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "62%", color: "F472B6", isEnabled: false),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "18", color: "818CF8", isEnabled: false)
+        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "72%", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "65%", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "28.4", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "71.3", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "4.2", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "275", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "58%", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "45%", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "62%", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "18", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
-// MARK: - Widget Preferences Manager
+// MARK: - Shared Widget Manager (Singleton for persistence)
 
 class WidgetPreferencesManager: ObservableObject {
+    static let shared = WidgetPreferencesManager()
+
     @Published var widgets: [PerformanceWidget] {
         didSet {
             saveWidgets()
+            objectWillChange.send()
         }
     }
 
-    init() {
+    private init() {
         self.widgets = Self.loadWidgets()
     }
 
     var enabledWidgets: [PerformanceWidget] {
-        widgets.filter { $0.isEnabled }.prefix(4).map { $0 }
+        widgets.filter { $0.isEnabled }
     }
 
     func toggleWidget(_ id: String) {
@@ -51,6 +61,12 @@ class WidgetPreferencesManager: ObservableObject {
     func updateValue(for id: String, value: String) {
         if let index = widgets.firstIndex(where: { $0.id == id }) {
             widgets[index].value = value
+        }
+    }
+
+    func updateSize(for id: String, size: PerformanceWidget.WidgetSize) {
+        if let index = widgets.firstIndex(where: { $0.id == id }) {
+            widgets[index].size = size
         }
     }
 
@@ -73,107 +89,177 @@ class WidgetPreferencesManager: ObservableObject {
     }
 }
 
-// MARK: - Performance Snapshot View
+// MARK: - iOS Style Performance Widgets View
 
 struct PerformanceSnapshot: View {
     var onTap: (() -> Void)?
     var onCustomize: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
-    @StateObject private var widgetManager = WidgetPreferencesManager()
+    @ObservedObject private var widgetManager = WidgetPreferencesManager.shared
 
     var body: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 16) {
             // Header
             HStack {
-                Text("Performance Snapshot")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(themeManager.theme.accentGreen)
+                        .frame(width: 8, height: 8)
+                    Text("Performance")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
 
                 Spacer()
 
                 // Customize button (+ icon)
                 Button(action: { onCustomize?() }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 32, height: 32)
-                        .background(themeManager.theme.backgroundSecondary)
-                        .clipShape(Circle())
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(themeManager.theme.accentGreen)
                 }
             }
 
-            // Stats row - tappable to go to stats
-            Button(action: { onTap?() }) {
-                HStack(spacing: 0) {
-                    ForEach(widgetManager.enabledWidgets) { widget in
-                        StatItem(
-                            icon: widget.icon,
-                            value: widget.value,
-                            label: widget.shortLabel,
-                            color: Color(hex: widget.color)
-                        )
+            // iOS-style widget grid
+            widgetGrid
+        }
+    }
+
+    private var widgetGrid: some View {
+        let enabled = widgetManager.enabledWidgets
+
+        return VStack(spacing: 12) {
+            if enabled.isEmpty {
+                emptyStateView
+            } else {
+                // First row - 2 widgets side by side or 1 medium
+                if enabled.count >= 1 {
+                    HStack(spacing: 12) {
+                        if enabled.count >= 2 {
+                            WidgetCard(widget: enabled[0], onTap: onTap)
+                            WidgetCard(widget: enabled[1], onTap: onTap)
+                        } else {
+                            WidgetCard(widget: enabled[0], onTap: onTap)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+
+                // Second row
+                if enabled.count >= 3 {
+                    HStack(spacing: 12) {
+                        if enabled.count >= 4 {
+                            WidgetCard(widget: enabled[2], onTap: onTap)
+                            WidgetCard(widget: enabled[3], onTap: onTap)
+                        } else {
+                            WidgetCard(widget: enabled[2], onTap: onTap)
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                 }
             }
-            .buttonStyle(PlainButtonStyle())
         }
-        .padding(22)
-        .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
+    }
+
+    private var emptyStateView: some View {
+        Button(action: { onCustomize?() }) {
+            VStack(spacing: 12) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 32))
+                    .foregroundColor(themeManager.theme.accentGreen)
+
+                Text("Add Widgets")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 120)
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(themeManager.theme.border, style: StrokeStyle(lineWidth: 2, dash: [8]))
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Stat Item
+// MARK: - Widget Card (iOS Style)
 
-struct StatItem: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
+struct WidgetCard: View {
+    let widget: PerformanceWidget
+    var onTap: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
-        VStack(spacing: 10) {
-            Circle()
-                .fill(color.opacity(0.15))
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Image(systemName: icon)
-                        .font(.system(size: 18))
-                        .foregroundColor(color)
-                )
+        Button(action: { onTap?() }) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Top section with icon
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(themeManager.theme.accentGreen.opacity(0.15))
+                            .frame(width: 36, height: 36)
 
-            Text(value)
-                .font(.system(size: 22, weight: .heavy))
-                .foregroundColor(themeManager.theme.textPrimary)
+                        Image(systemName: widget.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(themeManager.theme.accentGreen)
+                    }
 
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(themeManager.theme.textMuted)
+                    Spacer()
+                }
+
+                Spacer()
+
+                // Value
+                Text(widget.value)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                // Label
+                Text(widget.shortLabel)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 110)
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(themeManager.theme.accentGreen.opacity(0.2), lineWidth: 1)
+            )
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Widget Customization Sheet
+// MARK: - Widget Customization Sheet (iOS Style)
 
 struct WidgetCustomizationSheet: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
-    @StateObject private var widgetManager = WidgetPreferencesManager()
+    @ObservedObject private var widgetManager = WidgetPreferencesManager.shared
     @State private var editingWidget: PerformanceWidget?
-    @State private var editValue: String = ""
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Header
-                VStack(spacing: 12) {
-                    Text("Customize Widgets")
-                        .font(.system(size: 20, weight: .bold))
+                VStack(spacing: 8) {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.accentGreen)
+
+                    Text("Edit Widgets")
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text("Select up to 4 metrics to display")
+                    Text("Choose which stats to display")
                         .font(.system(size: 14))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
@@ -181,77 +267,48 @@ struct WidgetCustomizationSheet: View {
                 .frame(maxWidth: .infinity)
                 .background(themeManager.theme.cardBackground)
 
-                // Active widgets preview
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("ACTIVE WIDGETS")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(themeManager.theme.textMuted)
-
-                    HStack(spacing: 8) {
-                        ForEach(widgetManager.enabledWidgets) { widget in
-                            VStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color(hex: widget.color).opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                    .overlay(
-                                        Image(systemName: widget.icon)
-                                            .font(.system(size: 14))
-                                            .foregroundColor(Color(hex: widget.color))
-                                    )
-                                Text(widget.shortLabel)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(themeManager.theme.textSecondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-
-                        // Empty slots
-                        ForEach(0..<(4 - widgetManager.enabledWidgets.count), id: \.self) { _ in
-                            VStack(spacing: 6) {
-                                Circle()
-                                    .stroke(themeManager.theme.border, style: StrokeStyle(lineWidth: 2, dash: [4]))
-                                    .frame(width: 36, height: 36)
-                                Text("Empty")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(themeManager.theme.textMuted)
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(16)
-                    .background(themeManager.theme.backgroundSecondary)
-                    .cornerRadius(16)
-                }
-                .padding(20)
-
-                // Widget list
-                List {
-                    Section {
+                // Widget grid
+                ScrollView {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
                         ForEach(widgetManager.widgets) { widget in
-                            widgetRow(widget)
+                            WidgetSelectionCard(
+                                widget: widget,
+                                isSelected: widget.isEnabled,
+                                onToggle: {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        widgetManager.toggleWidget(widget.id)
+                                    }
+                                },
+                                onEdit: {
+                                    editingWidget = widget
+                                }
+                            )
                         }
-                    } header: {
-                        Text("Available Metrics")
-                            .font(.system(size: 11, weight: .bold))
-                            .tracking(1)
                     }
+                    .padding(20)
                 }
-                .listStyle(.insetGrouped)
 
                 // Done button
                 Button(action: { dismiss() }) {
-                    Text("Done")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(themeManager.theme.textPrimary)
-                        .cornerRadius(28)
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Done")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(themeManager.theme.accentGreen)
+                    .cornerRadius(28)
                 }
                 .padding(20)
                 .background(themeManager.theme.background)
             }
+            .background(themeManager.theme.background)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -271,54 +328,77 @@ struct WidgetCustomizationSheet: View {
             }
         }
     }
+}
 
-    private func widgetRow(_ widget: PerformanceWidget) -> some View {
-        HStack(spacing: 14) {
-            Circle()
-                .fill(Color(hex: widget.color).opacity(0.15))
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Image(systemName: widget.icon)
-                        .font(.system(size: 18))
-                        .foregroundColor(Color(hex: widget.color))
-                )
+// MARK: - Widget Selection Card
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(widget.label)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+struct WidgetSelectionCard: View {
+    let widget: PerformanceWidget
+    let isSelected: Bool
+    let onToggle: () -> Void
+    let onEdit: () -> Void
+    @EnvironmentObject var themeManager: ThemeManager
 
-                Text("Current: \(widget.value)")
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
+    var body: some View {
+        VStack(spacing: 12) {
+            // Widget preview
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(themeManager.theme.accentGreen.opacity(isSelected ? 0.2 : 0.1))
+                            .frame(width: 32, height: 32)
 
-            Spacer()
+                        Image(systemName: widget.icon)
+                            .font(.system(size: 14))
+                            .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                    }
 
-            // Edit value button
-            Button(action: { editingWidget = widget }) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textMuted)
-                    .frame(width: 28, height: 28)
-                    .background(themeManager.theme.backgroundSecondary)
-                    .clipShape(Circle())
-            }
+                    Spacer()
 
-            // Toggle
-            Toggle("", isOn: Binding(
-                get: { widget.isEnabled },
-                set: { _ in
-                    let enabledCount = widgetManager.widgets.filter { $0.isEnabled }.count
-                    if widget.isEnabled || enabledCount < 4 {
-                        widgetManager.toggleWidget(widget.id)
+                    // Edit button
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(themeManager.theme.textMuted)
+                            .frame(width: 24, height: 24)
+                            .background(themeManager.theme.backgroundSecondary)
+                            .clipShape(Circle())
                     }
                 }
-            ))
-            .labelsHidden()
-            .tint(Color(hex: widget.color))
+
+                Text(widget.value)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.textMuted)
+
+                Text(widget.label)
+                    .font(.system(size: 11))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .lineLimit(1)
+            }
+            .padding(14)
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? themeManager.theme.accentGreen : themeManager.theme.border, lineWidth: isSelected ? 2 : 1)
+            )
+
+            // Toggle button
+            Button(action: onToggle) {
+                HStack(spacing: 6) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                        .font(.system(size: 14))
+                    Text(isSelected ? "Added" : "Add")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(isSelected ? themeManager.theme.accentGreen.opacity(0.1) : themeManager.theme.cardBackground)
+                .cornerRadius(12)
+            }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -336,14 +416,15 @@ struct EditWidgetValueSheet: View {
             VStack(spacing: 24) {
                 // Widget preview
                 VStack(spacing: 16) {
-                    Circle()
-                        .fill(Color(hex: widget.color).opacity(0.15))
-                        .frame(width: 64, height: 64)
-                        .overlay(
-                            Image(systemName: widget.icon)
-                                .font(.system(size: 28))
-                                .foregroundColor(Color(hex: widget.color))
-                        )
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(themeManager.theme.accentGreen.opacity(0.15))
+                            .frame(width: 72, height: 72)
+
+                        Image(systemName: widget.icon)
+                            .font(.system(size: 32))
+                            .foregroundColor(themeManager.theme.accentGreen)
+                    }
 
                     Text(widget.label)
                         .font(.system(size: 18, weight: .bold))
@@ -359,11 +440,16 @@ struct EditWidgetValueSheet: View {
                         .foregroundColor(themeManager.theme.textMuted)
 
                     TextField("Enter value", text: $newValue)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .padding(16)
+                        .multilineTextAlignment(.center)
+                        .padding(20)
                         .background(themeManager.theme.cardBackground)
                         .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(themeManager.theme.accentGreen.opacity(0.3), lineWidth: 2)
+                        )
                 }
                 .padding(.horizontal, 20)
 
@@ -376,13 +462,17 @@ struct EditWidgetValueSheet: View {
                     }
                     dismiss()
                 }) {
-                    Text("Save")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(themeManager.theme.textPrimary)
-                        .cornerRadius(28)
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Save")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(themeManager.theme.accentGreen)
+                    .cornerRadius(28)
                 }
                 .padding(20)
             }

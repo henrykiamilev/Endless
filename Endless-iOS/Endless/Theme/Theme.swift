@@ -71,8 +71,8 @@ extension AppTheme {
         textMuted: Color(hex: "6B7280"),
         textInverse: Color(hex: "000000"),
 
-        accent: Color.white,
-        accentGreen: Color(hex: "4ADE80"),
+        accent: Color(hex: "22C55E"),  // Golf green accent
+        accentGreen: Color(hex: "22C55E"),  // Golf green
         accentYellow: Color(hex: "FCD34D"),
         accentRed: Color(hex: "F87171"),
         accentBlue: Color(hex: "60A5FA"),
@@ -81,7 +81,7 @@ extension AppTheme {
         border: Color(hex: "262626"),
         borderLight: Color(hex: "333333"),
 
-        success: Color(hex: "4ADE80"),
+        success: Color(hex: "22C55E"),
         warning: Color(hex: "FCD34D"),
         error: Color(hex: "F87171"),
         info: Color(hex: "60A5FA"),
@@ -116,8 +116,8 @@ extension AppTheme {
         textMuted: Color(hex: "9CA3AF"),
         textInverse: .white,
 
-        accent: Color(hex: "1A1A1A"),
-        accentGreen: Color(hex: "22C55E"),
+        accent: Color(hex: "16A34A"),  // Golf green accent
+        accentGreen: Color(hex: "16A34A"),  // Golf green
         accentYellow: Color(hex: "EAB308"),
         accentRed: Color(hex: "EF4444"),
         accentBlue: Color(hex: "3B82F6"),
@@ -126,7 +126,7 @@ extension AppTheme {
         border: Color(hex: "E5E5E5"),
         borderLight: Color(hex: "D4D4D4"),
 
-        success: Color(hex: "22C55E"),
+        success: Color(hex: "16A34A"),
         warning: Color(hex: "EAB308"),
         error: Color(hex: "EF4444"),
         info: Color(hex: "3B82F6"),

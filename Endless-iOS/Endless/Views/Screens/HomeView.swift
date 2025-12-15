@@ -21,6 +21,20 @@ struct HomeView: View {
                 // Branded Header with Logo
                 brandedHeader
 
+                // Performance Widgets (moved to top)
+                PerformanceSnapshot(
+                    onTap: {
+                        // Navigate to stats tab in video library
+                        navigationManager.videoLibrarySubTab = 1
+                        navigationManager.selectedTab = 1
+                    },
+                    onCustomize: {
+                        showingWidgetCustomization = true
+                    }
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+
                 // Featured Session Card (now clickable)
                 sectionView(label: "UPCOMING SESSION", showViewAll: false) {
                     featuredSessionCard
@@ -39,20 +53,6 @@ struct HomeView: View {
                 // Recent Sessions
                 sectionView(label: "RECENT SESSIONS", showViewAll: true) {
                     sessionsScroll
-                }
-
-                // Performance Snapshot - no View All in section header
-                sectionView(label: "PERFORMANCE", showViewAll: false) {
-                    PerformanceSnapshot(
-                        onTap: {
-                            // Navigate to stats tab in video library
-                            navigationManager.videoLibrarySubTab = 1
-                            navigationManager.selectedTab = 1
-                        },
-                        onCustomize: {
-                            showingWidgetCustomization = true
-                        }
-                    )
                 }
 
                 // Footer branding
