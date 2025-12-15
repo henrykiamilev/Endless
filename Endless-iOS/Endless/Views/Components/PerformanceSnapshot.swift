@@ -198,41 +198,77 @@ struct WidgetCard: View {
                 // Top section with icon
                 HStack {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 10)
+                        // Outer glow
+                        Circle()
+                            .fill(themeManager.theme.accentGreen.opacity(0.08))
+                            .frame(width: 40, height: 40)
+
+                        // Inner circle
+                        Circle()
                             .fill(themeManager.theme.accentGreen.opacity(0.15))
-                            .frame(width: 36, height: 36)
+                            .frame(width: 32, height: 32)
 
                         Image(systemName: widget.icon)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(themeManager.theme.accentGreen)
                     }
 
                     Spacer()
+
+                    // Trend indicator
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("+2%")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(themeManager.theme.accentGreen.opacity(0.1))
+                    .clipShape(Capsule())
                 }
 
                 Spacer()
 
-                // Value
+                // Value with modern styling
                 Text(widget.value)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 32, weight: .heavy))
+                    .tracking(-0.5)
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
                 // Label
                 Text(widget.shortLabel)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(themeManager.theme.textSecondary)
+                    .padding(.top, 2)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 110)
-            .background(themeManager.theme.cardBackground)
-            .cornerRadius(20)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(themeManager.theme.accentGreen.opacity(0.2), lineWidth: 1)
+            .frame(height: 120)
+            .background(
+                ZStack {
+                    themeManager.theme.cardBackground
+
+                    // Subtle gradient overlay
+                    LinearGradient(
+                        colors: [
+                            themeManager.theme.accentGreen.opacity(0.03),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
             )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.5), lineWidth: 1)
+            )
+            .shadow(color: themeManager.theme.accentGreen.opacity(0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(PlainButtonStyle())
     }
