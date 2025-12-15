@@ -46,20 +46,23 @@ struct PlayOfWeekCard: View {
                                 .offset(x: 2)
                         )
                 }
-                .frame(height: 240)
+                .frame(height: 220)
+                .clipped()
 
                 // Bottom info section
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text(play.location)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
+                        .lineLimit(1)
 
                     Text("Its unique 47 holes layouts, comprising of a trio of testing nine hole circuits.")
                         .font(.system(size: 13))
                         .foregroundColor(themeManager.theme.textSecondary)
                         .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    Button(action: {}) {
+                    Button(action: { action?() }) {
                         HStack(spacing: 8) {
                             Image(systemName: "flag.fill")
                                 .font(.system(size: 14))
@@ -72,13 +75,14 @@ struct PlayOfWeekCard: View {
                         .background(themeManager.theme.primary)
                         .cornerRadius(28)
                     }
-                    .padding(.top, 10)
+                    .padding(.top, 8)
                 }
                 .padding(20)
                 .background(themeManager.theme.cardBackground)
             }
+            .frame(width: 300)
             .cornerRadius(28)
-            .frame(width: UIScreen.main.bounds.width * 0.8)
+            .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
     }

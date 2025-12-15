@@ -5,6 +5,13 @@ struct HomeView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @State private var selectedTab = 0
     @State private var showingMenu = false
+    @State private var showingSessionEditor = false
+    @State private var showingPerformanceDetail = false
+
+    // Session data (editable)
+    @State private var sessionDate = Date()
+    @State private var sessionTime = Date()
+    @State private var sessionLocation = "Main, Birchwood Park Golf Centre"
 
     private let navTabs = ["Sessions", "Team", "Profile"]
 
@@ -17,8 +24,8 @@ struct HomeView: View {
                 // Pill Navigation Tabs
                 navTabsView
 
-                // Featured Session Card
-                sectionView(label: "UPCOMING SESSION", showViewAll: true) {
+                // Featured Session Card (now clickable)
+                sectionView(label: "UPCOMING SESSION", showViewAll: false) {
                     featuredSessionCard
                 }
 
@@ -38,8 +45,12 @@ struct HomeView: View {
                 }
 
                 // Performance Snapshot
-                sectionView(label: "PERFORMANCE") {
-                    PerformanceSnapshot()
+                sectionView(label: "PERFORMANCE", showViewAll: true, viewAllAction: {
+                    showingPerformanceDetail = true
+                }) {
+                    PerformanceSnapshot {
+                        showingPerformanceDetail = true
+                    }
                 }
 
                 // Footer branding
@@ -49,6 +60,9 @@ struct HomeView: View {
             }
         }
         .background(themeManager.theme.background)
+        .sheet(isPresented: $showingPerformanceDetail) {
+            PerformanceDetailView()
+        }
     }
 
     // MARK: - Branded Header
@@ -151,121 +165,144 @@ struct HomeView: View {
         .padding(.bottom, 32)
     }
 
-    // MARK: - Featured Session Card
+    // MARK: - Featured Session Card (Clickable)
 
     private var featuredSessionCard: some View {
-        VStack(spacing: 0) {
-            // Image area with gradient overlay
-            ZStack(alignment: .topLeading) {
-                LinearGradient(
-                    gradient: Gradient(colors: themeManager.isDark ?
-                        [Color(hex: "1A3A2E"), Color(hex: "0D1F17")] :
-                        [Color(hex: "D4E5DC"), Color(hex: "A8C5B5")]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 200)
-                .overlay(
-                    ZStack {
-                        // Decorative circles
-                        Circle()
-                            .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
-                            .frame(width: 200, height: 200)
-                            .offset(x: 80, y: -20)
+        Button(action: { showingSessionEditor = true }) {
+            VStack(spacing: 0) {
+                // Image area with gradient overlay
+                ZStack(alignment: .topLeading) {
+                    LinearGradient(
+                        gradient: Gradient(colors: themeManager.isDark ?
+                            [Color(hex: "1A3A2E"), Color(hex: "0D1F17")] :
+                            [Color(hex: "D4E5DC"), Color(hex: "A8C5B5")]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(height: 200)
+                    .overlay(
+                        ZStack {
+                            // Decorative circles
+                            Circle()
+                                .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
+                                .frame(width: 200, height: 200)
+                                .offset(x: 80, y: -20)
 
-                        Circle()
-                            .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
-                            .frame(width: 120, height: 120)
-                            .offset(x: -60, y: 60)
+                            Circle()
+                                .stroke(themeManager.theme.primary.opacity(0.1), lineWidth: 1)
+                                .frame(width: 120, height: 120)
+                                .offset(x: -60, y: 60)
 
-                        Image(systemName: "figure.golf")
-                            .font(.system(size: 56))
-                            .foregroundColor(themeManager.theme.primary.opacity(0.6))
-                    }
-                )
+                            Image(systemName: "figure.golf")
+                                .font(.system(size: 56))
+                                .foregroundColor(themeManager.theme.primary.opacity(0.6))
+                        }
+                    )
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("PLAY BY MAY 15")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(0.5)
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .padding(.horizontal, 14)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("PLAY BY MAY 15")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(0.5)
+                            .foregroundColor(themeManager.theme.textInverse)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(themeManager.theme.primary)
+                            .cornerRadius(16)
+
+                        Spacer()
+
+                        // Tap to edit hint
+                        HStack(spacing: 6) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10))
+                            Text("TAP TO EDIT")
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1)
+                        }
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(themeManager.theme.primary)
-                        .cornerRadius(16)
+                        .background(themeManager.theme.cardBackground.opacity(0.95))
+                        .cornerRadius(14)
+                    }
+                    .padding(18)
+                }
+                .clipped()
 
-                    Spacer()
+                // Content area
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 24) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.primary)
+                            Text(formatDate(sessionDate))
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.primary)
+                            Text(formatTime(sessionTime))
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                    }
+                    .foregroundColor(themeManager.theme.textPrimary)
 
-                    // Endless branded badge
-                    HStack(spacing: 6) {
-                        EndlessLogo(size: 20, showText: false)
-                        Text("FEATURED")
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(1)
+                    HStack(spacing: 8) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.primary)
+                        Text(sessionLocation)
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(themeManager.theme.textSecondary)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(themeManager.theme.cardBackground.opacity(0.95))
-                    .cornerRadius(14)
                 }
-                .padding(18)
-            }
-            .clipped()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
 
-            // Content area
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 24) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14))
-                            .foregroundColor(themeManager.theme.primary)
-                        Text("May 6")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    HStack(spacing: 8) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 14))
-                            .foregroundColor(themeManager.theme.primary)
-                        Text("09:00")
-                            .font(.system(size: 14, weight: .semibold))
+                Rectangle()
+                    .fill(themeManager.theme.border)
+                    .frame(height: 1)
+                    .padding(.horizontal, 20)
+
+                // Team section
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("TEAM 1")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(themeManager.theme.textMuted)
+
+                    ForEach(MockData.team1Players) { player in
+                        playerRow(player: player)
                     }
                 }
-                .foregroundColor(themeManager.theme.textPrimary)
-
-                HStack(spacing: 8) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.primary)
-                    Text("Main, Birchwood Park Golf Centre")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary)
-                }
+                .padding(20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-
-            Rectangle()
-                .fill(themeManager.theme.border)
-                .frame(height: 1)
-                .padding(.horizontal, 20)
-
-            // Team section
-            VStack(alignment: .leading, spacing: 16) {
-                Text("TEAM 1")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textMuted)
-
-                ForEach(MockData.team1Players) { player in
-                    playerRow(player: player)
-                }
-            }
-            .padding(20)
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(28)
+            .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 8)
         }
-        .background(themeManager.theme.cardBackground)
-        .cornerRadius(28)
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 8)
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingSessionEditor) {
+            SessionEditorSheet(
+                sessionDate: $sessionDate,
+                sessionTime: $sessionTime,
+                sessionLocation: $sessionLocation
+            )
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     private func playerRow(player: Player) -> some View {
@@ -321,7 +358,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Plays of the Week
+    // MARK: - Plays of the Week (Fixed)
 
     private var playsOfWeekScroll: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -333,10 +370,9 @@ struct HomeView: View {
                     }
                 }
             }
-            .padding(.trailing, 20)
+            .padding(.horizontal, 20)
         }
-        .padding(.leading, -20)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, -20)
     }
 
     // MARK: - Sessions
@@ -351,10 +387,9 @@ struct HomeView: View {
                     }
                 }
             }
-            .padding(.trailing, 20)
+            .padding(.horizontal, 20)
         }
-        .padding(.leading, -20)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, -20)
     }
 
     // MARK: - Footer Branding
@@ -374,7 +409,12 @@ struct HomeView: View {
 
     // MARK: - Section Helper
 
-    private func sectionView<Content: View>(label: String, showViewAll: Bool = false, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(
+        label: String,
+        showViewAll: Bool = false,
+        viewAllAction: (() -> Void)? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(label)
@@ -385,7 +425,13 @@ struct HomeView: View {
                 Spacer()
 
                 if showViewAll {
-                    Button(action: { navigationManager.navigateToVideo() }) {
+                    Button(action: {
+                        if let action = viewAllAction {
+                            action()
+                        } else {
+                            navigationManager.navigateToVideo()
+                        }
+                    }) {
                         HStack(spacing: 4) {
                             Text("View All")
                                 .font(.system(size: 12, weight: .semibold))
@@ -401,6 +447,341 @@ struct HomeView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 32)
+    }
+}
+
+// MARK: - Session Editor Sheet
+
+struct SessionEditorSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
+    @Binding var sessionDate: Date
+    @Binding var sessionTime: Date
+    @Binding var sessionLocation: String
+
+    private let locations = [
+        "Main, Birchwood Park Golf Centre",
+        "Oakmont Country Club",
+        "Pebble Beach Golf Links",
+        "Torrey Pines Golf Course",
+        "Del Mar Country Club",
+        "Augusta National Golf Club"
+    ]
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(themeManager.theme.primary.opacity(0.15))
+                            .frame(width: 72, height: 72)
+
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 32))
+                            .foregroundColor(themeManager.theme.primary)
+                    }
+
+                    Text("Edit Session")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
+                .padding(.vertical, 28)
+                .frame(maxWidth: .infinity)
+                .background(themeManager.theme.cardBackground)
+
+                List {
+                    Section {
+                        DatePicker("Date", selection: $sessionDate, displayedComponents: .date)
+                            .tint(themeManager.theme.primary)
+
+                        DatePicker("Time", selection: $sessionTime, displayedComponents: .hourAndMinute)
+                            .tint(themeManager.theme.primary)
+                    } header: {
+                        Text("Date & Time")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(1)
+                    }
+
+                    Section {
+                        ForEach(locations, id: \.self) { location in
+                            Button(action: { sessionLocation = location }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(location.components(separatedBy: ", ").last ?? location)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(themeManager.theme.textPrimary)
+
+                                        if location.contains(", ") {
+                                            Text(location.components(separatedBy: ", ").first ?? "")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(themeManager.theme.textSecondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    if sessionLocation == location {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(themeManager.theme.primary)
+                                    }
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Location")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(1)
+                    }
+                }
+                .listStyle(.insetGrouped)
+
+                // Save button
+                Button(action: { dismiss() }) {
+                    Text("Save Changes")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(themeManager.theme.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(themeManager.theme.primary)
+                        .cornerRadius(28)
+                }
+                .padding(20)
+                .background(themeManager.theme.background)
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(themeManager.theme.cardBackground)
+                            .clipShape(Circle())
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Performance Detail View
+
+struct PerformanceDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        NavigationView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header stats
+                    VStack(spacing: 20) {
+                        EndlessLogo(size: 48, showText: false)
+
+                        Text("Performance Stats")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(themeManager.theme.textPrimary)
+
+                        Text("Your golf statistics at a glance")
+                            .font(.system(size: 14))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                    }
+                    .padding(.vertical, 24)
+
+                    // Main stats grid
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
+                        performanceCard(
+                            title: "Greens in Regulation",
+                            value: "72%",
+                            change: "+3%",
+                            isPositive: true,
+                            icon: "figure.golf"
+                        )
+
+                        performanceCard(
+                            title: "Fairways Hit",
+                            value: "65%",
+                            change: "+5%",
+                            isPositive: true,
+                            icon: "flag.fill"
+                        )
+
+                        performanceCard(
+                            title: "Average Putts",
+                            value: "28.4",
+                            change: "-1.2",
+                            isPositive: true,
+                            icon: "circle.fill"
+                        )
+
+                        performanceCard(
+                            title: "Scoring Average",
+                            value: "71.3",
+                            change: "-0.8",
+                            isPositive: true,
+                            icon: "trophy.fill"
+                        )
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Recent rounds section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("RECENT ROUNDS")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .padding(.horizontal, 20)
+
+                        VStack(spacing: 0) {
+                            roundRow(course: "Oakmont CC", score: 71, date: "Dec 12")
+                            Divider().padding(.leading, 60)
+                            roundRow(course: "Pebble Beach", score: 73, date: "Dec 10")
+                            Divider().padding(.leading, 60)
+                            roundRow(course: "Del Mar CC", score: 70, date: "Dec 8")
+                            Divider().padding(.leading, 60)
+                            roundRow(course: "Torrey Pines", score: 72, date: "Dec 5")
+                        }
+                        .background(themeManager.theme.cardBackground)
+                        .cornerRadius(24)
+                        .padding(.horizontal, 20)
+                    }
+
+                    // Trends section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("PERFORMANCE TRENDS")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .padding(.horizontal, 20)
+
+                        VStack(spacing: 16) {
+                            trendRow(title: "Driving Distance", value: "275 yds", trend: "up")
+                            trendRow(title: "Driving Accuracy", value: "68%", trend: "up")
+                            trendRow(title: "Sand Saves", value: "45%", trend: "down")
+                            trendRow(title: "Up & Down", value: "58%", trend: "up")
+                        }
+                        .padding(20)
+                        .background(themeManager.theme.cardBackground)
+                        .cornerRadius(24)
+                        .padding(.horizontal, 20)
+                    }
+
+                    Spacer(minLength: 40)
+                }
+            }
+            .background(themeManager.theme.background)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(themeManager.theme.cardBackground)
+                            .clipShape(Circle())
+                    }
+                }
+            }
+        }
+    }
+
+    private func performanceCard(title: String, value: String, change: String, isPositive: Bool, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Circle()
+                    .fill(themeManager.theme.primary.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Image(systemName: icon)
+                            .font(.system(size: 16))
+                            .foregroundColor(themeManager.theme.primary)
+                    )
+
+                Spacer()
+
+                HStack(spacing: 2) {
+                    Image(systemName: isPositive ? "arrow.up.right" : "arrow.down.right")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(change)
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(isPositive ? themeManager.theme.accentGreen : themeManager.theme.error)
+            }
+
+            Text(value)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(themeManager.theme.textPrimary)
+
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(themeManager.theme.textSecondary)
+        }
+        .padding(18)
+        .background(themeManager.theme.cardBackground)
+        .cornerRadius(20)
+    }
+
+    private func roundRow(course: String, score: Int, date: String) -> some View {
+        HStack(spacing: 14) {
+            Circle()
+                .fill(themeManager.theme.primary)
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text("\(score)")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(course)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text(date)
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+
+            Spacer()
+
+            Text(score <= 72 ? "Under Par" : "Over Par")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(score <= 72 ? themeManager.theme.accentGreen : themeManager.theme.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background((score <= 72 ? themeManager.theme.accentGreen : themeManager.theme.textSecondary).opacity(0.15))
+                .cornerRadius(10)
+        }
+        .padding(16)
+    }
+
+    private func trendRow(title: String, value: String, trend: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(themeManager.theme.textSecondary)
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Text(value)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Image(systemName: trend == "up" ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(trend == "up" ? themeManager.theme.accentGreen : themeManager.theme.error)
+            }
+        }
     }
 }
 
