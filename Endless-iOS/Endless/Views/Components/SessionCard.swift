@@ -55,15 +55,15 @@ struct SessionCard: View {
     private var placeholderView: some View {
         LinearGradient(
             gradient: Gradient(colors: themeManager.isDark ?
-                [Color(hex: "1A3A2E"), Color(hex: "0D1F17")] :
-                [Color(hex: "D4E5DC"), Color(hex: "A8C5B5")]),
+                [Color(hex: "1C1C1C"), Color(hex: "0A0A0A")] :
+                [Color(hex: "F0F0F0"), Color(hex: "E0E0E0")]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
         .overlay(
             Image(systemName: "figure.golf")
                 .font(.system(size: 28))
-                .foregroundColor(themeManager.theme.primary.opacity(0.6))
+                .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
         )
     }
 }

@@ -13,8 +13,8 @@ struct PlayOfWeekCard: View {
                     // Background gradient
                     LinearGradient(
                         gradient: Gradient(colors: themeManager.isDark ?
-                            [Color(hex: "1A3A2E"), Color(hex: "0A1A14")] :
-                            [Color(hex: "C5D9CD"), Color(hex: "8FB09A")]),
+                            [Color(hex: "1C1C1C"), Color(hex: "0A0A0A")] :
+                            [Color(hex: "F0F0F0"), Color(hex: "E0E0E0")]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -22,7 +22,7 @@ struct PlayOfWeekCard: View {
                     // Placeholder icon
                     Image(systemName: "figure.golf")
                         .font(.system(size: 64))
-                        .foregroundColor(themeManager.theme.primary.opacity(0.3))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.3))
 
                     // Viewers badge
                     VStack {
@@ -36,7 +36,7 @@ struct PlayOfWeekCard: View {
 
                     // Play button
                     Circle()
-                        .fill(themeManager.theme.primary)
+                        .fill(themeManager.theme.textPrimary)
                         .frame(width: 64, height: 64)
                         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                         .overlay(
@@ -72,7 +72,7 @@ struct PlayOfWeekCard: View {
                         .foregroundColor(themeManager.theme.textInverse)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(themeManager.theme.primary)
+                        .background(themeManager.theme.textPrimary)
                         .cornerRadius(28)
                     }
                     .padding(.top, 8)
@@ -92,16 +92,16 @@ struct PlayOfWeekCard: View {
             // Avatars
             HStack(spacing: -10) {
                 Circle()
-                    .fill(themeManager.theme.primary)
+                    .fill(themeManager.theme.textPrimary)
                     .frame(width: 24, height: 24)
                     .overlay(
                         Text("H")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.theme.textInverse)
                     )
                     .overlay(
                         Circle()
-                            .stroke(.white, lineWidth: 2)
+                            .stroke(themeManager.theme.cardBackground, lineWidth: 2)
                     )
 
                 Circle()
@@ -114,7 +114,7 @@ struct PlayOfWeekCard: View {
                     )
                     .overlay(
                         Circle()
-                            .stroke(.white, lineWidth: 2)
+                            .stroke(themeManager.theme.cardBackground, lineWidth: 2)
                     )
             }
 
