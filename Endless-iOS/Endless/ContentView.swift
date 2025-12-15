@@ -6,8 +6,10 @@ class NavigationManager: ObservableObject {
     @Published var showVideoDetail = false
     @Published var selectedVideoId: String?
     @Published var selectedSessionId: String?
+    @Published var videoLibrarySubTab = 0  // 0 = Video, 1 = Stats
 
     func navigateToVideo() {
+        videoLibrarySubTab = 0  // Always show Video tab when navigating
         selectedTab = 1
     }
 
