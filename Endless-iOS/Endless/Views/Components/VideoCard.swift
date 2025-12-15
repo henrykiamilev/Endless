@@ -60,7 +60,7 @@ struct VideoCard: View {
                     .font(.system(size: 11))
                     .foregroundColor(themeManager.theme.textSecondary)
             }
-            .frame(width: (UIScreen.main.bounds.width - 52) / 2)
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
     }
