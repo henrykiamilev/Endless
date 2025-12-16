@@ -12,6 +12,7 @@ struct VideoPlayerView: View {
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var isLoading = true
+    @State private var loadError: String?
 
     var body: some View {
         GeometryReader { geometry in
@@ -23,10 +24,41 @@ struct VideoPlayerView: View {
                 if let player = player {
                     VideoPlayer(player: player)
                         .ignoresSafeArea()
-                        .onAppear {
-                            setupPlayer()
+                } else if let error = loadError {
+                    // Error state
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.orange)
+
+                        Text("Unable to Load Video")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Text(error)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+
+                        Text("Make sure the video files are added to your Xcode project's target and included in 'Copy Bundle Resources'.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.5))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+
+                        Button(action: { dismiss() }) {
+                            Text("Close")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 12)
+                                .background(Color.white)
+                                .cornerRadius(25)
                         }
-                } else {
+                        .padding(.top, 10)
+                    }
+                } else if isLoading {
                     // Loading state
                     VStack(spacing: 16) {
                         ProgressView()
@@ -38,128 +70,130 @@ struct VideoPlayerView: View {
                     }
                 }
 
-                // Custom overlay controls
-                VStack {
-                    // Top bar
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                        }
-
-                        Spacer()
-
-                        Text(videoTitle)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-
-                        Spacer()
-
-                        // Share button
-                        Button(action: shareVideo) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60)
-
-                    Spacer()
-
-                    // Bottom controls
-                    VStack(spacing: 16) {
-                        // Progress bar
-                        HStack(spacing: 12) {
-                            Text(formatTime(currentTime))
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 50)
-
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    // Background track
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(Color.white.opacity(0.3))
-                                        .frame(height: 4)
-
-                                    // Progress
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(themeManager.theme.accentGreen)
-                                        .frame(width: duration > 0 ? CGFloat(currentTime / duration) * geo.size.width : 0, height: 4)
-                                }
-                                .gesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { value in
-                                            let percentage = value.location.x / geo.size.width
-                                            let clampedPercentage = min(max(percentage, 0), 1)
-                                            let newTime = Double(clampedPercentage) * duration
-                                            player?.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
-                                        }
-                                )
+                // Custom overlay controls (only show when video is loaded)
+                if player != nil {
+                    VStack {
+                        // Top bar
+                        HStack {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
                             }
-                            .frame(height: 20)
 
-                            Text(formatTime(duration))
-                                .font(.system(size: 12, weight: .medium))
+                            Spacer()
+
+                            Text(videoTitle)
+                                .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
-                                .frame(width: 50)
+
+                            Spacer()
+
+                            // Share button
+                            Button(action: shareVideo) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.top, 60)
 
-                        // Playback controls
-                        HStack(spacing: 40) {
-                            // Rewind 10s
-                            Button(action: {
-                                skip(by: -10)
-                            }) {
-                                Image(systemName: "gobackward.10")
-                                    .font(.system(size: 24))
+                        Spacer()
+
+                        // Bottom controls
+                        VStack(spacing: 16) {
+                            // Progress bar
+                            HStack(spacing: 12) {
+                                Text(formatTime(currentTime))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white)
+                                    .frame(width: 50)
+
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        // Background track
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.white.opacity(0.3))
+                                            .frame(height: 4)
+
+                                        // Progress
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.green)
+                                            .frame(width: duration > 0 ? CGFloat(currentTime / duration) * geo.size.width : 0, height: 4)
+                                    }
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                let percentage = value.location.x / geo.size.width
+                                                let clampedPercentage = min(max(percentage, 0), 1)
+                                                let newTime = Double(clampedPercentage) * duration
+                                                player?.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+                                            }
+                                    )
+                                }
+                                .frame(height: 20)
+
+                                Text(formatTime(duration))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 50)
                             }
+                            .padding(.horizontal, 20)
 
-                            // Play/Pause
-                            Button(action: togglePlayPause) {
-                                ZStack {
-                                    Circle()
-                                        .fill(themeManager.theme.accentGreen)
-                                        .frame(width: 64, height: 64)
-
-                                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 24, weight: .semibold))
+                            // Playback controls
+                            HStack(spacing: 40) {
+                                // Rewind 10s
+                                Button(action: {
+                                    skip(by: -10)
+                                }) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.system(size: 24))
                                         .foregroundColor(.white)
-                                        .offset(x: isPlaying ? 0 : 2)
+                                }
+
+                                // Play/Pause
+                                Button(action: togglePlayPause) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 64, height: 64)
+
+                                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 24, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .offset(x: isPlaying ? 0 : 2)
+                                    }
+                                }
+
+                                // Forward 10s
+                                Button(action: {
+                                    skip(by: 10)
+                                }) {
+                                    Image(systemName: "goforward.10")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.white)
                                 }
                             }
-
-                            // Forward 10s
-                            Button(action: {
-                                skip(by: 10)
-                            }) {
-                                Image(systemName: "goforward.10")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white)
-                            }
                         }
-                    }
-                    .padding(.bottom, 50)
-                    .background(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.7)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                        .padding(.bottom, 50)
+                        .background(
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(0.7)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
+                    }
+                    .opacity(showControls ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.2), value: showControls)
                 }
-                .opacity(showControls ? 1 : 0)
-                .animation(.easeInOut(duration: 0.2), value: showControls)
             }
             .onTapGesture {
                 withAnimation {
@@ -177,28 +211,86 @@ struct VideoPlayerView: View {
     }
 
     private func loadVideo() {
-        // Try to load from bundle
-        if let url = Bundle.main.url(forResource: videoFileName.replacingOccurrences(of: ".mp4", with: ""), withExtension: "mp4") {
-            player = AVPlayer(url: url)
+        isLoading = true
+        loadError = nil
+
+        // Get the base name without extension
+        let baseName = videoFileName.replacingOccurrences(of: ".mp4", with: "")
+
+        // Try multiple paths to find the video
+        var videoURL: URL?
+
+        // Method 1: Direct bundle lookup (most common)
+        if let url = Bundle.main.url(forResource: baseName, withExtension: "mp4") {
+            videoURL = url
+            print("Found video at: \(url.path)")
+        }
+        // Method 2: Look in Videos subdirectory
+        else if let url = Bundle.main.url(forResource: baseName, withExtension: "mp4", subdirectory: "Videos") {
+            videoURL = url
+            print("Found video in Videos folder: \(url.path)")
+        }
+        // Method 3: Try with full filename in Videos folder
+        else if let url = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
+            videoURL = url
+            print("Found video with full name: \(url.path)")
+        }
+        // Method 4: Search in bundle's resource path
+        else if let resourcePath = Bundle.main.resourcePath {
+            let possiblePaths = [
+                "\(resourcePath)/\(videoFileName)",
+                "\(resourcePath)/Videos/\(videoFileName)",
+                "\(resourcePath)/\(baseName).mp4",
+                "\(resourcePath)/Videos/\(baseName).mp4"
+            ]
+
+            for path in possiblePaths {
+                if FileManager.default.fileExists(atPath: path) {
+                    videoURL = URL(fileURLWithPath: path)
+                    print("Found video at path: \(path)")
+                    break
+                }
+            }
+        }
+
+        // If we found the video, create the player
+        if let url = videoURL {
+            let playerItem = AVPlayerItem(url: url)
+            player = AVPlayer(playerItem: playerItem)
             setupPlayer()
         } else {
-            // Try loading from Videos folder in bundle
-            if let url = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
-                player = AVPlayer(url: url)
-                setupPlayer()
-            } else {
-                print("Could not find video: \(videoFileName)")
+            // List available resources for debugging
+            print("Could not find video: \(videoFileName)")
+            print("Bundle path: \(Bundle.main.bundlePath)")
+
+            if let resourcePath = Bundle.main.resourcePath {
+                do {
+                    let contents = try FileManager.default.contentsOfDirectory(atPath: resourcePath)
+                    let mp4Files = contents.filter { $0.hasSuffix(".mp4") }
+                    print("MP4 files in bundle: \(mp4Files)")
+                } catch {
+                    print("Error listing bundle contents: \(error)")
+                }
             }
+
+            isLoading = false
+            loadError = "Video file '\(videoFileName)' not found in app bundle."
         }
     }
 
     private func setupPlayer() {
-        guard let player = player else { return }
+        guard let player = player, let item = player.currentItem else { return }
 
-        // Get duration
-        if let item = player.currentItem {
-            let durationTime = item.asset.duration
-            duration = CMTimeGetSeconds(durationTime)
+        isLoading = false
+
+        // Observe when the player is ready
+        item.asset.loadValuesAsynchronously(forKeys: ["duration"]) {
+            DispatchQueue.main.async {
+                let durationTime = item.asset.duration
+                if durationTime.isValid && !durationTime.isIndefinite {
+                    self.duration = CMTimeGetSeconds(durationTime)
+                }
+            }
         }
 
         // Add time observer
@@ -206,14 +298,16 @@ struct VideoPlayerView: View {
         player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { time in
             currentTime = CMTimeGetSeconds(time)
             if let item = player.currentItem {
-                duration = CMTimeGetSeconds(item.duration)
+                let dur = item.duration
+                if dur.isValid && !dur.isIndefinite {
+                    duration = CMTimeGetSeconds(dur)
+                }
             }
         }
 
         // Auto-play
         player.play()
         isPlaying = true
-        isLoading = false
 
         // Loop video
         NotificationCenter.default.addObserver(
