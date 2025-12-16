@@ -110,11 +110,6 @@ struct VideoLibraryView: View {
 
     private var videoTabContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // AI Analysis Section
-            aiAnalysisSection
-                .padding(.horizontal, 20)
-                .padding(.bottom, 28)
-
             // Filter header with better styling
             HStack {
                 HStack(spacing: 8) {
@@ -149,7 +144,7 @@ struct VideoLibraryView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
 
-            // Section label with icon
+            // Section label with icon - MATCH VIDEOS AT TOP
             HStack(spacing: 8) {
                 Image(systemName: "play.rectangle.fill")
                     .font(.system(size: 12))
@@ -176,6 +171,11 @@ struct VideoLibraryView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 32)
+
+            // AI Features Section - BELOW VIDEOS
+            aiAnalysisSection
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
         }
     }
 

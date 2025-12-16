@@ -19,36 +19,24 @@ struct PlayOfWeekCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Image area - clickable to open full viewer
+            // Video thumbnail area - clickable
             Button(action: { action?() }) {
                 ZStack {
-                    // Background - will be replaced by real image
+                    // Background
                     thumbnailArea
 
-                    // Overlay gradient for content visibility
+                    // Gradient overlay
                     LinearGradient(
-                        colors: [.clear, .clear, .black.opacity(0.5)],
+                        colors: [.clear, .black.opacity(0.6)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
 
-                    // Content overlay
+                    // Content
                     VStack {
-                        // Top badges
+                        // Top - Featured badge
                         HStack {
-                            // Player avatar
-                            Circle()
-                                .fill(themeManager.theme.accentGreen)
-                                .frame(width: 32, height: 32)
-                                .overlay(
-                                    Text(String(play.playerName.prefix(1)))
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
-                                )
-
                             Spacer()
-
-                            // Featured badge
                             Text("FEATURED")
                                 .font(.system(size: 9, weight: .bold))
                                 .tracking(0.5)
@@ -58,136 +46,118 @@ struct PlayOfWeekCard: View {
                                 .background(.ultraThinMaterial)
                                 .clipShape(Capsule())
                         }
-                        .padding(16)
+                        .padding(12)
 
                         Spacer()
 
-                        // Play button
+                        // Center - Play button
                         ZStack {
                             Circle()
                                 .fill(.ultraThinMaterial)
-                                .frame(width: 64, height: 64)
-
-                            Circle()
-                                .fill(themeManager.theme.textPrimary)
                                 .frame(width: 56, height: 56)
 
                             Image(systemName: "play.fill")
-                                .font(.system(size: 22))
-                                .foregroundColor(themeManager.theme.textInverse)
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
                                 .offset(x: 2)
                         }
 
                         Spacer()
 
-                        // Bottom player info
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(play.playerName)
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text(play.playerTitle)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.white.opacity(0.8))
+                        // Bottom - Player info and engagement
+                        HStack(alignment: .bottom) {
+                            // Player info
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(themeManager.theme.accentGreen)
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Text(String(play.playerName.prefix(1)))
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(play.playerName)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Text(play.playerTitle)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
                             }
+
                             Spacer()
+
+                            // Location badge
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin")
+                                    .font(.system(size: 9))
+                                Text(play.location.components(separatedBy: " ").first ?? play.location)
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(.white.opacity(0.9))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
                         }
-                        .padding(16)
+                        .padding(12)
                     }
                 }
-                .frame(height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .frame(height: 220)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
 
-            // Bottom info section with interactive buttons
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "mappin")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.primary)
-                    Text(play.location)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .lineLimit(1)
+            // Bottom action bar
+            HStack(spacing: 0) {
+                // Like button
+                Button(action: toggleLike) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                            .font(.system(size: 18))
+                            .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
+                        Text("\(likeCount)")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
+                .buttonStyle(PlainButtonStyle())
 
-                Text("Amazing shot! Watch this incredible play from \(play.playerName).")
-                    .font(.system(size: 12, weight: .regular))
+                // Divider
+                Rectangle()
+                    .fill(themeManager.theme.border)
+                    .frame(width: 1, height: 24)
+
+                // Comment button
+                Button(action: { showComments = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.right")
+                            .font(.system(size: 18))
+                        Text("\(localComments.count)")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
                     .foregroundColor(themeManager.theme.textSecondary)
-                    .lineLimit(2)
-
-                // Interactive like and comment buttons
-                HStack(spacing: 16) {
-                    // Like button
-                    Button(action: toggleLike) {
-                        HStack(spacing: 6) {
-                            Image(systemName: isLiked ? "heart.fill" : "heart")
-                                .font(.system(size: 16))
-                                .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
-                            Text("\(likeCount)")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            isLiked
-                                ? Color.red.opacity(0.1)
-                                : themeManager.theme.background
-                        )
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-
-                    // Comment button
-                    Button(action: { showComments = true }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "bubble.right")
-                                .font(.system(size: 16))
-                            Text("\(localComments.count)")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(themeManager.theme.textSecondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(themeManager.theme.background)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-
-                    Spacer()
-
-                    // Watch button
-                    Button(action: { action?() }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 10))
-                            Text("WATCH")
-                                .font(.system(size: 10, weight: .bold))
-                        }
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(themeManager.theme.textPrimary)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
-            .padding(14)
             .background(themeManager.theme.cardBackground)
         }
-        .frame(width: 260)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 20, x: 0, y: 10)
+        .frame(width: 280)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 16, x: 0, y: 8)
         .sheet(isPresented: $showComments) {
             CardCommentsSheet(
                 play: play,
                 comments: $localComments,
                 newCommentText: $newCommentText
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -204,7 +174,7 @@ struct PlayOfWeekCard: View {
 
     private var thumbnailArea: some View {
         ZStack {
-            // Gradient background (placeholder for real image)
+            // Gradient background
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color(hex: "1A3A2A"),
@@ -214,25 +184,26 @@ struct PlayOfWeekCard: View {
                 endPoint: .bottomTrailing
             )
 
-            // Decorative elements - subtle golf course feel
+            // Decorative elements
             GeometryReader { geo in
-                // Fairway shape
+                // Fairway
                 Ellipse()
-                    .fill(Color(hex: "22C55E").opacity(0.15))
-                    .frame(width: geo.size.width * 1.5, height: 150)
-                    .offset(x: -geo.size.width * 0.25, y: geo.size.height - 60)
+                    .fill(Color(hex: "22C55E").opacity(0.12))
+                    .frame(width: geo.size.width * 1.5, height: 160)
+                    .offset(x: -geo.size.width * 0.25, y: geo.size.height - 50)
 
+                // Sun/moon
                 Circle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                    .offset(x: geo.size.width - 40, y: -20)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 80, height: 80)
+                    .offset(x: geo.size.width - 30, y: -10)
             }
 
             // Golf ball
             Circle()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 16, height: 16)
-                .offset(x: 40, y: 50)
+                .fill(Color.white.opacity(0.25))
+                .frame(width: 14, height: 14)
+                .offset(x: 30, y: 40)
         }
     }
 }
