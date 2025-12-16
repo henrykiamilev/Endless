@@ -113,15 +113,15 @@ struct VideoCard: View {
                 .stroke(themeManager.theme.textSecondary.opacity(0.05), lineWidth: 1)
             }
 
-            // Video icon
+            // Video icon - subtle
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(themeManager.theme.accentGreen.opacity(0.1))
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(themeManager.theme.textSecondary.opacity(0.08))
                     .frame(width: 40, height: 40)
 
                 Image(systemName: "video.fill")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.5))
+                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
             }
         }
     }

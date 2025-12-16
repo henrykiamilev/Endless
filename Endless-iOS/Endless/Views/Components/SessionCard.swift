@@ -92,16 +92,16 @@ struct SessionCard: View {
                 .stroke(themeManager.theme.textSecondary.opacity(0.05), lineWidth: 1)
             }
 
-            // Golf icon with modern styling
+            // Golf icon with subtle styling
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(themeManager.theme.accentGreen.opacity(0.1))
+                        .fill(themeManager.theme.textSecondary.opacity(0.08))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "figure.golf")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(themeManager.theme.accentGreen.opacity(0.6))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
                 }
             }
         }

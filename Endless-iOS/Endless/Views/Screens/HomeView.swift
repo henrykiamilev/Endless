@@ -6,6 +6,9 @@ struct HomeView: View {
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
+    @State private var showingDrills = false
+    @State private var showingPlaysViewer = false
+    @State private var selectedPlayIndex = 0
 
     // Session data (editable)
     @State private var sessionDate = Date()
@@ -64,6 +67,12 @@ struct HomeView: View {
         .background(themeManager.theme.background)
         .sheet(isPresented: $showingWidgetCustomization) {
             WidgetCustomizationSheet()
+        }
+        .sheet(isPresented: $showingDrills) {
+            TodaysDrillsView()
+        }
+        .fullScreenCover(isPresented: $showingPlaysViewer) {
+            PlaysOfWeekViewer(startingIndex: selectedPlayIndex)
         }
     }
 
@@ -134,16 +143,15 @@ struct HomeView: View {
                             endPoint: .bottomTrailing
                         )
 
-                        // Decorative elements
+                        // Decorative elements - subtle
                         GeometryReader { geo in
-                            // Abstract shapes suggesting a golf course
                             Circle()
-                                .fill(themeManager.theme.accentGreen.opacity(0.06))
+                                .fill(themeManager.theme.textSecondary.opacity(0.04))
                                 .frame(width: 200, height: 200)
                                 .offset(x: geo.size.width - 80, y: -40)
 
                             Circle()
-                                .fill(themeManager.theme.accentGreen.opacity(0.04))
+                                .fill(themeManager.theme.textSecondary.opacity(0.03))
                                 .frame(width: 150, height: 150)
                                 .offset(x: -40, y: geo.size.height - 80)
 
@@ -155,19 +163,19 @@ struct HomeView: View {
                                     control: CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.45)
                                 )
                             }
-                            .stroke(themeManager.theme.accentGreen.opacity(0.1), lineWidth: 2)
+                            .stroke(themeManager.theme.textSecondary.opacity(0.08), lineWidth: 1.5)
                         }
 
-                        // Golf flag icon
+                        // Golf flag icon - subtle
                         VStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .fill(themeManager.theme.accentGreen.opacity(0.1))
+                                    .fill(themeManager.theme.textSecondary.opacity(0.06))
                                     .frame(width: 80, height: 80)
 
                                 Image(systemName: "flag.fill")
                                     .font(.system(size: 36, weight: .light))
-                                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.4))
+                                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.25))
                             }
                         }
                     }
@@ -324,27 +332,27 @@ struct HomeView: View {
 
     private var quickActionsRow: some View {
         HStack(spacing: 12) {
-            QuickActionCard(title: "Today's Drills", subtitle: "5 remaining", icon: "figure.golf") {
-                navigationManager.navigateToRecord()
+            QuickActionCard(title: "Today's Drills", subtitle: "\(DrillsManager.shared.drills.count - DrillsManager.shared.completedCount) remaining", icon: "figure.golf") {
+                showingDrills = true
             }
             QuickActionCard(title: "Last Session", subtitle: "2 days ago", icon: "clock") {
-                navigationManager.navigateToVideo()
+                navigationManager.navigateToLastSession()
             }
             QuickActionCard(title: "Recruit Views", subtitle: "12 coaches", icon: "eye") {
-                navigationManager.navigateToAI()
+                navigationManager.navigateToRecruit()
             }
         }
     }
 
-    // MARK: - Plays of the Week (Fixed)
+    // MARK: - Plays of the Week
 
     private var playsOfWeekScroll: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                ForEach(MockData.playsOfWeek) { play in
+                ForEach(Array(MockData.playsOfWeek.enumerated()), id: \.element.id) { index, play in
                     PlayOfWeekCard(play: play) {
-                        navigationManager.selectedVideoId = play.id
-                        navigationManager.navigateToVideo()
+                        selectedPlayIndex = index
+                        showingPlaysViewer = true
                     }
                 }
             }
