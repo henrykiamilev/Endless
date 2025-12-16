@@ -13,11 +13,18 @@ class NavigationManager: ObservableObject {
         selectedTab = 1
     }
 
+    func navigateToLastSession() {
+        // Navigate to video tab and select the first (most recent) session
+        videoLibrarySubTab = 0
+        selectedSessionId = MockData.sessions.first?.id
+        selectedTab = 1
+    }
+
     func navigateToRecord() {
         selectedTab = 2
     }
 
-    func navigateToAI() {
+    func navigateToRecruit() {
         selectedTab = 3
     }
 
@@ -26,6 +33,12 @@ class NavigationManager: ObservableObject {
     }
 
     func navigateToHome() {
+        selectedTab = 0
+    }
+
+    // Legacy function for compatibility
+    func navigateToAI() {
+        // AI features are now integrated elsewhere
         selectedTab = 0
     }
 }
@@ -51,7 +64,7 @@ struct ContentView: View {
                 case 2:
                     RecordView()
                 case 3:
-                    EndlessAIView()
+                    RecruitView()
                 case 4:
                     SettingsView()
                 default:
@@ -118,7 +131,7 @@ struct CustomTabBar: View {
             }
             .offset(y: -24)
 
-            TabBarButton(icon: "sparkles", label: "AI", isSelected: selectedTab == 3) {
+            TabBarButton(icon: "person.crop.rectangle.stack", label: "Recruit", isSelected: selectedTab == 3) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 3
                 }

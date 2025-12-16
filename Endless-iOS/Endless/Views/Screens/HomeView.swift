@@ -6,6 +6,9 @@ struct HomeView: View {
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
+    @State private var showingDrills = false
+    @State private var showingPlaysViewer = false
+    @State private var selectedPlayIndex = 0
 
     // Session data (editable)
     @State private var sessionDate = Date()
@@ -64,6 +67,12 @@ struct HomeView: View {
         .background(themeManager.theme.background)
         .sheet(isPresented: $showingWidgetCustomization) {
             WidgetCustomizationSheet()
+        }
+        .sheet(isPresented: $showingDrills) {
+            TodaysDrillsView()
+        }
+        .fullScreenCover(isPresented: $showingPlaysViewer) {
+            PlaysOfWeekViewer(startingIndex: selectedPlayIndex)
         }
     }
 
@@ -323,27 +332,27 @@ struct HomeView: View {
 
     private var quickActionsRow: some View {
         HStack(spacing: 12) {
-            QuickActionCard(title: "Today's Drills", subtitle: "5 remaining", icon: "figure.golf") {
-                navigationManager.navigateToRecord()
+            QuickActionCard(title: "Today's Drills", subtitle: "\(DrillsManager.shared.drills.count - DrillsManager.shared.completedCount) remaining", icon: "figure.golf") {
+                showingDrills = true
             }
             QuickActionCard(title: "Last Session", subtitle: "2 days ago", icon: "clock") {
-                navigationManager.navigateToVideo()
+                navigationManager.navigateToLastSession()
             }
             QuickActionCard(title: "Recruit Views", subtitle: "12 coaches", icon: "eye") {
-                navigationManager.navigateToAI()
+                navigationManager.navigateToRecruit()
             }
         }
     }
 
-    // MARK: - Plays of the Week (Fixed)
+    // MARK: - Plays of the Week
 
     private var playsOfWeekScroll: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                ForEach(MockData.playsOfWeek) { play in
+                ForEach(Array(MockData.playsOfWeek.enumerated()), id: \.element.id) { index, play in
                     PlayOfWeekCard(play: play) {
-                        navigationManager.selectedVideoId = play.id
-                        navigationManager.navigateToVideo()
+                        selectedPlayIndex = index
+                        showingPlaysViewer = true
                     }
                 }
             }
