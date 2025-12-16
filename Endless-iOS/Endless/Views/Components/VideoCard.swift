@@ -4,20 +4,21 @@ struct VideoCard: View {
     let video: Video
     var action: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
+    @State private var showingPlayer = false
 
     var body: some View {
-        Button(action: { action?() }) {
+        Button(action: {
+            if action != nil {
+                action?()
+            } else if video.videoFileName != nil {
+                showingPlayer = true
+            }
+        }) {
             VStack(alignment: .leading, spacing: 0) {
-                // Thumbnail area - designed for real video thumbnails
+                // Thumbnail area - using real video thumbnails
                 ZStack {
-                    if let thumbnail = video.thumbnail {
-                        AsyncImage(url: URL(string: thumbnail)) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            thumbnailPlaceholder
-                        }
+                    if let videoFileName = video.videoFileName {
+                        VideoThumbnailView(videoFileName: videoFileName)
                     } else {
                         thumbnailPlaceholder
                     }
@@ -84,6 +85,11 @@ struct VideoCard: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
+        .fullScreenCover(isPresented: $showingPlayer) {
+            if let videoFileName = video.videoFileName {
+                VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
+            }
+        }
     }
 
     private var thumbnailPlaceholder: some View {
