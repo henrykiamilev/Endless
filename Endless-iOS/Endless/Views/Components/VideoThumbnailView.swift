@@ -2,36 +2,22 @@ import SwiftUI
 import AVFoundation
 
 // MARK: - Video Thumbnail Generator
-class VideoThumbnailGenerator {
+actor VideoThumbnailGenerator {
     static let shared = VideoThumbnailGenerator()
-    private var cache = NSCache<NSString, UIImage>()
+    private var cache: [String: UIImage] = [:]
+    private let maxCacheSize = 50
 
-    private init() {
-        cache.countLimit = 50 // Cache up to 50 thumbnails
-    }
+    private init() {}
 
     func generateThumbnail(for videoFileName: String, at time: CMTime = CMTime(seconds: 1, preferredTimescale: 600)) async -> UIImage? {
         // Check cache first
-        let cacheKey = "\(videoFileName)-\(time.seconds)" as NSString
-        if let cachedImage = cache.object(forKey: cacheKey) {
+        let cacheKey = "\(videoFileName)-\(time.seconds)"
+        if let cachedImage = cache[cacheKey] {
             return cachedImage
         }
 
         // Try to find the video file
-        var url: URL?
-
-        // Try bundle root
-        if let bundleURL = Bundle.main.url(forResource: videoFileName.replacingOccurrences(of: ".mp4", with: ""), withExtension: "mp4") {
-            url = bundleURL
-        }
-        // Try Videos subdirectory
-        else if let videosURL = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
-            url = videosURL
-        }
-        // Try without extension manipulation
-        else if let directURL = Bundle.main.url(forResource: videoFileName, withExtension: nil) {
-            url = directURL
-        }
+        let url = findVideoURL(for: videoFileName)
 
         guard let videoURL = url else {
             print("VideoThumbnailGenerator: Could not find video: \(videoFileName)")
@@ -44,9 +30,19 @@ class VideoThumbnailGenerator {
         imageGenerator.maximumSize = CGSize(width: 400, height: 400)
 
         do {
-            let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+            // Use modern async API for thumbnail generation (iOS 16+)
+            let (cgImage, _) = try await imageGenerator.image(at: time)
             let image = UIImage(cgImage: cgImage)
-            cache.setObject(image, forKey: cacheKey)
+
+            // Manage cache size
+            if cache.count >= maxCacheSize {
+                // Remove oldest entry (simple FIFO)
+                if let firstKey = cache.keys.first {
+                    cache.removeValue(forKey: firstKey)
+                }
+            }
+            cache[cacheKey] = image
+
             return image
         } catch {
             print("VideoThumbnailGenerator: Error generating thumbnail: \(error)")
@@ -55,23 +51,57 @@ class VideoThumbnailGenerator {
     }
 
     func getVideoDuration(for videoFileName: String) async -> Double? {
-        var url: URL?
-
-        if let bundleURL = Bundle.main.url(forResource: videoFileName.replacingOccurrences(of: ".mp4", with: ""), withExtension: "mp4") {
-            url = bundleURL
-        } else if let videosURL = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
-            url = videosURL
-        }
-
+        let url = findVideoURL(for: videoFileName)
         guard let videoURL = url else { return nil }
 
         let asset = AVAsset(url: videoURL)
-        let duration = try? await asset.load(.duration)
-        return duration.map { CMTimeGetSeconds($0) }
+        do {
+            let duration = try await asset.load(.duration)
+            return CMTimeGetSeconds(duration)
+        } catch {
+            print("VideoThumbnailGenerator: Error loading duration: \(error)")
+            return nil
+        }
     }
 
     func clearCache() {
-        cache.removeAllObjects()
+        cache.removeAll()
+    }
+
+    // MARK: - Private Helpers
+
+    private nonisolated func findVideoURL(for videoFileName: String) -> URL? {
+        let baseName = videoFileName.replacingOccurrences(of: ".mp4", with: "")
+
+        // Try bundle root
+        if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: "mp4") {
+            return bundleURL
+        }
+        // Try Videos subdirectory
+        if let videosURL = Bundle.main.url(forResource: baseName, withExtension: "mp4", subdirectory: "Videos") {
+            return videosURL
+        }
+        // Try without extension manipulation
+        if let directURL = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
+            return directURL
+        }
+        // Search in bundle's resource path
+        if let resourcePath = Bundle.main.resourcePath {
+            let possiblePaths = [
+                "\(resourcePath)/\(videoFileName)",
+                "\(resourcePath)/Videos/\(videoFileName)",
+                "\(resourcePath)/\(baseName).mp4",
+                "\(resourcePath)/Videos/\(baseName).mp4"
+            ]
+
+            for path in possiblePaths {
+                if FileManager.default.fileExists(atPath: path) {
+                    return URL(fileURLWithPath: path)
+                }
+            }
+        }
+
+        return nil
     }
 }
 
@@ -93,8 +123,8 @@ struct VideoThumbnailView: View {
                 ZStack {
                     thumbnailPlaceholder
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: themeManager.theme.textSecondary))
-                        .scaleEffect(0.8)
+                        .controlSize(.small)
+                        .tint(themeManager.theme.textSecondary)
                 }
             } else {
                 // Failed to load - show placeholder
@@ -146,7 +176,7 @@ struct VideoThumbnailView: View {
 
                 Image(systemName: "video.fill")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                    .foregroundStyle(themeManager.theme.textSecondary.opacity(0.4))
             }
         }
     }
@@ -169,8 +199,8 @@ struct SessionThumbnailView: View {
                 ZStack {
                     placeholderBackground
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: themeManager.theme.textSecondary))
-                        .scaleEffect(0.8)
+                        .controlSize(.small)
+                        .tint(themeManager.theme.textSecondary)
                 }
             } else {
                 placeholderBackground
@@ -220,7 +250,7 @@ struct SessionThumbnailView: View {
 
                     Image(systemName: "figure.golf")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                        .foregroundStyle(themeManager.theme.textSecondary.opacity(0.4))
                 }
             }
         }

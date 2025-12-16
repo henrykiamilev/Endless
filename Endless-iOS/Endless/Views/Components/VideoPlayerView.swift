@@ -13,6 +13,7 @@ struct VideoPlayerView: View {
     @State private var duration: Double = 0
     @State private var isLoading = true
     @State private var loadError: String?
+    @State private var timeObserver: Any?
 
     var body: some View {
         GeometryReader { geometry in
@@ -29,32 +30,32 @@ struct VideoPlayerView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 48))
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
 
                         Text("Unable to Load Video")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
 
                         Text(error)
                             .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
 
                         Text("Make sure the video files are added to your Xcode project's target and included in 'Copy Bundle Resources'.")
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundStyle(.white.opacity(0.5))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
 
                         Button(action: { dismiss() }) {
                             Text("Close")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundStyle(.black)
                                 .padding(.horizontal, 32)
                                 .padding(.vertical, 12)
                                 .background(Color.white)
-                                .cornerRadius(25)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
                         }
                         .padding(.top, 10)
                     }
@@ -62,11 +63,11 @@ struct VideoPlayerView: View {
                     // Loading state
                     VStack(spacing: 16) {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(1.5)
+                            .controlSize(.large)
+                            .tint(.white)
                         Text("Loading video...")
                             .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                     }
                 }
 
@@ -78,7 +79,7 @@ struct VideoPlayerView: View {
                             Button(action: { dismiss() }) {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                                     .frame(width: 44, height: 44)
                                     .background(Color.black.opacity(0.5))
                                     .clipShape(Circle())
@@ -88,7 +89,7 @@ struct VideoPlayerView: View {
 
                             Text(videoTitle)
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.white)
 
                             Spacer()
 
@@ -96,7 +97,7 @@ struct VideoPlayerView: View {
                             Button(action: shareVideo) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                                     .frame(width: 44, height: 44)
                                     .background(Color.black.opacity(0.5))
                                     .clipShape(Circle())
@@ -113,7 +114,7 @@ struct VideoPlayerView: View {
                             HStack(spacing: 12) {
                                 Text(formatTime(currentTime))
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                                     .frame(width: 50)
 
                                 GeometryReader { geo in
@@ -142,7 +143,7 @@ struct VideoPlayerView: View {
 
                                 Text(formatTime(duration))
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                                     .frame(width: 50)
                             }
                             .padding(.horizontal, 20)
@@ -155,7 +156,7 @@ struct VideoPlayerView: View {
                                 }) {
                                     Image(systemName: "gobackward.10")
                                         .font(.system(size: 24))
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                 }
 
                                 // Play/Pause
@@ -167,7 +168,7 @@ struct VideoPlayerView: View {
 
                                         Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                                             .font(.system(size: 24, weight: .semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundStyle(.white)
                                             .offset(x: isPlaying ? 0 : 2)
                                     }
                                 }
@@ -178,7 +179,7 @@ struct VideoPlayerView: View {
                                 }) {
                                     Image(systemName: "goforward.10")
                                         .font(.system(size: 24))
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                 }
                             }
                         }
@@ -201,16 +202,15 @@ struct VideoPlayerView: View {
                 }
             }
         }
-        .onAppear {
-            loadVideo()
+        .task {
+            await loadVideo()
         }
         .onDisappear {
-            player?.pause()
-            player = nil
+            cleanupPlayer()
         }
     }
 
-    private func loadVideo() {
+    private func loadVideo() async {
         isLoading = true
         loadError = nil
 
@@ -256,8 +256,26 @@ struct VideoPlayerView: View {
         // If we found the video, create the player
         if let url = videoURL {
             let playerItem = AVPlayerItem(url: url)
-            player = AVPlayer(playerItem: playerItem)
-            setupPlayer()
+            let newPlayer = AVPlayer(playerItem: playerItem)
+
+            // Load duration using modern async API
+            do {
+                let asset = playerItem.asset
+                let durationValue = try await asset.load(.duration)
+                if durationValue.isValid && !durationValue.isIndefinite {
+                    await MainActor.run {
+                        self.duration = CMTimeGetSeconds(durationValue)
+                    }
+                }
+            } catch {
+                print("Error loading duration: \(error)")
+            }
+
+            await MainActor.run {
+                self.player = newPlayer
+                self.isLoading = false
+                setupPlayer()
+            }
         } else {
             // List available resources for debugging
             print("Could not find video: \(videoFileName)")
@@ -273,29 +291,19 @@ struct VideoPlayerView: View {
                 }
             }
 
-            isLoading = false
-            loadError = "Video file '\(videoFileName)' not found in app bundle."
+            await MainActor.run {
+                self.isLoading = false
+                self.loadError = "Video file '\(videoFileName)' not found in app bundle."
+            }
         }
     }
 
     private func setupPlayer() {
-        guard let player = player, let item = player.currentItem else { return }
-
-        isLoading = false
-
-        // Observe when the player is ready
-        item.asset.loadValuesAsynchronously(forKeys: ["duration"]) {
-            DispatchQueue.main.async {
-                let durationTime = item.asset.duration
-                if durationTime.isValid && !durationTime.isIndefinite {
-                    self.duration = CMTimeGetSeconds(durationTime)
-                }
-            }
-        }
+        guard let player = player else { return }
 
         // Add time observer
         let interval = CMTime(seconds: 0.1, preferredTimescale: 600)
-        player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { time in
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [self] time in
             currentTime = CMTimeGetSeconds(time)
             if let item = player.currentItem {
                 let dur = item.duration
@@ -309,15 +317,31 @@ struct VideoPlayerView: View {
         player.play()
         isPlaying = true
 
-        // Loop video
+        // Loop video using modern notification handling
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: player.currentItem,
             queue: .main
         ) { _ in
-            player.seek(to: .zero)
-            player.play()
+            Task { @MainActor in
+                player.seek(to: .zero)
+                player.play()
+            }
         }
+    }
+
+    private func cleanupPlayer() {
+        // Remove time observer
+        if let observer = timeObserver, let player = player {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+
+        // Remove notification observer
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
+
+        player?.pause()
+        player = nil
     }
 
     private func togglePlayPause() {
@@ -363,14 +387,14 @@ struct FullscreenVideoPlayer: View {
             VStack(spacing: 16) {
                 Image(systemName: "video.slash")
                     .font(.system(size: 48))
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.gray)
                 Text("Video not available")
                     .font(.system(size: 16))
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.gray)
                 Button("Close") {
                     dismiss()
                 }
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
             }
         }
     }
