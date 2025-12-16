@@ -15,7 +15,7 @@ struct PlayOfWeekCard: View {
 
                     // Overlay gradient for content visibility
                     LinearGradient(
-                        colors: [.clear, .clear, .black.opacity(0.3)],
+                        colors: [.clear, .clear, .black.opacity(0.5)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -24,7 +24,16 @@ struct PlayOfWeekCard: View {
                     VStack {
                         // Top badges
                         HStack {
-                            viewersBadge
+                            // Player avatar
+                            Circle()
+                                .fill(themeManager.theme.accentGreen)
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Text(String(play.playerName.prefix(1)))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
+
                             Spacer()
 
                             // Featured badge
@@ -58,45 +67,80 @@ struct PlayOfWeekCard: View {
                         }
 
                         Spacer()
+
+                        // Bottom player info and engagement
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(play.playerName)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text(play.playerTitle)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+
+                            Spacer()
+
+                            // Engagement stats
+                            HStack(spacing: 12) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 12))
+                                    Text("\(play.likes)")
+                                        .font(.system(size: 11, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+
+                                HStack(spacing: 4) {
+                                    Image(systemName: "bubble.right.fill")
+                                        .font(.system(size: 12))
+                                    Text("\(play.comments.count)")
+                                        .font(.system(size: 11, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                            }
+                        }
+                        .padding(16)
                     }
                 }
-                .frame(height: 200)
+                .frame(height: 220)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
                 // Bottom info section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(play.location)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.primary)
+                        Text(play.location)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeManager.theme.textPrimary)
+                            .lineLimit(1)
+                    }
 
-                    Text("A beautiful course featuring challenging holes and stunning views perfect for your next round.")
-                        .font(.system(size: 13, weight: .regular))
+                    Text("Amazing shot! Watch this incredible play from \(play.playerName).")
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(themeManager.theme.textSecondary)
                         .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
 
                     // CTA Button
-                    Button(action: { action?() }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 12))
-                            Text("WATCH NOW")
-                                .font(.system(size: 12, weight: .bold))
-                                .tracking(0.5)
-                        }
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(themeManager.theme.textPrimary)
-                        .clipShape(Capsule())
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 11))
+                        Text("WATCH")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(0.5)
                     }
-                    .padding(.top, 4)
+                    .foregroundColor(themeManager.theme.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(themeManager.theme.textPrimary)
+                    .clipShape(Capsule())
                 }
-                .padding(18)
+                .padding(16)
                 .background(themeManager.theme.cardBackground)
             }
-            .frame(width: 280)
+            .frame(width: 260)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 20, x: 0, y: 10)
         }
@@ -107,68 +151,34 @@ struct PlayOfWeekCard: View {
         ZStack {
             // Gradient background (placeholder for real image)
             LinearGradient(
-                gradient: Gradient(colors: themeManager.isDark ?
-                    [Color(hex: "1F1F1F"), Color(hex: "141414")] :
-                    [Color(hex: "E8E8E8"), Color(hex: "D4D4D4")]),
+                gradient: Gradient(colors: [
+                    Color(hex: "1A3A2A"),
+                    Color(hex: "0D1F15")
+                ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            // Decorative elements - subtle
+            // Decorative elements - subtle golf course feel
             GeometryReader { geo in
-                Circle()
-                    .fill(themeManager.theme.textSecondary.opacity(0.04))
-                    .frame(width: 180, height: 180)
-                    .offset(x: geo.size.width - 60, y: -40)
+                // Fairway shape
+                Ellipse()
+                    .fill(Color(hex: "22C55E").opacity(0.15))
+                    .frame(width: geo.size.width * 1.5, height: 150)
+                    .offset(x: -geo.size.width * 0.25, y: geo.size.height - 60)
 
                 Circle()
-                    .fill(themeManager.theme.textSecondary.opacity(0.03))
-                    .frame(width: 120, height: 120)
-                    .offset(x: -30, y: geo.size.height - 60)
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 100, height: 100)
+                    .offset(x: geo.size.width - 40, y: -20)
             }
 
-            // Golf flag icon - subtle
-            VStack(spacing: 8) {
-                Image(systemName: "flag.fill")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.15))
-            }
+            // Golf ball
+            Circle()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 16, height: 16)
+                .offset(x: 40, y: 50)
         }
-    }
-
-    private var viewersBadge: some View {
-        HStack(spacing: 6) {
-            // Avatar stack
-            HStack(spacing: -8) {
-                ForEach(0..<3, id: \.self) { index in
-                    Circle()
-                        .fill([
-                            themeManager.theme.textPrimary,
-                            themeManager.theme.accentBlue,
-                            themeManager.theme.accentGreen
-                        ][index])
-                        .frame(width: 22, height: 22)
-                        .overlay(
-                            Text(["H", "J", "M"][index])
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(index == 0 ? themeManager.theme.textInverse : .white)
-                        )
-                        .overlay(
-                            Circle()
-                                .stroke(.white.opacity(0.3), lineWidth: 1.5)
-                        )
-                }
-            }
-
-            Text("+4")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white)
-        }
-        .padding(.vertical, 6)
-        .padding(.leading, 6)
-        .padding(.trailing, 12)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
     }
 }
 

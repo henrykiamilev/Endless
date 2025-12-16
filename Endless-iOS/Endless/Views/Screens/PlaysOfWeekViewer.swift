@@ -7,6 +7,7 @@ struct PlaysOfWeekViewer: View {
     @State private var showComments = false
     @State private var newComment = ""
     @State private var plays: [PlayOfTheWeek]
+    @State private var likedPlays: Set<String> = []
 
     init(startingIndex: Int = 0) {
         _currentIndex = State(initialValue: startingIndex)
@@ -24,7 +25,8 @@ struct PlaysOfWeekViewer: View {
                     ForEach(Array(plays.enumerated()), id: \.element.id) { index, play in
                         PlayVideoCard(
                             play: play,
-                            onLike: { likePlay(at: index) },
+                            isLiked: likedPlays.contains(play.id),
+                            onLike: { toggleLike(at: index) },
                             onComment: { showComments = true },
                             onShare: { sharePlay(play) }
                         )
@@ -49,9 +51,14 @@ struct PlaysOfWeekViewer: View {
 
                         Spacer()
 
-                        Text("Plays of the Week")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                        VStack(spacing: 2) {
+                            Text("Plays of the Week")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("\(currentIndex + 1) of \(plays.count)")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
 
                         Spacer()
 
@@ -74,8 +81,15 @@ struct PlaysOfWeekViewer: View {
         }
     }
 
-    private func likePlay(at index: Int) {
-        plays[index].likes += 1
+    private func toggleLike(at index: Int) {
+        let playId = plays[index].id
+        if likedPlays.contains(playId) {
+            likedPlays.remove(playId)
+            plays[index].likes -= 1
+        } else {
+            likedPlays.insert(playId)
+            plays[index].likes += 1
+        }
     }
 
     private func sharePlay(_ play: PlayOfTheWeek) {
@@ -98,11 +112,13 @@ struct PlaysOfWeekViewer: View {
 
 struct PlayVideoCard: View {
     let play: PlayOfTheWeek
+    let isLiked: Bool
     let onLike: () -> Void
     let onComment: () -> Void
     let onShare: () -> Void
 
-    @State private var isLiked = false
+    @State private var showHeartAnimation = false
+    @State private var isBookmarked = false
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -111,7 +127,8 @@ struct PlayVideoCard: View {
                 // Video placeholder background
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color(hex: "1A1A1A"),
+                        Color(hex: "1A3A2A"),
+                        Color(hex: "0D1F15"),
                         Color(hex: "0A0A0A")
                     ]),
                     startPoint: .top,
@@ -124,23 +141,51 @@ struct PlayVideoCard: View {
                     ZStack {
                         // Abstract fairway shape
                         Ellipse()
-                            .fill(Color(hex: "22C55E").opacity(0.1))
+                            .fill(Color(hex: "22C55E").opacity(0.15))
                             .frame(width: geometry.size.width * 1.5, height: 300)
                             .offset(y: 100)
+
+                        // Flag in distance
+                        VStack(spacing: 0) {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(width: 2, height: 60)
+                            Triangle()
+                                .fill(Color.red.opacity(0.5))
+                                .frame(width: 20, height: 15)
+                                .offset(x: 10, y: -60)
+                        }
+                        .offset(y: -80)
 
                         // Golf ball
                         Circle()
                             .fill(Color.white.opacity(0.9))
-                            .frame(width: 24, height: 24)
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                            .offset(y: -50)
+                            .frame(width: 20, height: 20)
+                            .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                            .offset(y: -30)
                     }
                 }
 
                 // Play icon overlay
-                Image(systemName: "play.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.white.opacity(0.3))
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial.opacity(0.3))
+                        .frame(width: 80, height: 80)
+
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.8))
+                        .offset(x: 2)
+                }
+
+                // Heart animation on double tap
+                if showHeartAnimation {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 100))
+                        .foregroundColor(.red)
+                        .scaleEffect(showHeartAnimation ? 1.0 : 0.5)
+                        .opacity(showHeartAnimation ? 1.0 : 0)
+                }
 
                 // Content overlay
                 VStack {
@@ -148,64 +193,102 @@ struct PlayVideoCard: View {
 
                     HStack(alignment: .bottom, spacing: 16) {
                         // Left side - Player info
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             // Player name with avatar
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(Color(hex: "22C55E"))
-                                    .frame(width: 44, height: 44)
-                                    .overlay(
-                                        Text(String(play.playerName.prefix(1)))
-                                            .font(.system(size: 18, weight: .bold))
-                                            .foregroundColor(.white)
-                                    )
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hex: "22C55E"))
+                                        .frame(width: 48, height: 48)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(play.playerName)
-                                        .font(.system(size: 16, weight: .bold))
+                                    Text(String(play.playerName.prefix(1)))
+                                        .font(.system(size: 20, weight: .bold))
                                         .foregroundColor(.white)
+                                }
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                                )
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 6) {
+                                        Text(play.playerName)
+                                            .font(.system(size: 17, weight: .bold))
+                                            .foregroundColor(.white)
+
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(Color(hex: "22C55E"))
+                                    }
 
                                     Text(play.playerTitle)
                                         .font(.system(size: 13))
                                         .foregroundColor(.white.opacity(0.7))
                                 }
+
+                                Spacer()
+
+                                // Follow button
+                                Button(action: {}) {
+                                    Text("Follow")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(Color(hex: "22C55E"))
+                                        .clipShape(Capsule())
+                                }
                             }
 
                             // Location
-                            HStack(spacing: 4) {
-                                Image(systemName: "mappin")
-                                    .font(.system(size: 12))
+                            HStack(spacing: 6) {
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.system(size: 14))
                                 Text(play.location)
-                                    .font(.system(size: 13))
+                                    .font(.system(size: 14, weight: .medium))
                             }
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.8))
 
                             // Description
-                            Text("Amazing shot from the fairway! Watch this incredible approach shot land within feet of the pin. 🏌️‍♂️⛳️")
+                            Text("Amazing approach shot! Watch this incredible play land within feet of the pin. 🏌️‍♂️⛳️")
                                 .font(.system(size: 14))
                                 .foregroundColor(.white.opacity(0.9))
-                                .lineLimit(3)
-                                .padding(.top, 4)
+                                .lineLimit(2)
+                                .padding(.top, 2)
+
+                            // Tags
+                            HStack(spacing: 8) {
+                                ForEach(["#golf", "#approach", "#skillshot"], id: \.self) { tag in
+                                    Text(tag)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(Color(hex: "22C55E"))
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         // Right side - Action buttons
-                        VStack(spacing: 20) {
+                        VStack(spacing: 24) {
                             // Like button
                             Button(action: {
-                                withAnimation(.spring(response: 0.3)) {
-                                    isLiked.toggle()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    onLike()
                                 }
-                                onLike()
                             }) {
                                 VStack(spacing: 4) {
-                                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                                        .font(.system(size: 28))
-                                        .foregroundColor(isLiked ? .red : .white)
-                                        .scaleEffect(isLiked ? 1.1 : 1.0)
+                                    ZStack {
+                                        Image(systemName: "heart.fill")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(isLiked ? .red : .white.opacity(0.3))
+                                            .scaleEffect(isLiked ? 1.0 : 0.9)
 
-                                    Text("\(play.likes + (isLiked ? 1 : 0))")
-                                        .font(.system(size: 12, weight: .semibold))
+                                        Image(systemName: "heart")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(.white)
+                                    }
+
+                                    Text("\(play.likes)")
+                                        .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -213,12 +296,12 @@ struct PlayVideoCard: View {
                             // Comment button
                             Button(action: onComment) {
                                 VStack(spacing: 4) {
-                                    Image(systemName: "bubble.right")
-                                        .font(.system(size: 26))
+                                    Image(systemName: "bubble.right.fill")
+                                        .font(.system(size: 28))
                                         .foregroundColor(.white)
 
                                     Text("\(play.comments.count)")
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -226,30 +309,61 @@ struct PlayVideoCard: View {
                             // Share button
                             Button(action: onShare) {
                                 VStack(spacing: 4) {
-                                    Image(systemName: "arrowshape.turn.up.right")
+                                    Image(systemName: "paperplane.fill")
                                         .font(.system(size: 26))
                                         .foregroundColor(.white)
 
                                     Text("Share")
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.white)
                                 }
                             }
 
                             // Bookmark button
-                            Button(action: {}) {
-                                Image(systemName: "bookmark")
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    isBookmarked.toggle()
+                                }
+                            }) {
+                                Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
                                     .font(.system(size: 26))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(isBookmarked ? Color(hex: "22C55E") : .white)
                             }
                         }
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 30)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 100)
+                    .padding(.bottom, 110)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                // Double tap to like
+                if !isLiked {
+                    onLike()
+                }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    showHeartAnimation = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation {
+                        showHeartAnimation = false
+                    }
                 }
             }
         }
+    }
+}
+
+// Helper shape for flag
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }
 
