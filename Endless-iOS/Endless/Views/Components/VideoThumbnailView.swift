@@ -24,7 +24,7 @@ actor VideoThumbnailGenerator {
             return nil
         }
 
-        let asset = AVAsset(url: videoURL)
+        let asset = AVURLAsset(url: videoURL)
         let imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGenerator.appliesPreferredTrackTransform = true
         imageGenerator.maximumSize = CGSize(width: 400, height: 400)
@@ -54,7 +54,7 @@ actor VideoThumbnailGenerator {
         let url = findVideoURL(for: videoFileName)
         guard let videoURL = url else { return nil }
 
-        let asset = AVAsset(url: videoURL)
+        let asset = AVURLAsset(url: videoURL)
         do {
             let duration = try await asset.load(.duration)
             return CMTimeGetSeconds(duration)
