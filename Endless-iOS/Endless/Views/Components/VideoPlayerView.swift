@@ -6,14 +6,8 @@ struct VideoPlayerView: View {
     let videoTitle: String
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
-    @State private var player: AVPlayer?
-    @State private var isPlaying = false
+    @StateObject private var playerManager = VideoPlayerManager()
     @State private var showControls = true
-    @State private var currentTime: Double = 0
-    @State private var duration: Double = 0
-    @State private var isLoading = true
-    @State private var loadError: String?
-    @State private var timeObserver: Any?
 
     var body: some View {
         GeometryReader { geometry in
@@ -22,10 +16,10 @@ struct VideoPlayerView: View {
                 Color.black.ignoresSafeArea()
 
                 // Video Player
-                if let player = player {
+                if let player = playerManager.player {
                     VideoPlayer(player: player)
                         .ignoresSafeArea()
-                } else if let error = loadError {
+                } else if let error = playerManager.loadError {
                     // Error state
                     VStack(spacing: 20) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -59,7 +53,7 @@ struct VideoPlayerView: View {
                         }
                         .padding(.top, 10)
                     }
-                } else if isLoading {
+                } else if playerManager.isLoading {
                     // Loading state
                     VStack(spacing: 16) {
                         ProgressView()
@@ -72,7 +66,7 @@ struct VideoPlayerView: View {
                 }
 
                 // Custom overlay controls (only show when video is loaded)
-                if player != nil {
+                if playerManager.player != nil {
                     VStack {
                         // Top bar
                         HStack {
@@ -112,7 +106,7 @@ struct VideoPlayerView: View {
                         VStack(spacing: 16) {
                             // Progress bar
                             HStack(spacing: 12) {
-                                Text(formatTime(currentTime))
+                                Text(formatTime(playerManager.currentTime))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.white)
                                     .frame(width: 50)
@@ -127,21 +121,21 @@ struct VideoPlayerView: View {
                                         // Progress
                                         RoundedRectangle(cornerRadius: 2)
                                             .fill(Color.green)
-                                            .frame(width: duration > 0 ? CGFloat(currentTime / duration) * geo.size.width : 0, height: 4)
+                                            .frame(width: playerManager.duration > 0 ? CGFloat(playerManager.currentTime / playerManager.duration) * geo.size.width : 0, height: 4)
                                     }
                                     .gesture(
                                         DragGesture(minimumDistance: 0)
                                             .onChanged { value in
                                                 let percentage = value.location.x / geo.size.width
                                                 let clampedPercentage = min(max(percentage, 0), 1)
-                                                let newTime = Double(clampedPercentage) * duration
-                                                player?.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+                                                let newTime = Double(clampedPercentage) * playerManager.duration
+                                                playerManager.seek(to: newTime)
                                             }
                                     )
                                 }
                                 .frame(height: 20)
 
-                                Text(formatTime(duration))
+                                Text(formatTime(playerManager.duration))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.white)
                                     .frame(width: 50)
@@ -152,7 +146,7 @@ struct VideoPlayerView: View {
                             HStack(spacing: 40) {
                                 // Rewind 10s
                                 Button(action: {
-                                    skip(by: -10)
+                                    playerManager.skip(by: -10)
                                 }) {
                                     Image(systemName: "gobackward.10")
                                         .font(.system(size: 24))
@@ -160,22 +154,22 @@ struct VideoPlayerView: View {
                                 }
 
                                 // Play/Pause
-                                Button(action: togglePlayPause) {
+                                Button(action: { playerManager.togglePlayPause() }) {
                                     ZStack {
                                         Circle()
                                             .fill(Color.green)
                                             .frame(width: 64, height: 64)
 
-                                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                        Image(systemName: playerManager.isPlaying ? "pause.fill" : "play.fill")
                                             .font(.system(size: 24, weight: .semibold))
                                             .foregroundStyle(.white)
-                                            .offset(x: isPlaying ? 0 : 2)
+                                            .offset(x: playerManager.isPlaying ? 0 : 2)
                                     }
                                 }
 
                                 // Forward 10s
                                 Button(action: {
-                                    skip(by: 10)
+                                    playerManager.skip(by: 10)
                                 }) {
                                     Image(systemName: "goforward.10")
                                         .font(.system(size: 24))
@@ -202,20 +196,44 @@ struct VideoPlayerView: View {
                 }
             }
         }
-        .task {
-            await loadVideo()
+        .onAppear {
+            playerManager.loadVideo(fileName: videoFileName)
         }
         .onDisappear {
-            cleanupPlayer()
+            playerManager.cleanup()
         }
     }
 
-    private func loadVideo() async {
+    private func formatTime(_ time: Double) -> String {
+        guard !time.isNaN && !time.isInfinite else { return "0:00" }
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private func shareVideo() {
+        // Share functionality would go here
+    }
+}
+
+// MARK: - Video Player Manager (ObservableObject for proper state management)
+final class VideoPlayerManager: ObservableObject {
+    @Published var player: AVPlayer?
+    @Published var isPlaying = false
+    @Published var currentTime: Double = 0
+    @Published var duration: Double = 0
+    @Published var isLoading = true
+    @Published var loadError: String?
+
+    private var timeObserver: Any?
+    private var endObserver: NSObjectProtocol?
+
+    func loadVideo(fileName: String) {
         isLoading = true
         loadError = nil
 
         // Get the base name without extension
-        let baseName = videoFileName.replacingOccurrences(of: ".mp4", with: "")
+        let baseName = fileName.replacingOccurrences(of: ".mp4", with: "")
 
         // Try multiple paths to find the video
         var videoURL: URL?
@@ -231,15 +249,15 @@ struct VideoPlayerView: View {
             print("Found video in Videos folder: \(url.path)")
         }
         // Method 3: Try with full filename in Videos folder
-        else if let url = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
+        else if let url = Bundle.main.url(forResource: fileName, withExtension: nil, subdirectory: "Videos") {
             videoURL = url
             print("Found video with full name: \(url.path)")
         }
         // Method 4: Search in bundle's resource path
         else if let resourcePath = Bundle.main.resourcePath {
             let possiblePaths = [
-                "\(resourcePath)/\(videoFileName)",
-                "\(resourcePath)/Videos/\(videoFileName)",
+                "\(resourcePath)/\(fileName)",
+                "\(resourcePath)/Videos/\(fileName)",
                 "\(resourcePath)/\(baseName).mp4",
                 "\(resourcePath)/Videos/\(baseName).mp4"
             ]
@@ -254,31 +272,9 @@ struct VideoPlayerView: View {
         }
 
         // If we found the video, create the player
-        if let url = videoURL {
-            let playerItem = AVPlayerItem(url: url)
-            let newPlayer = AVPlayer(playerItem: playerItem)
-
-            // Load duration using modern async API
-            do {
-                let asset = playerItem.asset
-                let durationValue = try await asset.load(.duration)
-                if durationValue.isValid && !durationValue.isIndefinite {
-                    await MainActor.run {
-                        self.duration = CMTimeGetSeconds(durationValue)
-                    }
-                }
-            } catch {
-                print("Error loading duration: \(error)")
-            }
-
-            await MainActor.run {
-                self.player = newPlayer
-                self.isLoading = false
-                setupPlayer()
-            }
-        } else {
+        guard let url = videoURL else {
             // List available resources for debugging
-            print("Could not find video: \(videoFileName)")
+            print("Could not find video: \(fileName)")
             print("Bundle path: \(Bundle.main.bundlePath)")
 
             if let resourcePath = Bundle.main.resourcePath {
@@ -291,60 +287,55 @@ struct VideoPlayerView: View {
                 }
             }
 
-            await MainActor.run {
-                self.isLoading = false
-                self.loadError = "Video file '\(videoFileName)' not found in app bundle."
-            }
+            isLoading = false
+            loadError = "Video file '\(fileName)' not found in app bundle."
+            return
         }
+
+        // Create player item and player
+        let playerItem = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: playerItem)
+
+        // Observe duration from player item status
+        self.player = newPlayer
+        self.isLoading = false
+        setupObservers()
+
+        // Auto-play
+        newPlayer.play()
+        isPlaying = true
     }
 
-    private func setupPlayer() {
+    private func setupObservers() {
         guard let player = player else { return }
 
-        // Add time observer
+        // Add time observer with weak self to prevent retain cycle
         let interval = CMTime(seconds: 0.1, preferredTimescale: 600)
-        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [self] time in
-            currentTime = CMTimeGetSeconds(time)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            guard let self = self else { return }
+            self.currentTime = CMTimeGetSeconds(time)
             if let item = player.currentItem {
                 let dur = item.duration
-                if dur.isValid && !dur.isIndefinite {
-                    duration = CMTimeGetSeconds(dur)
+                if dur.isValid && !dur.isIndefinite && self.duration == 0 {
+                    self.duration = CMTimeGetSeconds(dur)
                 }
             }
         }
 
-        // Auto-play
-        player.play()
-        isPlaying = true
-
-        // Loop video using modern notification handling
-        NotificationCenter.default.addObserver(
+        // Loop video when it ends
+        endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: player.currentItem,
             queue: .main
-        ) { _ in
-            Task { @MainActor in
-                player.seek(to: .zero)
-                player.play()
-            }
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.player?.seek(to: .zero)
+            self.player?.play()
+            self.isPlaying = true
         }
     }
 
-    private func cleanupPlayer() {
-        // Remove time observer
-        if let observer = timeObserver, let player = player {
-            player.removeTimeObserver(observer)
-            timeObserver = nil
-        }
-
-        // Remove notification observer
-        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
-
-        player?.pause()
-        player = nil
-    }
-
-    private func togglePlayPause() {
+    func togglePlayPause() {
         guard let player = player else { return }
 
         if isPlaying {
@@ -355,23 +346,35 @@ struct VideoPlayerView: View {
         isPlaying.toggle()
     }
 
-    private func skip(by seconds: Double) {
-        guard let player = player else { return }
+    func seek(to time: Double) {
+        player?.seek(to: CMTime(seconds: time, preferredTimescale: 600))
+    }
 
+    func skip(by seconds: Double) {
         let newTime = currentTime + seconds
         let clampedTime = min(max(newTime, 0), duration)
-        player.seek(to: CMTime(seconds: clampedTime, preferredTimescale: 600))
+        seek(to: clampedTime)
     }
 
-    private func formatTime(_ time: Double) -> String {
-        guard !time.isNaN && !time.isInfinite else { return "0:00" }
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%d:%02d", minutes, seconds)
+    func cleanup() {
+        // Remove time observer
+        if let observer = timeObserver, let player = player {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+
+        // Remove end observer
+        if let endObserver = endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+
+        player?.pause()
+        player = nil
     }
 
-    private func shareVideo() {
-        // Share functionality would go here
+    deinit {
+        cleanup()
     }
 }
 
