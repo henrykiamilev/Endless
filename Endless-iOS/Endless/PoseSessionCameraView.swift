@@ -39,19 +39,29 @@ final class PoseSessionController: UIViewController,
     // Vision / Model
     private let visionQueue = DispatchQueue(label: "vision.queue")
     private let poseReq = VNDetectHumanBodyPoseRequest()
-    private lazy var mlModel: MLModel = {
-        let cfg = MLModelConfiguration()
-        cfg.computeUnits = .all
-        return try! GolfPoseClassifier(configuration: cfg).model // load in my ml model
-    }()
+    private var mlModel: MLModel?
+    private var modelLoadError: Bool = false
+
+    private func loadMLModel() {
+        guard mlModel == nil && !modelLoadError else { return }
+        do {
+            let cfg = MLModelConfiguration()
+            cfg.computeUnits = .all
+            mlModel = try GolfPoseClassifier(configuration: cfg).model
+        } catch {
+            print("Error loading GolfPoseClassifier model: \(error)")
+            modelLoadError = true
+        }
+    }
     // Expected input length (read from model metadata)
-    private lazy var expectedInputLength: Int = {
-        let input = mlModel.modelDescription.inputDescriptionsByName["features"]
+    private var expectedInputLength: Int {
+        guard let model = mlModel else { return 37 }
+        let input = model.modelDescription.inputDescriptionsByName["features"]
         let shape = input?.multiArrayConstraint?.shape
         // shape of 2D tensor is [1, N]; fall back to 37 if unknown
         if let n = shape?.last?.intValue { return n }
         return 37
-    }()
+    }
     private let featureBuilder = FeatureBuilder()
 
     // Session callbacks
@@ -76,13 +86,21 @@ final class PoseSessionController: UIViewController,
     private var clipURLs: [URL] = []
     private var currentClipURL: URL?
 
+    // Background queue for camera operations
+    private let sessionQueue = DispatchQueue(label: "camera.session.queue")
+
     // MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Load ML model first
+        loadMLModel()
         setupCamera()
         setupOverlay()
         setupHUD()
-        session.startRunning()
+        // Start camera session on background thread to prevent UI freeze
+        sessionQueue.async { [weak self] in
+            self?.session.startRunning()
+        }
         enter(.waitingReady)
     }
 
@@ -129,27 +147,13 @@ final class PoseSessionController: UIViewController,
             session.addOutput(movieOutput)
         }
 
-        // Configure video orientation using modern iOS 17+ API with fallback
+        // Configure video orientation (use deprecated API for broad iOS compatibility)
         if let conn = videoOutput.connection(with: .video) {
-            if #available(iOS 17.0, *) {
-                if conn.isVideoRotationAngleSupported(90) {
-                    conn.videoRotationAngle = 90  // Portrait orientation
-                }
-            } else {
-                // Fallback for iOS 16
-                if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
-            }
+            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
         if let conn = movieOutput.connection(with: .video) {
-            if #available(iOS 17.0, *) {
-                if conn.isVideoRotationAngleSupported(90) {
-                    conn.videoRotationAngle = 90  // Portrait orientation
-                }
-            } else {
-                // Fallback for iOS 16
-                if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
-            }
+            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
 
@@ -192,10 +196,12 @@ final class PoseSessionController: UIViewController,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard let model = mlModel else { return } // Skip if model not loaded
         let orientation: CGImagePropertyOrientation = .leftMirrored
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: orientation)
 
-        visionQueue.async {
+        visionQueue.async { [weak self] in
+            guard let self = self else { return }
             do {
                 try handler.perform([self.poseReq])
                 guard let obs = self.poseReq.results?.first else { return }
@@ -210,7 +216,7 @@ final class PoseSessionController: UIViewController,
                 let arr = try MLMultiArray(shape: [1, NSNumber(value: feats.count)], dataType: .double)
                 for (i, v) in feats.enumerated() { arr[i] = NSNumber(value: v) }
                 let provider = try MLDictionaryFeatureProvider(dictionary: ["features": arr])
-                let out = try self.mlModel.prediction(from: provider)
+                let out = try model.prediction(from: provider)
                 let label = out.featureValue(for: "classLabel")?.stringValue ?? "other"
 
                 self.handle(label: label)
@@ -320,20 +326,11 @@ final class PoseSessionController: UIViewController,
                                 completion: @escaping (URL?) -> Void) {
         guard !clipURLs.isEmpty else { completion(nil); return }
 
-        // Use Task to handle async operations
-        Task {
-            await performStitching(shotLabels: shotLabels, completion: completion)
-        }
-    }
-
-    private func performStitching(shotLabels: [String]? = nil,
-                                   completion: @escaping (URL?) -> Void) async {
         // Build a single video composition by concatenating clips
         let mix = AVMutableComposition()
         guard let compVideo = mix.addMutableTrack(withMediaType: .video,
                                                   preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            await MainActor.run { completion(nil) }
-            return
+            completion(nil); return
         }
 
         var cursor = CMTime.zero
@@ -342,32 +339,14 @@ final class PoseSessionController: UIViewController,
 
         for (idx, url) in clipURLs.enumerated() {
             let asset = AVAsset(url: url)
-
-            // Use modern async API to load tracks (iOS 15+)
-            guard let tracks = try? await asset.loadTracks(withMediaType: .video),
-                  let src = tracks.first else { continue }
-
-            // Load track properties asynchronously
-            let naturalSize: CGSize
-            let preferredTransform: CGAffineTransform
-            let duration: CMTime
-
-            do {
-                naturalSize = try await src.load(.naturalSize)
-                preferredTransform = try await src.load(.preferredTransform)
-                duration = try await asset.load(.duration)
-            } catch {
-                print("Error loading asset properties: \(error)")
-                continue
-            }
-
+            guard let src = asset.tracks(withMediaType: .video).first else { continue }
             if idx == 0 {
                 // Use first track's dimensions/orientation as the render target
-                let natural = naturalSize.applying(preferredTransform)
+                let natural = src.naturalSize.applying(src.preferredTransform)
                 renderSize = CGSize(width: abs(natural.width), height: abs(natural.height))
             }
 
-            let timeRange = CMTimeRange(start: .zero, duration: duration)
+            let timeRange = CMTimeRange(start: .zero, duration: asset.duration)
             try? compVideo.insertTimeRange(timeRange, of: src, at: cursor)
 
             // Per-segment transform (fix rotation using preferredTransform)
@@ -376,7 +355,7 @@ final class PoseSessionController: UIViewController,
             // Calculate a transform that maps the concatenated compTrack segment correctly
             // We need to apply the source track's preferredTransform to the segment we just inserted.
             // Because compVideo reuses the same track, we set it as a "setTransform" at this timeRange start.
-            var t = preferredTransform
+            var t = src.preferredTransform
 
             //unmirror camera
             t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
@@ -384,7 +363,7 @@ final class PoseSessionController: UIViewController,
             layerInst.setTransform(t, at: cursor)
             layerInstructions.append(layerInst)
 
-            cursor = cursor + duration
+            cursor = cursor + asset.duration
         }
 
         // Build a single instruction that spans the full timeline, referencing the concatenated track
@@ -405,7 +384,7 @@ final class PoseSessionController: UIViewController,
         let videoLayer = CALayer()
         videoLayer.frame = parent.frame
         parent.addSublayer(videoLayer)
-        
+
         //tags
         let tagsContainer = CALayer()
         tagsContainer.name = "tagsContainer"
@@ -413,25 +392,15 @@ final class PoseSessionController: UIViewController,
         parent.addSublayer(tagsContainer)
 
         // Top-right "Shot N" — per-segment timing
-        // To Do: Try creating one static tag by creating ONE text layer with beginTime=0.
         if !clipURLs.isEmpty {
             var begin = CFTimeInterval(0)
             for (i, url) in clipURLs.enumerated() {
                 let asset = AVAsset(url: url)
-
-                // Use modern async API to load duration (iOS 15+)
-                let d: Double
-                do {
-                    let durationValue = try await asset.load(.duration)
-                    d = CMTimeGetSeconds(durationValue)
-                } catch {
-                    print("Error loading duration for overlay: \(error)")
-                    continue
-                }
+                let d = CMTimeGetSeconds(asset.duration)
 
                 //create current tag
                 let tag = CATextLayer()
-                tag.contentsScale = await UIScreen.main.scale
+                tag.contentsScale = UIScreen.main.scale
                 tag.alignmentMode = .center
                 tag.font = UIFont.systemFont(ofSize: 45, weight: .semibold)
                 tag.fontSize = 45
@@ -484,45 +453,22 @@ final class PoseSessionController: UIViewController,
             in: parent
         )
 
-        // Export using modern async API (iOS 18+) with fallback
+        // Export
         let outURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("golf-session-\(UUID().uuidString).mp4")
         guard let exporter = AVAssetExportSession(asset: mix, presetName: AVAssetExportPresetHighestQuality) else {
-            await MainActor.run { completion(nil) }
-            return
+            completion(nil); return
         }
         exporter.outputURL = outURL
         exporter.outputFileType = .mp4
         exporter.shouldOptimizeForNetworkUse = true
         exporter.videoComposition = videoComp
 
-        // Use modern async export API if available (iOS 18+), fallback for earlier versions
-        if #available(iOS 18.0, *) {
-            do {
-                try await exporter.export(to: outURL, as: .mp4)
-                await MainActor.run {
-                    completion(exporter.status == .completed ? outURL : nil)
-                    // cleanup source clips
-                    for u in self.clipURLs { try? FileManager.default.removeItem(at: u) }
-                }
-            } catch {
-                print("Export error: \(error)")
-                await MainActor.run {
-                    completion(nil)
-                    for u in self.clipURLs { try? FileManager.default.removeItem(at: u) }
-                }
-            }
-        } else {
-            // Fallback for iOS 16-17
-            await withCheckedContinuation { continuation in
-                exporter.exportAsynchronously {
-                    DispatchQueue.main.async {
-                        completion(exporter.status == .completed ? outURL : nil)
-                        // cleanup source clips
-                        for u in self.clipURLs { try? FileManager.default.removeItem(at: u) }
-                        continuation.resume()
-                    }
-                }
+        exporter.exportAsynchronously {
+            DispatchQueue.main.async {
+                completion(exporter.status == .completed ? outURL : nil)
+                // cleanup source clips
+                for u in self.clipURLs { try? FileManager.default.removeItem(at: u) }
             }
         }
     }
