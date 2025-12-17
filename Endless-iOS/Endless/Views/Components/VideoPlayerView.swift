@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import Combine
 
 struct VideoPlayerView: View {
     let videoFileName: String
