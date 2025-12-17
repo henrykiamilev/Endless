@@ -27,7 +27,7 @@ final class PoseSessionController: UIViewController,
                                    AVCaptureVideoDataOutputSampleBufferDelegate,
                                    AVCaptureFileOutputRecordingDelegate {
     // UI
-    private var previewLayer: AVCaptureVideoPreviewLayer!
+    private var previewLayer: AVCaptureVideoPreviewLayer?
     private let overlayLayer = CAShapeLayer()
     private let hud = UILabel()
 
@@ -76,18 +76,28 @@ final class PoseSessionController: UIViewController,
     private var currentClipURL: URL?
 
     // MARK: Lifecycle
+    deinit {
+        postEndTimer?.invalidate()
+        if session.isRunning {
+            session.stopRunning()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
         setupOverlay()
         setupHUD()
-        session.startRunning()
+        // Start camera session on background queue to avoid blocking main thread
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.session.startRunning()
+        }
         enter(.waitingReady)
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        previewLayer.frame = view.bounds
+        previewLayer?.frame = view.bounds
         overlayLayer.frame = view.bounds
     }
 
@@ -125,21 +135,28 @@ final class PoseSessionController: UIViewController,
             session.addOutput(movieOutput)
         }
 
+        // Configure video output connection (use rotation angle API for iOS 17+)
         if let conn = videoOutput.connection(with: .video) {
-            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90 // Portrait orientation
+            }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
+        // Configure movie output connection
         if let conn = movieOutput.connection(with: .video) {
-            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90 // Portrait orientation
+            }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
 
         session.commitConfiguration()
 
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = view.bounds
-        view.layer.addSublayer(previewLayer)
+        let preview = AVCaptureVideoPreviewLayer(session: session)
+        preview.videoGravity = .resizeAspectFill
+        preview.frame = view.bounds
+        view.layer.addSublayer(preview)
+        previewLayer = preview
     }
 
     private func setupOverlay() {
@@ -445,7 +462,8 @@ final class PoseSessionController: UIViewController,
     }
 
     private func drawPose(_ obs: VNHumanBodyPoseObservation) {
-        guard let pts = try? obs.recognizedPoints(.all) else { return }
+        guard let pts = try? obs.recognizedPoints(.all),
+              let preview = previewLayer else { return }
         let minConf: Float = 0.1
         let pairs: [(VNHumanBodyPoseObservation.JointName, VNHumanBodyPoseObservation.JointName)] = [
             (.neck, .leftShoulder), (.leftShoulder, .leftElbow), (.leftElbow, .leftWrist),
@@ -456,7 +474,7 @@ final class PoseSessionController: UIViewController,
         let path = UIBezierPath()
         func devPoint(_ p: CGPoint) -> CGPoint {
             let flipped = CGPoint(x: p.x, y: 1 - p.y)
-            return previewLayer.layerPointConverted(fromCaptureDevicePoint: flipped)
+            return preview.layerPointConverted(fromCaptureDevicePoint: flipped)
         }
         for (a, b) in pairs {
             guard let pa = pts[a], pa.confidence >= minConf,
