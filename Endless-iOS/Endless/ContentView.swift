@@ -60,7 +60,7 @@ struct ContentView: View {
                 case 0:
                     HomeView()
                 case 1:
-                    VideoView()
+                    VideoLibraryView()
                 case 2:
                     GolfSessionView()
                 case 3:
