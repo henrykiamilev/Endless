@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // Navigation Manager to handle tab switching across views
 class NavigationManager: ObservableObject {
