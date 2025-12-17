@@ -12,6 +12,8 @@ struct VideoLibraryView: View {
     @State private var selectedCourses: Set<String> = []
     @State private var isGeneratingHighlight = false
     @State private var showingGeneratedReel = false
+    @State private var showingVideoPlayer = false
+    @State private var selectedVideoForPlayback: Video?
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
 
@@ -45,6 +47,11 @@ struct VideoLibraryView: View {
         }
         .sheet(isPresented: $showingGeneratedReel) {
             GeneratedHighlightReelView(prompt: highlightPrompt, courses: Array(selectedCourses))
+        }
+        .fullScreenCover(isPresented: $showingVideoPlayer) {
+            if let video = selectedVideoForPlayback, let videoFileName = video.videoFileName {
+                VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
+            }
         }
     }
 
@@ -164,8 +171,23 @@ struct VideoLibraryView: View {
             ], spacing: 18) {
                 ForEach(MockData.videos) { video in
                     VideoCard(video: video) {
-                        selectedVideoForAI = video
-                        showingAIAnalysis = true
+                        // Play video when tapped
+                        selectedVideoForPlayback = video
+                        showingVideoPlayer = true
+                    }
+                    .contextMenu {
+                        Button(action: {
+                            selectedVideoForPlayback = video
+                            showingVideoPlayer = true
+                        }) {
+                            Label("Play Video", systemImage: "play.fill")
+                        }
+                        Button(action: {
+                            selectedVideoForAI = video
+                            showingAIAnalysis = true
+                        }) {
+                            Label("AI Analysis", systemImage: "sparkles")
+                        }
                     }
                 }
             }

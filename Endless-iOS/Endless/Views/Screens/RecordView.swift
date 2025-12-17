@@ -8,7 +8,13 @@ struct RecordView: View {
     @State private var isFrontCamera = false
     @State private var hasPermission = false
     @State private var showPermissionAlert = false
-    @State private var selectedMode = 1 // 0 = Photo, 1 = Video, 2 = Slo-Mo
+    @State private var selectedMode = 3 // 0 = Photo, 1 = Video, 2 = Slo-Mo, 3 = AI Golf
+
+    // AI Golf session state
+    @State private var isAISessionActive = false
+    @State private var shotCount = 0
+    @State private var exportedVideoURL: URL?
+    @State private var showExportSuccess = false
 
     var body: some View {
         ZStack {
@@ -17,13 +23,25 @@ struct RecordView: View {
                 .ignoresSafeArea()
 
             if hasPermission {
-                cameraView
+                if selectedMode == 3 {
+                    aiGolfView
+                } else {
+                    cameraView
+                }
             } else {
                 permissionView
             }
         }
         .onAppear {
             checkCameraPermission()
+        }
+        .alert("Session Exported!", isPresented: $showExportSuccess) {
+            Button("View in Library") {
+                navigationManager.navigateToVideo()
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your golf session with \(shotCount) shot(s) has been saved.")
         }
     }
 
@@ -64,7 +82,160 @@ struct RecordView: View {
         .background(themeManager.theme.background)
     }
 
-    // MARK: - Camera View
+    // MARK: - AI Golf View (Pose Detection)
+
+    private var aiGolfView: some View {
+        ZStack {
+            // PoseSessionCameraView - Real-time pose detection
+            PoseSessionCameraView(
+                isSessionActive: $isAISessionActive,
+                onExported: { url in
+                    exportedVideoURL = url
+                    showExportSuccess = true
+                },
+                onShotCaptured: {
+                    shotCount += 1
+                }
+            )
+            .ignoresSafeArea()
+
+            // Overlay controls
+            VStack {
+                // Top bar
+                HStack {
+                    Button(action: { navigationManager.navigateToHome() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+
+                    Spacer()
+
+                    // Shot counter
+                    HStack(spacing: 6) {
+                        Image(systemName: "figure.golf")
+                            .font(.system(size: 14))
+                        Text("\(shotCount) shots")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(20)
+
+                    Spacer()
+
+                    // AI indicator
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(isAISessionActive ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        Text("AI")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(20)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 60)
+
+                Spacer()
+
+                // Bottom controls
+                VStack(spacing: 20) {
+                    // Session status
+                    if isAISessionActive {
+                        Text("Detecting swing poses...")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(Color.green.opacity(0.8))
+                            .cornerRadius(20)
+                    }
+
+                    // Main controls
+                    HStack(alignment: .center, spacing: 36) {
+                        // Gallery button
+                        Button(action: { navigationManager.navigateToVideo() }) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white)
+                                .frame(width: 54, height: 54)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+
+                        // Start/Stop session button
+                        Button(action: {
+                            if isAISessionActive {
+                                // Stop session - this triggers video export
+                                isAISessionActive = false
+                            } else {
+                                // Start new session
+                                shotCount = 0
+                                isAISessionActive = true
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .stroke(isAISessionActive ? Color.red : themeManager.theme.accentGreen, lineWidth: 4)
+                                    .frame(width: 84, height: 84)
+
+                                if isAISessionActive {
+                                    // Stop button
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color.red)
+                                        .frame(width: 34, height: 34)
+                                } else {
+                                    // Start button with AI icon
+                                    Circle()
+                                        .fill(themeManager.theme.accentGreen)
+                                        .frame(width: 68, height: 68)
+                                        .overlay(
+                                            Image(systemName: "figure.golf")
+                                                .font(.system(size: 28, weight: .medium))
+                                                .foregroundColor(.white)
+                                        )
+                                }
+                            }
+                        }
+
+                        // Reset button
+                        Button(action: {
+                            shotCount = 0
+                        }) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white)
+                                .frame(width: 54, height: 54)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(.bottom, 30)
+
+                    // Mode selector
+                    HStack(spacing: 0) {
+                        modeButton("Photo", modeIndex: 0)
+                        modeButton("Video", modeIndex: 1)
+                        modeButton("Slo-Mo", modeIndex: 2)
+                        modeButton("AI Golf", modeIndex: 3)
+                    }
+                    .padding(.bottom, 100)
+                }
+            }
+        }
+    }
+
+    // MARK: - Camera View (Standard modes)
 
     private var cameraView: some View {
         ZStack {
@@ -184,6 +355,7 @@ struct RecordView: View {
                     modeButton("Photo", modeIndex: 0)
                     modeButton("Video", modeIndex: 1)
                     modeButton("Slo-Mo", modeIndex: 2)
+                    modeButton("AI Golf", modeIndex: 3)
                 }
                 .padding(.bottom, 100)
             }
@@ -192,7 +364,11 @@ struct RecordView: View {
 
     private func modeButton(_ title: String, modeIndex: Int) -> some View {
         let isSelected = selectedMode == modeIndex
-        return Button(action: { selectedMode = modeIndex }) {
+        return Button(action: {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedMode = modeIndex
+            }
+        }) {
             VStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
@@ -200,7 +376,7 @@ struct RecordView: View {
 
                 if isSelected {
                     Rectangle()
-                        .fill(Color.white)
+                        .fill(modeIndex == 3 ? themeManager.theme.accentGreen : Color.white)
                         .frame(width: 40, height: 2)
                 } else {
                     Rectangle()

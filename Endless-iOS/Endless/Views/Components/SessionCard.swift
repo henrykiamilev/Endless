@@ -8,16 +8,11 @@ struct SessionCard: View {
     var body: some View {
         Button(action: { action?() }) {
             VStack(alignment: .leading, spacing: 0) {
-                // Thumbnail area - designed for real images
+                // Thumbnail area - using real video thumbnails
                 ZStack(alignment: .bottomLeading) {
-                    if let thumbnail = session.thumbnail {
-                        AsyncImage(url: URL(string: thumbnail)) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            thumbnailPlaceholder
-                        }
+                    if let videoFileName = session.thumbnail {
+                        // Use video thumbnail from the video file
+                        VideoThumbnailView(videoFileName: videoFileName)
                     } else {
                         thumbnailPlaceholder
                     }

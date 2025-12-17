@@ -33,6 +33,7 @@ struct Video: Identifiable {
     let date: String
     let duration: String
     var thumbnail: String?
+    var videoFileName: String?  // The actual video file name (e.g., "swing-1.mp4")
 }
 
 struct RoundHistory: Identifiable {
@@ -139,9 +140,9 @@ struct Drill: Identifiable {
 // Mock Data
 struct MockData {
     static let sessions: [Session] = [
-        Session(id: "1", title: "Oakmont CC", location: "Oakmont", date: "2 days ago"),
-        Session(id: "2", title: "Pebble Beach", location: "Pebble Beach", date: "5 days ago"),
-        Session(id: "3", title: "Del Mar", location: "Del Mar", date: "1 week ago")
+        Session(id: "1", title: "Oakmont CC", location: "Oakmont", date: "2 days ago", thumbnail: "swing-1.mp4"),
+        Session(id: "2", title: "Pebble Beach", location: "Pebble Beach", date: "5 days ago", thumbnail: "swing-2.mp4"),
+        Session(id: "3", title: "Del Mar", location: "Del Mar", date: "1 week ago", thumbnail: "swing-3.mp4")
     ]
 
     static let playsOfWeek: [PlayOfTheWeek] = [
@@ -154,10 +155,10 @@ struct MockData {
     ]
 
     static let videos: [Video] = [
-        Video(id: "1", title: "Oakmont CC", date: "10/15/25", duration: "2:34"),
-        Video(id: "2", title: "Pebble Beach", date: "10/10/25", duration: "3:12"),
-        Video(id: "3", title: "Del Mar", date: "10/05/25", duration: "1:45"),
-        Video(id: "4", title: "Torrey Pines", date: "10/01/25", duration: "2:58")
+        Video(id: "1", title: "Oakmont CC", date: "10/15/25", duration: "0:12", videoFileName: "swing-1.mp4"),
+        Video(id: "2", title: "Pebble Beach", date: "10/10/25", duration: "0:14", videoFileName: "swing-2.mp4"),
+        Video(id: "3", title: "Del Mar", date: "10/05/25", duration: "0:16", videoFileName: "swing-3.mp4"),
+        Video(id: "4", title: "Torrey Pines", date: "10/01/25", duration: "0:12", videoFileName: "swing-1.mp4")
     ]
 
     static let roundHistory: [RoundHistory] = [
