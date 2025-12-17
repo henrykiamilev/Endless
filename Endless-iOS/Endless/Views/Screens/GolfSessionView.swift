@@ -12,7 +12,7 @@ struct GolfSessionView: View {
     @State private var isSessionActive = false
     @State private var exportURL: URL?
     @State private var saveMessage: String?
-    @State private var shotCount = 0       // shot counter
+    @State private var shotCount = 0
 
     var body: some View {
         VStack(spacing: 12) {
@@ -24,7 +24,7 @@ struct GolfSessionView: View {
                         saveMessage = ok ? "Saved to Photos" : "Save failed: \(err?.localizedDescription ?? "")"
                     }
                 },
-                onShotCaptured: {      // incr shot counter
+                onShotCaptured: {
                     shotCount += 1
                 }
             )
@@ -63,9 +63,7 @@ struct GolfSessionView: View {
     }
 }
 
-// Save to Photos helper func
 private func saveToPhotos(_ url: URL, completion: @escaping (Bool, Error?) -> Void) {
-    // req permission to add
     PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
         guard status == .authorized || status == .limited else {
             completion(false, NSError(domain: "photos", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photos permission denied"]))
