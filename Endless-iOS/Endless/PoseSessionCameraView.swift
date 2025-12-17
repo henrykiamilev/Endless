@@ -27,7 +27,7 @@ final class PoseSessionController: UIViewController,
                                    AVCaptureVideoDataOutputSampleBufferDelegate,
                                    AVCaptureFileOutputRecordingDelegate {
     // UI
-    private var previewLayer: AVCaptureVideoPreviewLayer!
+    private var previewLayer: AVCaptureVideoPreviewLayer?
     private let overlayLayer = CAShapeLayer()
     private let hud = UILabel()
 
@@ -82,13 +82,24 @@ final class PoseSessionController: UIViewController,
         setupCamera()
         setupOverlay()
         setupHUD()
-        session.startRunning()
-        enter(.waitingReady)
+        
+        // Start the session on a background queue to avoid blocking the main thread
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.session.startRunning()
+        }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Only enter waiting state after the view is fully loaded and visible
+        if phase == .idle {
+            enter(.waitingReady)
+        }
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        previewLayer.frame = view.bounds
+        previewLayer?.frame = view.bounds
         overlayLayer.frame = view.bounds
     }
 
@@ -98,12 +109,14 @@ final class PoseSessionController: UIViewController,
         } else {
             // Finish any open recording, then stitch
             stopRecordingIfNeeded()
-            stitchAllClips { [weak self] url in
-                guard let self, let url else { return }
-                self.onExported?(url)
-                // Reset for next session
-                self.clipURLs.removeAll()
-                self.enter(.idle)
+            Task {
+                await stitchAllClips { [weak self] url in
+                    guard let self, let url else { return }
+                    self.onExported?(url)
+                    // Reset for next session
+                    self.clipURLs.removeAll()
+                    self.enter(.idle)
+                }
             }
         }
     }
@@ -130,20 +143,25 @@ final class PoseSessionController: UIViewController,
         }
 
         if let conn = videoOutput.connection(with: .video) {
-            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
+            if conn.isVideoRotationAngleSupported(90) { 
+                conn.videoRotationAngle = 90 // portrait orientation
+            }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
         if let conn = movieOutput.connection(with: .video) {
-            if conn.isVideoOrientationSupported { conn.videoOrientation = .portrait }
+            if conn.isVideoRotationAngleSupported(90) { 
+                conn.videoRotationAngle = 90 // portrait orientation
+            }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
 
         session.commitConfiguration()
 
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = view.bounds
-        view.layer.addSublayer(previewLayer)
+        let preview = AVCaptureVideoPreviewLayer(session: session)
+        preview.videoGravity = .resizeAspectFill
+        preview.frame = view.bounds
+        view.layer.addSublayer(preview)
+        previewLayer = preview
     }
 
     private func setupOverlay() {
@@ -302,7 +320,7 @@ final class PoseSessionController: UIViewController,
 
     // MARK: - Stitching
     private func stitchAllClips(shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
-                                completion: @escaping (URL?) -> Void) {
+                                completion: @escaping (URL?) -> Void) async {
         guard !clipURLs.isEmpty else { completion(nil); return }
 
         // Build a single video composition by concatenating clips
@@ -314,46 +332,62 @@ final class PoseSessionController: UIViewController,
 
         var cursor = CMTime.zero
         var renderSize = CGSize(width: 1080, height: 1920) // default; will update from first track
-        var layerInstructions: [AVMutableVideoCompositionLayerInstruction] = []
+        var layerInstructions: [AVVideoCompositionLayerInstruction.Configuration] = []
 
         for (idx, url) in clipURLs.enumerated() {
-            let asset = AVAsset(url: url)
-            guard let src = asset.tracks(withMediaType: .video).first else { continue }
-            if idx == 0 {
-                // Use first track's dimensions/orientation as the render target
-                let natural = src.naturalSize.applying(src.preferredTransform)
-                renderSize = CGSize(width: abs(natural.width), height: abs(natural.height))
+            let asset = AVURLAsset(url: url)
+            
+            do {
+                let tracks = try await asset.load(.tracks)
+                guard let src = tracks.first(where: { $0.mediaType == .video }) else { continue }
+                
+                // Load naturalSize and preferredTransform asynchronously
+                let naturalSize = try await src.load(.naturalSize)
+                let preferredTransform = try await src.load(.preferredTransform)
+                
+                if idx == 0 {
+                    // Use first track's dimensions/orientation as the render target
+                    let natural = naturalSize.applying(preferredTransform)
+                    renderSize = CGSize(width: abs(natural.width), height: abs(natural.height))
+                }
+
+                let duration = try await asset.load(.duration)
+                let timeRange = CMTimeRange(start: .zero, duration: duration)
+                try? compVideo.insertTimeRange(timeRange, of: src, at: cursor)
+
+                // Per-segment transform (fix rotation using preferredTransform)
+                // Calculate a transform that maps the concatenated compTrack segment correctly
+                // We need to apply the source track's preferredTransform to the segment we just inserted.
+                // Because compVideo reuses the same track, we set it as a "setTransform" at this timeRange start.
+                var t = preferredTransform
+
+                //unmirror camera
+                t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
+
+                // Use the new Configuration API
+                var layerConfig = AVVideoCompositionLayerInstruction.Configuration(trackID: compVideo.trackID)
+                layerConfig.setTransform(t, at: cursor)
+                layerInstructions.append(layerConfig)
+
+                cursor = cursor + duration
+            } catch {
+                print("Error loading asset at \(url): \(error)")
+                continue
             }
-
-            let timeRange = CMTimeRange(start: .zero, duration: asset.duration)
-            try? compVideo.insertTimeRange(timeRange, of: src, at: cursor)
-
-            // Per-segment transform (fix rotation using preferredTransform)
-            let layerInst = AVMutableVideoCompositionLayerInstruction(assetTrack: compVideo)
-
-            // Calculate a transform that maps the concatenated compTrack segment correctly
-            // We need to apply the source track's preferredTransform to the segment we just inserted.
-            // Because compVideo reuses the same track, we set it as a "setTransform" at this timeRange start.
-            var t = src.preferredTransform
-
-            //unmirror camera
-            t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
-
-            layerInst.setTransform(t, at: cursor)
-            layerInstructions.append(layerInst)
-
-            cursor = cursor + asset.duration
         }
 
         // Build a single instruction that spans the full timeline, referencing the concatenated track
-        let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: cursor)
-        instruction.layerInstructions = layerInstructions
+        var instructionConfig = AVVideoCompositionInstruction.Configuration(
+            timeRange: CMTimeRange(start: .zero, duration: cursor)
+        )
+        instructionConfig.layerInstructions = layerInstructions.map { AVVideoCompositionLayerInstruction(configuration: $0) }
+        let instruction = AVVideoCompositionInstruction(configuration: instructionConfig)
 
-        let videoComp = AVMutableVideoComposition()
-        videoComp.renderSize = renderSize
-        videoComp.frameDuration = CMTime(value: 1, timescale: 30)
-        videoComp.instructions = [instruction]
+        // Use the new AVVideoComposition.Configuration API
+        var videoCompConfig = AVVideoComposition.Configuration()
+        videoCompConfig.renderSize = renderSize
+        videoCompConfig.frameDuration = CMTime(value: 1, timescale: 30)
+        videoCompConfig.instructions = [instruction]
 
         // === Overlays (text top-right, logo bottom-right) ===
         let parent = CALayer()
@@ -376,36 +410,43 @@ final class PoseSessionController: UIViewController,
 //            tagsContainer.sublayers?.forEach { $0.removeFromSuperlayer() } //supposed to clear tagcontainer before new tag is added each time, but not working
             var begin = CFTimeInterval(0)
             for (i, url) in clipURLs.enumerated() {
-                let asset = AVAsset(url: url)
-                let d = CMTimeGetSeconds(asset.duration)
+                let asset = AVURLAsset(url: url)
                 
-                //create current tag
-                let tag = CATextLayer()
-                tag.contentsScale = UIScreen.main.scale
-                tag.alignmentMode = .center
-                tag.font = UIFont.systemFont(ofSize: 45, weight: .semibold)
-                tag.fontSize = 45
-                tag.foregroundColor = UIColor.white.cgColor
-                tag.backgroundColor = UIColor.black.cgColor
-                tag.cornerRadius = 8
-                tag.masksToBounds = true
+                do {
+                    let duration = try await asset.load(.duration)
+                    let d = CMTimeGetSeconds(duration)
+                    
+                    //create current tag
+                    let tag = CATextLayer()
+                    tag.contentsScale = self.traitCollection.displayScale
+                    tag.alignmentMode = .center
+                    tag.font = UIFont.systemFont(ofSize: 45, weight: .semibold)
+                    tag.fontSize = 45
+                    tag.foregroundColor = UIColor.white.cgColor
+                    tag.backgroundColor = UIColor.black.cgColor
+                    tag.cornerRadius = 8
+                    tag.masksToBounds = true
 
-                let label = (shotLabels != nil && i < shotLabels!.count) ? shotLabels![i] : "Shot \(i+1)"
-                tag.string = label
+                    let label = (shotLabels != nil && i < shotLabels!.count) ? shotLabels![i] : "Shot \(i+1)"
+                    tag.string = label
 
-                // size/position top-right with 24pt margins
-                let pad: CGFloat = 24
-                let textW: CGFloat = 150
-                let textH: CGFloat = 75
-                tag.frame = CGRect(x: renderSize.width - textW - pad, y: renderSize.height - textH - pad, width: textW, height: textH)
-                tag.contentsGravity = .center
+                    // size/position top-right with 24pt margins
+                    let pad: CGFloat = 24
+                    let textW: CGFloat = 150
+                    let textH: CGFloat = 75
+                    tag.frame = CGRect(x: renderSize.width - textW - pad, y: renderSize.height - textH - pad, width: textW, height: textH)
+                    tag.contentsGravity = .center
 
-                // Core Animation time is in seconds; make it track videoComp by using AVCoreAnimationBeginTimeAtZero
-                tag.beginTime = AVCoreAnimationBeginTimeAtZero + begin
-                tag.duration  = d
+                    // Core Animation time is in seconds; make it track videoComp by using AVCoreAnimationBeginTimeAtZero
+                    tag.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                    tag.duration  = d
 
-                tagsContainer.addSublayer(tag)
-                begin += d
+                    tagsContainer.addSublayer(tag)
+                    begin += d
+                } catch {
+                    print("Error loading duration for asset at \(url): \(error)")
+                    continue
+                }
             }
         }
 
@@ -429,10 +470,13 @@ final class PoseSessionController: UIViewController,
         }
 
         // Bind Core Animation tree to video renderer
-        videoComp.animationTool = AVVideoCompositionCoreAnimationTool(
+        videoCompConfig.animationTool = AVVideoCompositionCoreAnimationTool(
             postProcessingAsVideoLayer: videoLayer,
             in: parent
         )
+        
+        // Create the final video composition from the configuration
+        let videoComp = AVVideoComposition(configuration: videoCompConfig)
 
         // Export
         let outURL = FileManager.default.temporaryDirectory
@@ -440,17 +484,20 @@ final class PoseSessionController: UIViewController,
         guard let exporter = AVAssetExportSession(asset: mix, presetName: AVAssetExportPresetHighestQuality) else {
             completion(nil); return
         }
-        exporter.outputURL = outURL
-        exporter.outputFileType = .mp4
         exporter.shouldOptimizeForNetworkUse = true
         exporter.videoComposition = videoComp
 
-        exporter.exportAsynchronously {
-            DispatchQueue.main.async {
-                completion(exporter.status == .completed ? outURL : nil)
-                // cleanup source clips
-                for u in self.clipURLs { try? FileManager.default.removeItem(at: u) }
+        do {
+            try await exporter.export(to: outURL, as: .mp4)
+            completion(outURL)
+            
+            // cleanup source clips on success
+            for u in self.clipURLs { 
+                try? FileManager.default.removeItem(at: u) 
             }
+        } catch {
+            print("Export failed: \(error)")
+            completion(nil)
         }
     }
 
@@ -500,6 +547,7 @@ final class PoseSessionController: UIViewController,
 
     private func drawPose(_ obs: VNHumanBodyPoseObservation) {
         // (Optional) draw a few bones for feedback; can be removed
+        guard let previewLayer = previewLayer else { return }
         guard let pts = try? obs.recognizedPoints(.all) else { return }
         let minConf: Float = 0.1
         let pairs: [(VNHumanBodyPoseObservation.JointName, VNHumanBodyPoseObservation.JointName)] = [
