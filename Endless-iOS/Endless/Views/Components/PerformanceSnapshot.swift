@@ -1,5 +1,5 @@
 import SwiftUI
-
+import Combine
 // MARK: - Performance Widget Model
 
 struct PerformanceWidget: Identifiable, Codable, Equatable {
