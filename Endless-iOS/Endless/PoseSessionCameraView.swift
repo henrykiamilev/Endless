@@ -65,6 +65,9 @@ final class PoseSessionController: UIViewController,
     // Flag to track if we're ending the entire session (vs just a single shot)
     private var isEndingSession = false
 
+    // Flag to track if a session was explicitly started by the user
+    private var sessionWasStarted = false
+
     // Debounce settings (tweak to taste)
     private let readyHold: TimeInterval = 0.1     // require ready for at least this long
     private let endHold: TimeInterval = 0.1       // require endswing for at least this long
@@ -108,11 +111,17 @@ final class PoseSessionController: UIViewController,
 
     func setSessionActive(_ active: Bool) {
         if active {
+            // User explicitly started a session
+            sessionWasStarted = true
             isEndingSession = false
             if phase == .idle { enter(.waitingReady) }
         } else {
+            // Only end session if one was explicitly started by the user
+            guard sessionWasStarted else { return }
+
             // Mark that we're ending the entire session (not just a single shot)
             isEndingSession = true
+            sessionWasStarted = false
             postEndTimer?.invalidate()
             postEndTimer = nil
 
@@ -128,6 +137,14 @@ final class PoseSessionController: UIViewController,
     }
 
     private func performStitchAndExport() {
+        // Only export if we have clips to stitch
+        guard !clipURLs.isEmpty else {
+            // No clips to export, just reset state
+            isEndingSession = false
+            enter(.idle)
+            return
+        }
+
         Task {
             await stitchAllClips { [weak self] url in
                 guard let self else { return }
