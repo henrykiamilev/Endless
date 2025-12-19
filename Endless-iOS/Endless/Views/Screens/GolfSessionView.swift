@@ -9,7 +9,7 @@ import SwiftUI
 import Photos
 
 struct GolfSessionView: View {
-    @State private var isSessionActive = false
+    @State private var isSessionActive = true  // Start active by default
     @State private var exportURL: URL?
     @State private var saveMessage: String?
     @State private var shotCount = 0
@@ -63,7 +63,7 @@ struct GolfSessionView: View {
                                         .opacity(0.8)
                                 }
                             }
-                        Text(isSessionActive ? "Recording" : "Idle")
+                        Text(isSessionActive ? "Session Active" : "Session Ended")
                             .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundStyle(.white)
@@ -122,28 +122,8 @@ struct GolfSessionView: View {
                         .clipShape(Capsule())
                     }
 
-                    // Control buttons - always show one button
-                    if !isSessionActive {
-                        // Start Session button
-                        Button {
-                            saveMessage = nil
-                            isSessionActive = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.system(size: 20))
-                                Text("Start Session")
-                                    .font(.system(size: 16, weight: .bold))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
-                            .background(Color.green)
-                            .clipShape(Capsule())
-                            .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
-                        }
-                    } else {
-                        // End Session button - prominent red button
+                    // End Session button - always visible when session is active
+                    if isSessionActive {
                         Button {
                             isSessionActive = false
                         } label: {
@@ -154,16 +134,38 @@ struct GolfSessionView: View {
                                     .font(.system(size: 16, weight: .bold))
                             }
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 16)
                             .background(Color.red)
                             .clipShape(Capsule())
                             .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
+                        }
+                    } else if !isSaving && saveMessage == nil {
+                        // Show "Start New Session" only after session has ended and saved
+                        Button {
+                            isSessionActive = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 20))
+                                Text("Start New Session")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 16)
+                            .background(Color.green)
+                            .clipShape(Capsule())
+                            .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
                         }
                     }
                 }
                 .padding(.bottom, 140) // Increased to clear the tab bar
             }
+        }
+        .onAppear {
+            // Ensure session starts when view appears
+            isSessionActive = true
         }
     }
 }
