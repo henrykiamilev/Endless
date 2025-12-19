@@ -217,11 +217,18 @@ struct VideoLibraryView: View {
                 GridItem(.flexible(), spacing: 14)
             ], spacing: 18) {
                 ForEach(allVideos) { video in
-                    VideoCard(video: video) {
-                        // Play video when tapped
-                        selectedVideoForPlayback = video
-                        showingVideoPlayer = true
-                    }
+                    VideoCard(
+                        video: video,
+                        action: {
+                            // Play video when tapped
+                            selectedVideoForPlayback = video
+                            showingVideoPlayer = true
+                        },
+                        onDelete: isDeletable(video) ? {
+                            videoToDelete = video
+                            showingDeleteConfirmation = true
+                        } : nil
+                    )
                     .contextMenu {
                         Button(action: {
                             selectedVideoForPlayback = video
