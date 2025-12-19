@@ -228,10 +228,24 @@ final class VideoPlayerManager: ObservableObject {
 
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
+    private var statusObserver: NSKeyValueObservation?
 
     func loadVideo(fileName: String) {
         isLoading = true
         loadError = nil
+
+        // Check if it's a remote URL first
+        if fileName.hasPrefix("http://") || fileName.hasPrefix("https://") {
+            if let remoteURL = URL(string: fileName) {
+                print("Loading remote video from: \(fileName)")
+                loadFromURL(remoteURL)
+                return
+            } else {
+                isLoading = false
+                loadError = "Invalid video URL: \(fileName)"
+                return
+            }
+        }
 
         // Get the base name without extension
         let baseName = fileName.replacingOccurrences(of: ".mp4", with: "")
@@ -293,18 +307,45 @@ final class VideoPlayerManager: ObservableObject {
             return
         }
 
+        loadFromURL(url)
+    }
+
+    private func loadFromURL(_ url: URL) {
         // Create player item and player
         let playerItem = AVPlayerItem(url: url)
         let newPlayer = AVPlayer(playerItem: playerItem)
 
-        // Observe duration from player item status
-        self.player = newPlayer
-        self.isLoading = false
-        setupObservers()
+        // Observe the player item status for errors
+        statusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                switch item.status {
+                case .readyToPlay:
+                    self.isLoading = false
+                    self.player = newPlayer
+                    self.setupObservers()
+                    newPlayer.play()
+                    self.isPlaying = true
+                case .failed:
+                    self.isLoading = false
+                    self.loadError = item.error?.localizedDescription ?? "Failed to load video"
+                case .unknown:
+                    // Still loading
+                    break
+                @unknown default:
+                    break
+                }
+            }
+        }
 
-        // Auto-play
-        newPlayer.play()
-        isPlaying = true
+        // Set a timeout for loading
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+            guard let self = self else { return }
+            if self.isLoading && self.player == nil {
+                self.isLoading = false
+                self.loadError = "Video loading timed out. Please check your connection."
+            }
+        }
     }
 
     private func setupObservers() {
@@ -369,6 +410,10 @@ final class VideoPlayerManager: ObservableObject {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
         }
+
+        // Remove status observer
+        statusObserver?.invalidate()
+        statusObserver = nil
 
         player?.pause()
         player = nil

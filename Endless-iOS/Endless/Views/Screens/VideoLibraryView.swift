@@ -52,6 +52,24 @@ struct VideoLibraryView: View {
         .fullScreenCover(isPresented: $showingVideoPlayer) {
             if let video = selectedVideoForPlayback, let videoFileName = video.videoFileName {
                 VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
+                    .environmentObject(themeManager)
+            } else {
+                // Fallback view if video data is missing
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        Image(systemName: "video.slash")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.gray)
+                        Text("Video not available")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                        Button("Close") {
+                            showingVideoPlayer = false
+                        }
+                        .foregroundStyle(.blue)
+                    }
+                }
             }
         }
     }
