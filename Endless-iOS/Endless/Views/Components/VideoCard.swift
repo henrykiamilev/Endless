@@ -3,6 +3,7 @@ import SwiftUI
 struct VideoCard: View {
     let video: Video
     var action: (() -> Void)?
+    var onDelete: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showingPlayer = false
 
@@ -43,6 +44,30 @@ struct VideoCard: View {
                                 .background(.ultraThinMaterial)
                                 .clipShape(Capsule())
                                 .padding(8)
+                        }
+                    }
+
+                    // Delete button (top-right corner) - only show if onDelete is provided
+                    if onDelete != nil {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    onDelete?()
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.black.opacity(0.6))
+                                            .frame(width: 28, height: 28)
+
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .padding(6)
+                            }
+                            Spacer()
                         }
                     }
 

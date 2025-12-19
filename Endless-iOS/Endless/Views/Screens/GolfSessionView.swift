@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
-import Photos
 
 struct GolfSessionView: View {
-    @State private var isSessionActive = false
+    @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
+    @State private var isSessionActive = true  // Start active by default
     @State private var exportURL: URL?
     @State private var saveMessage: String?
     @State private var shotCount = 0
@@ -23,15 +24,16 @@ struct GolfSessionView: View {
                 onExported: { url in
                     exportURL = url
                     isSaving = true
-                    saveToPhotos(url) { ok, err in
+                    // Save to local Video library instead of camera roll
+                    videoStorage.saveVideo(from: url, title: "Golf Session") { video in
                         DispatchQueue.main.async {
                             isSaving = false
-                            if ok {
-                                saveMessage = "Saved to Photos!"
+                            if video != nil {
+                                saveMessage = "Saved to Video Library!"
                                 // Reset shot count for next session
                                 shotCount = 0
                             } else {
-                                saveMessage = "Save failed: \(err?.localizedDescription ?? "Unknown error")"
+                                saveMessage = "Save failed"
                             }
                             // Clear message after 3 seconds
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -63,7 +65,7 @@ struct GolfSessionView: View {
                                         .opacity(0.8)
                                 }
                             }
-                        Text(isSessionActive ? "Recording" : "Idle")
+                        Text(isSessionActive ? "Session Active" : "Session Ended")
                             .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundStyle(.white)
@@ -122,68 +124,37 @@ struct GolfSessionView: View {
                         .clipShape(Capsule())
                     }
 
-                    // Control buttons
-                    HStack(spacing: 20) {
-                        if !isSessionActive {
-                            // Start Session button
-                            Button {
-                                saveMessage = nil
-                                isSessionActive = true
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "play.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("Start Session")
-                                        .font(.system(size: 16, weight: .bold))
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 14)
-                                .background(Color.green)
-                                .clipShape(Capsule())
-                                .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
+                    // End Session button - always visible when session is active
+                    if isSessionActive {
+                        Button {
+                            isSessionActive = false
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 20))
+                                Text("End Session")
+                                    .font(.system(size: 16, weight: .bold))
                             }
-                        } else {
-                            // End Session button - prominent red button
-                            Button {
-                                isSessionActive = false
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "stop.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("End Session")
-                                        .font(.system(size: 16, weight: .bold))
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 14)
-                                .background(Color.red)
-                                .clipShape(Capsule())
-                                .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
-                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 16)
+                            .background(Color.red)
+                            .clipShape(Capsule())
+                            .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
                         }
                     }
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 140) // Increased to clear the tab bar
             }
         }
-    }
-}
-
-private func saveToPhotos(_ url: URL, completion: @escaping (Bool, Error?) -> Void) {
-    PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-        guard status == .authorized || status == .limited else {
-            completion(false, NSError(domain: "photos", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photos permission denied"]))
-            return
-        }
-        PHPhotoLibrary.shared().performChanges({
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-        }) { ok, err in
-            completion(ok, err)
+        .onAppear {
+            // Ensure session starts when view appears
+            isSessionActive = true
         }
     }
 }
 
 #Preview {
     GolfSessionView()
+        .environmentObject(NavigationManager())
 }

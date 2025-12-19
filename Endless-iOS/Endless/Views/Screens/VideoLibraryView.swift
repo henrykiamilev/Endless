@@ -4,6 +4,7 @@ import Combine
 struct VideoLibraryView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var showingMenu = false
     @State private var showingFilter = false
     @State private var showingAIAnalysis = false
@@ -15,8 +16,20 @@ struct VideoLibraryView: View {
     @State private var showingGeneratedReel = false
     @State private var showingVideoPlayer = false
     @State private var selectedVideoForPlayback: Video?
+    @State private var showingDeleteConfirmation = false
+    @State private var videoToDelete: Video?
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
+
+    /// All videos including user recordings
+    private var allVideos: [Video] {
+        videoStorage.allVideos
+    }
+
+    /// Check if a video is deletable (user-recorded videos only)
+    private func isDeletable(_ video: Video) -> Bool {
+        videoStorage.userVideos.contains(where: { $0.id == video.id })
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -72,6 +85,21 @@ struct VideoLibraryView: View {
                 }
             }
         }
+        .alert("Delete Video", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                videoToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let video = videoToDelete {
+                    withAnimation {
+                        videoStorage.deleteVideo(video)
+                    }
+                    videoToDelete = nil
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this video? This action cannot be undone.")
+        }
     }
 
     // MARK: - Branded Header
@@ -114,7 +142,7 @@ struct VideoLibraryView: View {
 
                 // Video count badge
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(MockData.videos.count)")
+                    Text("\(allVideos.count)")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
                     Text("VIDEOS")
@@ -188,12 +216,19 @@ struct VideoLibraryView: View {
                 GridItem(.flexible(), spacing: 14),
                 GridItem(.flexible(), spacing: 14)
             ], spacing: 18) {
-                ForEach(MockData.videos) { video in
-                    VideoCard(video: video) {
-                        // Play video when tapped
-                        selectedVideoForPlayback = video
-                        showingVideoPlayer = true
-                    }
+                ForEach(allVideos) { video in
+                    VideoCard(
+                        video: video,
+                        action: {
+                            // Play video when tapped
+                            selectedVideoForPlayback = video
+                            showingVideoPlayer = true
+                        },
+                        onDelete: isDeletable(video) ? {
+                            videoToDelete = video
+                            showingDeleteConfirmation = true
+                        } : nil
+                    )
                     .contextMenu {
                         Button(action: {
                             selectedVideoForPlayback = video
@@ -206,6 +241,15 @@ struct VideoLibraryView: View {
                             showingAIAnalysis = true
                         }) {
                             Label("AI Analysis", systemImage: "sparkles")
+                        }
+                        if isDeletable(video) {
+                            Divider()
+                            Button(role: .destructive, action: {
+                                videoToDelete = video
+                                showingDeleteConfirmation = true
+                            }) {
+                                Label("Delete Video", systemImage: "trash")
+                            }
                         }
                     }
                 }

@@ -247,6 +247,13 @@ final class VideoPlayerManager: ObservableObject {
             }
         }
 
+        // Check if it's a local file path (user-recorded videos)
+        if fileName.hasPrefix("/") && FileManager.default.fileExists(atPath: fileName) {
+            print("Loading local video from: \(fileName)")
+            loadFromURL(URL(fileURLWithPath: fileName))
+            return
+        }
+
         // Get the base name without extension
         let baseName = fileName.replacingOccurrences(of: ".mp4", with: "")
 
