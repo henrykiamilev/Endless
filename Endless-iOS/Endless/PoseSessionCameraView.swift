@@ -62,6 +62,9 @@ final class PoseSessionController: UIViewController,
     enum Phase { case idle, waitingReady, recordingSwing, postEndSwing }
     private var phase: Phase = .idle
 
+    // Flag to track if we're ending the entire session (vs just a single shot)
+    private var isEndingSession = false
+
     // Debounce settings (tweak to taste)
     private let readyHold: TimeInterval = 0.1     // require ready for at least this long
     private let endHold: TimeInterval = 0.1       // require endswing for at least this long
@@ -105,16 +108,36 @@ final class PoseSessionController: UIViewController,
 
     func setSessionActive(_ active: Bool) {
         if active {
+            isEndingSession = false
             if phase == .idle { enter(.waitingReady) }
         } else {
+            // Mark that we're ending the entire session (not just a single shot)
+            isEndingSession = true
+            postEndTimer?.invalidate()
+            postEndTimer = nil
+
             // Finish any open recording, then stitch
-            stopRecordingIfNeeded()
-            Task {
-                await stitchAllClips { [weak self] url in
-                    guard let self, let url else { return }
-                    self.onExported?(url)
+            if movieOutput.isRecording {
+                // Recording will stop, then fileOutput delegate will trigger stitching
+                movieOutput.stopRecording()
+            } else {
+                // No active recording, stitch immediately
+                performStitchAndExport()
+            }
+        }
+    }
+
+    private func performStitchAndExport() {
+        Task {
+            await stitchAllClips { [weak self] url in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    if let url = url {
+                        self.onExported?(url)
+                    }
                     // Reset for next session
                     self.clipURLs.removeAll()
+                    self.isEndingSession = false
                     self.enter(.idle)
                 }
             }
@@ -279,8 +302,9 @@ final class PoseSessionController: UIViewController,
             self.postEndTimer = Timer.scheduledTimer(withTimeInterval: self.postEndDuration,
                                                      repeats: false) { [weak self] _ in
                 guard let self = self else { return }
+                // Only stop recording here - the transition to waitingReady
+                // happens in fileOutput delegate after recording actually finishes
                 self.stopRecordingIfNeeded()
-                self.enter(.waitingReady)
             }
             // Make sure it fires even during UI interactions/scrolls
             RunLoop.main.add(self.postEndTimer!, forMode: .common)
@@ -316,6 +340,17 @@ final class PoseSessionController: UIViewController,
             try? FileManager.default.removeItem(at: outputFileURL)
         }
         currentClipURL = nil
+
+        // Handle what happens after recording finishes
+        DispatchQueue.main.async {
+            if self.isEndingSession {
+                // User ended the session - stitch all clips and export
+                self.performStitchAndExport()
+            } else if self.phase == .postEndSwing {
+                // Just finished a shot mid-session - go back to waiting for next shot
+                self.enter(.waitingReady)
+            }
+        }
     }
 
     // MARK: - Stitching
