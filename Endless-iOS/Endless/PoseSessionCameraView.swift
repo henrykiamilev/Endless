@@ -145,8 +145,11 @@ final class PoseSessionController: UIViewController,
             return
         }
 
+        // Capture display scale on main thread before entering async context
+        let displayScale = UIScreen.main.scale
+
         Task {
-            await stitchAllClips { [weak self] url in
+            await stitchAllClips(displayScale: displayScale) { [weak self] url in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     if let url = url {
@@ -372,6 +375,7 @@ final class PoseSessionController: UIViewController,
 
     // MARK: - Stitching
     private func stitchAllClips(shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
+                                displayScale: CGFloat = 3.0,   // Captured from main thread
                                 completion: @escaping (URL?) -> Void) async {
         guard !clipURLs.isEmpty else { completion(nil); return }
 
@@ -470,7 +474,7 @@ final class PoseSessionController: UIViewController,
                     
                     //create current tag
                     let tag = CATextLayer()
-                    tag.contentsScale = self.traitCollection.displayScale
+                    tag.contentsScale = displayScale
                     tag.alignmentMode = .center
                     tag.font = UIFont.systemFont(ofSize: 45, weight: .semibold)
                     tag.fontSize = 45

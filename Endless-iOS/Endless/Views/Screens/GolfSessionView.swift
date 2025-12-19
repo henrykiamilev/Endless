@@ -140,24 +140,6 @@ struct GolfSessionView: View {
                             .clipShape(Capsule())
                             .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
                         }
-                    } else if !isSaving && saveMessage == nil {
-                        // Show "Start New Session" only after session has ended and saved
-                        Button {
-                            isSessionActive = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.system(size: 20))
-                                Text("Start New Session")
-                                    .font(.system(size: 16, weight: .bold))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 16)
-                            .background(Color.green)
-                            .clipShape(Capsule())
-                            .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
-                        }
                     }
                 }
                 .padding(.bottom, 140) // Increased to clear the tab bar
