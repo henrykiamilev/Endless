@@ -16,12 +16,19 @@ struct VideoLibraryView: View {
     @State private var showingGeneratedReel = false
     @State private var showingVideoPlayer = false
     @State private var selectedVideoForPlayback: Video?
+    @State private var showingDeleteConfirmation = false
+    @State private var videoToDelete: Video?
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
 
     /// All videos including user recordings
     private var allVideos: [Video] {
         videoStorage.allVideos
+    }
+
+    /// Check if a video is deletable (user-recorded videos only)
+    private func isDeletable(_ video: Video) -> Bool {
+        videoStorage.userVideos.contains(where: { $0.id == video.id })
     }
 
     var body: some View {
@@ -77,6 +84,21 @@ struct VideoLibraryView: View {
                     }
                 }
             }
+        }
+        .alert("Delete Video", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                videoToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let video = videoToDelete {
+                    withAnimation {
+                        videoStorage.deleteVideo(video)
+                    }
+                    videoToDelete = nil
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this video? This action cannot be undone.")
         }
     }
 
@@ -212,6 +234,15 @@ struct VideoLibraryView: View {
                             showingAIAnalysis = true
                         }) {
                             Label("AI Analysis", systemImage: "sparkles")
+                        }
+                        if isDeletable(video) {
+                            Divider()
+                            Button(role: .destructive, action: {
+                                videoToDelete = video
+                                showingDeleteConfirmation = true
+                            }) {
+                                Label("Delete Video", systemImage: "trash")
+                            }
                         }
                     }
                 }
