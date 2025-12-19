@@ -145,11 +145,15 @@ final class PoseSessionController: UIViewController,
             return
         }
 
-        // Capture display scale on main thread before entering async context
+        // Capture UI-related values on main thread before entering async context
         let displayScale = UIScreen.main.scale
+        let logoImage = UIImage(named: "AppLogoCircle")?.cgImage
+
+        // Copy clipURLs to avoid race conditions
+        let clipsToStitch = self.clipURLs
 
         Task {
-            await stitchAllClips(displayScale: displayScale) { [weak self] url in
+            await stitchAllClips(clips: clipsToStitch, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     if let url = url {
@@ -374,10 +378,12 @@ final class PoseSessionController: UIViewController,
     }
 
     // MARK: - Stitching
-    private func stitchAllClips(shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
+    private func stitchAllClips(clips: [URL],
+                                shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
                                 displayScale: CGFloat = 3.0,   // Captured from main thread
+                                logoImage: CGImage? = nil,     // Captured from main thread
                                 completion: @escaping (URL?) -> Void) async {
-        guard !clipURLs.isEmpty else { completion(nil); return }
+        guard !clips.isEmpty else { completion(nil); return }
 
         // Build a single video composition by concatenating clips
         let mix = AVMutableComposition()
@@ -390,7 +396,7 @@ final class PoseSessionController: UIViewController,
         var renderSize = CGSize(width: 1080, height: 1920) // default; will update from first track
         var layerInstructions: [AVVideoCompositionLayerInstruction.Configuration] = []
 
-        for (idx, url) in clipURLs.enumerated() {
+        for (idx, url) in clips.enumerated() {
             let asset = AVURLAsset(url: url)
             
             do {
@@ -432,6 +438,13 @@ final class PoseSessionController: UIViewController,
             }
         }
 
+        // Check if we actually have content to export
+        guard cursor > CMTime.zero else {
+            print("No valid clips to export - cursor is still at zero")
+            completion(nil)
+            return
+        }
+
         // Build a single instruction that spans the full timeline, referencing the concatenated track
         var instructionConfig = AVVideoCompositionInstruction.Configuration(
             timeRange: CMTimeRange(start: .zero, duration: cursor)
@@ -462,10 +475,10 @@ final class PoseSessionController: UIViewController,
 
         // Top-right "Shot N" — per-segment timing
         // To Do: Try creating one static tag by creating ONE text layer with beginTime=0.
-        if !clipURLs.isEmpty {
+        if !clips.isEmpty {
 //            tagsContainer.sublayers?.forEach { $0.removeFromSuperlayer() } //supposed to clear tagcontainer before new tag is added each time, but not working
             var begin = CFTimeInterval(0)
-            for (i, url) in clipURLs.enumerated() {
+            for (i, url) in clips.enumerated() {
                 let asset = AVURLAsset(url: url)
                 
                 do {
@@ -506,10 +519,8 @@ final class PoseSessionController: UIViewController,
             }
         }
 
-        // Bottom-right logo — static for entire export
-        // IMPORTANT: The "AppIcon" asset catalog (AppIcon set) is NOT loadable via UIImage(named:).
-        // Add a separate image asset, e.g., "AppLogo", and use that instead.
-        if let logo = UIImage(named: "AppLogoCircle")?.cgImage {
+        // Bottom-right logo — static for entire export (logoImage passed from main thread)
+        if let logo = logoImage {
             let logoLayer = CALayer()
             logoLayer.contents = logo
             logoLayer.contentsGravity = .resizeAspect
@@ -521,8 +532,6 @@ final class PoseSessionController: UIViewController,
                                      width: logoW, height: logoH)
             logoLayer.opacity = 0.95
             parent.addSublayer(logoLayer)
-        } else {
-            print("Couldn't find 'AppLogo' image asset.")
         }
 
         // Bind Core Animation tree to video renderer
@@ -546,10 +555,10 @@ final class PoseSessionController: UIViewController,
         do {
             try await exporter.export(to: outURL, as: .mp4)
             completion(outURL)
-            
+
             // cleanup source clips on success
-            for u in self.clipURLs { 
-                try? FileManager.default.removeItem(at: u) 
+            for u in clips {
+                try? FileManager.default.removeItem(at: u)
             }
         } catch {
             print("Export failed: \(error)")

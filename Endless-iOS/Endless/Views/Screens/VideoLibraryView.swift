@@ -4,6 +4,7 @@ import Combine
 struct VideoLibraryView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var showingMenu = false
     @State private var showingFilter = false
     @State private var showingAIAnalysis = false
@@ -17,6 +18,11 @@ struct VideoLibraryView: View {
     @State private var selectedVideoForPlayback: Video?
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
+
+    /// All videos including user recordings
+    private var allVideos: [Video] {
+        videoStorage.allVideos
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -114,7 +120,7 @@ struct VideoLibraryView: View {
 
                 // Video count badge
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(MockData.videos.count)")
+                    Text("\(allVideos.count)")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
                     Text("VIDEOS")
@@ -188,7 +194,7 @@ struct VideoLibraryView: View {
                 GridItem(.flexible(), spacing: 14),
                 GridItem(.flexible(), spacing: 14)
             ], spacing: 18) {
-                ForEach(MockData.videos) { video in
+                ForEach(allVideos) { video in
                     VideoCard(video: video) {
                         // Play video when tapped
                         selectedVideoForPlayback = video

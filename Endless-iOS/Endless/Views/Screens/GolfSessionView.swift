@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
-import Photos
 
 struct GolfSessionView: View {
+    @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var isSessionActive = true  // Start active by default
     @State private var exportURL: URL?
     @State private var saveMessage: String?
@@ -23,15 +24,16 @@ struct GolfSessionView: View {
                 onExported: { url in
                     exportURL = url
                     isSaving = true
-                    saveToPhotos(url) { ok, err in
+                    // Save to local Video library instead of camera roll
+                    videoStorage.saveVideo(from: url, title: "Golf Session") { video in
                         DispatchQueue.main.async {
                             isSaving = false
-                            if ok {
-                                saveMessage = "Saved to Photos!"
+                            if video != nil {
+                                saveMessage = "Saved to Video Library!"
                                 // Reset shot count for next session
                                 shotCount = 0
                             } else {
-                                saveMessage = "Save failed: \(err?.localizedDescription ?? "Unknown error")"
+                                saveMessage = "Save failed"
                             }
                             // Clear message after 3 seconds
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -152,20 +154,7 @@ struct GolfSessionView: View {
     }
 }
 
-private func saveToPhotos(_ url: URL, completion: @escaping (Bool, Error?) -> Void) {
-    PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-        guard status == .authorized || status == .limited else {
-            completion(false, NSError(domain: "photos", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photos permission denied"]))
-            return
-        }
-        PHPhotoLibrary.shared().performChanges({
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-        }) { ok, err in
-            completion(ok, err)
-        }
-    }
-}
-
 #Preview {
     GolfSessionView()
+        .environmentObject(NavigationManager())
 }
