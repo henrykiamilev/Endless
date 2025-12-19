@@ -122,49 +122,47 @@ struct GolfSessionView: View {
                         .clipShape(Capsule())
                     }
 
-                    // Control buttons
-                    HStack(spacing: 20) {
-                        if !isSessionActive {
-                            // Start Session button
-                            Button {
-                                saveMessage = nil
-                                isSessionActive = true
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "play.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("Start Session")
-                                        .font(.system(size: 16, weight: .bold))
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 14)
-                                .background(Color.green)
-                                .clipShape(Capsule())
-                                .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
+                    // Control buttons - always show one button
+                    if !isSessionActive {
+                        // Start Session button
+                        Button {
+                            saveMessage = nil
+                            isSessionActive = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 20))
+                                Text("Start Session")
+                                    .font(.system(size: 16, weight: .bold))
                             }
-                        } else {
-                            // End Session button - prominent red button
-                            Button {
-                                isSessionActive = false
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "stop.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("End Session")
-                                        .font(.system(size: 16, weight: .bold))
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 14)
-                                .background(Color.red)
-                                .clipShape(Capsule())
-                                .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(Color.green)
+                            .clipShape(Capsule())
+                            .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
+                        }
+                    } else {
+                        // End Session button - prominent red button
+                        Button {
+                            isSessionActive = false
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 20))
+                                Text("End Session")
+                                    .font(.system(size: 16, weight: .bold))
                             }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(Color.red)
+                            .clipShape(Capsule())
+                            .shadow(color: .red.opacity(0.4), radius: 8, y: 4)
                         }
                     }
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 140) // Increased to clear the tab bar
             }
         }
     }
