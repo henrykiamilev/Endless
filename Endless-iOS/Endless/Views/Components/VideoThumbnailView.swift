@@ -71,6 +71,13 @@ actor VideoThumbnailGenerator {
     // MARK: - Private Helpers
 
     private nonisolated func findVideoURL(for videoFileName: String) -> URL? {
+        // First, check if it's already a full file path (user-recorded videos)
+        if videoFileName.hasPrefix("/") {
+            if FileManager.default.fileExists(atPath: videoFileName) {
+                return URL(fileURLWithPath: videoFileName)
+            }
+        }
+
         let baseName = videoFileName.replacingOccurrences(of: ".mp4", with: "")
 
         // Try bundle root

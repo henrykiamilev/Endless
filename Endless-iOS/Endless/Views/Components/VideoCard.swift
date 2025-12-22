@@ -8,108 +8,106 @@ struct VideoCard: View {
     @State private var showingPlayer = false
 
     var body: some View {
-        Button(action: {
-            if action != nil {
-                action?()
-            } else if video.videoFileName != nil {
-                showingPlayer = true
-            }
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Thumbnail area - using real video thumbnails
-                ZStack {
-                    if let videoFileName = video.videoFileName {
-                        VideoThumbnailView(videoFileName: videoFileName)
-                    } else {
-                        thumbnailPlaceholder
-                    }
-
-                    // Gradient overlay
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.4)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-
-                    // Duration badge
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Text(video.duration)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
-                                .padding(8)
+        ZStack(alignment: .topTrailing) {
+            // Main card button
+            Button(action: {
+                if action != nil {
+                    action?()
+                } else if video.videoFileName != nil {
+                    showingPlayer = true
+                }
+            }) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Thumbnail area - using real video thumbnails
+                    ZStack {
+                        if let videoFileName = video.videoFileName {
+                            VideoThumbnailView(videoFileName: videoFileName)
+                        } else {
+                            thumbnailPlaceholder
                         }
-                    }
 
-                    // Delete button (top-right corner) - only show if onDelete is provided
-                    if onDelete != nil {
+                        // Gradient overlay
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.4)],
+                            startPoint: .center,
+                            endPoint: .bottom
+                        )
+
+                        // Duration badge
                         VStack {
+                            Spacer()
                             HStack {
                                 Spacer()
-                                Button(action: {
-                                    onDelete?()
-                                }) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.black.opacity(0.6))
-                                            .frame(width: 28, height: 28)
-
-                                        Image(systemName: "xmark")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                                .padding(6)
+                                Text(video.duration)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Capsule())
+                                    .padding(8)
                             }
-                            Spacer()
+                        }
+
+                        // Play button overlay
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 40, height: 40)
+
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 34, height: 34)
+
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(themeManager.theme.primary)
+                                .offset(x: 1)
                         }
                     }
+                    .frame(height: 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    // Play button overlay
+                    // Content area
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(video.title)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(themeManager.theme.textPrimary)
+                            .lineLimit(1)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 9))
+                            Text(video.date)
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    }
+                    .padding(.top, 10)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // Delete button (separate from main button to avoid tap conflicts)
+            if onDelete != nil {
+                Button(action: {
+                    onDelete?()
+                }) {
                     ZStack {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 40, height: 40)
+                            .fill(Color.black.opacity(0.6))
+                            .frame(width: 28, height: 28)
 
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 34, height: 34)
-
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(themeManager.theme.primary)
-                            .offset(x: 1)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
                     }
                 }
-                .frame(height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                // Content area
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(video.title)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .lineLimit(1)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 9))
-                        Text(video.date)
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .foregroundColor(themeManager.theme.textSecondary)
-                }
-                .padding(.top, 10)
+                .buttonStyle(PlainButtonStyle())
+                .padding(6)
             }
-            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(PlainButtonStyle())
         .fullScreenCover(isPresented: $showingPlayer) {
             if let videoFileName = video.videoFileName {
                 VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
