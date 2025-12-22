@@ -85,6 +85,7 @@ class WidgetPreferencesManager: ObservableObject {
     }
 
     func resetToDefaults() {
+        UserDefaults.standard.removeObject(forKey: "performanceWidgets")
         widgets = PerformanceWidget.allWidgets
     }
 }

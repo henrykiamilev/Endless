@@ -172,6 +172,22 @@ class VideoStorageManager: ObservableObject {
         saveMetadata()
     }
 
+    /// Clears all stored videos and metadata
+    func clearAllVideos() {
+        // Delete all video files
+        for video in userVideos {
+            if let path = video.videoFileName {
+                try? fileManager.removeItem(atPath: path)
+            }
+        }
+
+        // Clear the list
+        userVideos = []
+
+        // Delete metadata file
+        try? fileManager.removeItem(at: metadataURL)
+    }
+
     /// Gets all videos (user recorded + mock data)
     var allVideos: [Video] {
         userVideos + MockData.videos

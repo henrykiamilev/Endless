@@ -30,6 +30,14 @@ class RecruitProfileManager: ObservableObject {
         }
     }
 
+    /// Resets the profile to default empty state and clears UserDefaults
+    func resetToDefaults() {
+        UserDefaults.standard.removeObject(forKey: "recruitProfile")
+        UserDefaults.standard.removeObject(forKey: "coachMessages")
+        profile = RecruitProfile.default
+        messages = []
+    }
+
     private func saveProfile() {
         if let encoded = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(encoded, forKey: "recruitProfile")
