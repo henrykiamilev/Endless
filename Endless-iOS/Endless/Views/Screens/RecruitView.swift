@@ -151,6 +151,13 @@ struct RecruitView: View {
 
     // MARK: - Academic Profile Section (Clickable)
 
+    private var isAcademicProfileEmpty: Bool {
+        profileManager.profile.gpa == 0 &&
+        profileManager.profile.satScore == nil &&
+        profileManager.profile.actScore == nil &&
+        profileManager.profile.highSchool.isEmpty
+    }
+
     private var academicProfileSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             editableSectionHeader(icon: "graduationcap.fill", title: "Academic Profile") {
@@ -158,41 +165,60 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .academic }) {
-                VStack(spacing: 0) {
-                    HStack(spacing: 0) {
-                        statBox(label: "GPA", value: profileManager.profile.gpa > 0 ? String(format: "%.2f", profileManager.profile.gpa) : "--")
-                        dividerVertical
-                        statBox(label: "ACT Score", value: profileManager.profile.actScore.map { "\($0)" } ?? "--")
-                    }
-
-                    dividerHorizontal
-
-                    HStack(spacing: 0) {
-                        statBox(label: "SAT Score", value: profileManager.profile.satScore.map { "\($0)" } ?? "--")
-                        dividerVertical
-                        statBox(label: "Graduation Class", value: "\(profileManager.profile.graduationYear)")
-                    }
-
-                    dividerHorizontal
-
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("High School")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(themeManager.theme.textSecondary)
-                            Text(profileManager.profile.highSchool.isEmpty ? "Add high school" : profileManager.profile.highSchool)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(profileManager.profile.highSchool.isEmpty ? themeManager.theme.textMuted : themeManager.theme.textPrimary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
+                if isAcademicProfileEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "graduationcap")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No academic info yet")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("Tap to add your GPA, test scores, and school")
+                            .font(.system(size: 12))
                             .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 0) {
+                            statBox(label: "GPA", value: profileManager.profile.gpa > 0 ? String(format: "%.2f", profileManager.profile.gpa) : "--")
+                            dividerVertical
+                            statBox(label: "ACT Score", value: profileManager.profile.actScore.map { "\($0)" } ?? "--")
+                        }
+
+                        dividerHorizontal
+
+                        HStack(spacing: 0) {
+                            statBox(label: "SAT Score", value: profileManager.profile.satScore.map { "\($0)" } ?? "--")
+                            dividerVertical
+                            statBox(label: "Graduation Class", value: "\(profileManager.profile.graduationYear)")
+                        }
+
+                        dividerHorizontal
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("High School")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                Text(profileManager.profile.highSchool.isEmpty ? "Add high school" : profileManager.profile.highSchool)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(profileManager.profile.highSchool.isEmpty ? themeManager.theme.textMuted : themeManager.theme.textPrimary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                        .padding(16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -202,6 +228,14 @@ struct RecruitView: View {
 
     // MARK: - Physical Profile Section (Clickable)
 
+    private var isPhysicalProfileEmpty: Bool {
+        profileManager.profile.age == 0 &&
+        profileManager.profile.height.isEmpty &&
+        profileManager.profile.weight == 0 &&
+        profileManager.profile.firstName.isEmpty &&
+        profileManager.profile.lastName.isEmpty
+    }
+
     private var physicalProfileSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             editableSectionHeader(icon: "figure.stand", title: "Physical Profile") {
@@ -209,29 +243,48 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .physical }) {
-                HStack(spacing: 0) {
-                    statBox(label: "Age", value: profileManager.profile.age > 0 ? "\(profileManager.profile.age)" : "--")
-                    dividerVertical
-                    statBox(label: "Height", value: profileManager.profile.height.isEmpty ? "--" : profileManager.profile.height)
-                    dividerVertical
-                    VStack(spacing: 6) {
-                        Text("Weight")
-                            .font(.system(size: 11, weight: .medium))
+                if isPhysicalProfileEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "figure.stand")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No physical info yet")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(themeManager.theme.textSecondary)
-                        HStack(spacing: 4) {
-                            Text(profileManager.profile.weight > 0 ? "\(profileManager.profile.weight) lbs" : "--")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(themeManager.theme.textPrimary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
-                                .foregroundColor(themeManager.theme.textMuted)
-                        }
+                        Text("Tap to add your name, age, height, and weight")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    HStack(spacing: 0) {
+                        statBox(label: "Age", value: profileManager.profile.age > 0 ? "\(profileManager.profile.age)" : "--")
+                        dividerVertical
+                        statBox(label: "Height", value: profileManager.profile.height.isEmpty ? "--" : profileManager.profile.height)
+                        dividerVertical
+                        VStack(spacing: 6) {
+                            Text("Weight")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(themeManager.theme.textSecondary)
+                            HStack(spacing: 4) {
+                                Text(profileManager.profile.weight > 0 ? "\(profileManager.profile.weight) lbs" : "--")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -357,6 +410,10 @@ struct RecruitView: View {
 
     // MARK: - Sponsorships Section (Clickable)
 
+    private var isSponsorshipsEmpty: Bool {
+        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil
+    }
+
     private var sponsorshipsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             editableSectionHeader(icon: "star.fill", title: "Sponsorships") {
@@ -364,29 +421,46 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .sponsorship }) {
-                VStack(spacing: 0) {
-                    sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
-                    if profileManager.profile.ballSponsor != nil || profileManager.profile.clubSponsor != nil {
-                        dividerHorizontal
-                    }
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Ball Sponsor")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(themeManager.theme.textSecondary)
-                            Text(profileManager.profile.ballSponsor ?? "Add sponsor")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
+                if isSponsorshipsEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "star")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No sponsorships yet")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("Tap to add your club and ball sponsors")
+                            .font(.system(size: 12))
                             .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    VStack(spacing: 0) {
+                        sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
+                        dividerHorizontal
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Ball Sponsor")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                Text(profileManager.profile.ballSponsor ?? "Add sponsor")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                        .padding(16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
