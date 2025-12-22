@@ -72,12 +72,14 @@ struct ContentView: View {
                     HomeView()
                 }
             }
-            .environmentObject(navigationManager)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Custom Tab Bar
-            CustomTabBar(selectedTab: $navigationManager.selectedTab)
+            CustomTabBar(selectedTab: $navigationManager.selectedTab, onVideoTap: {
+                navigationManager.navigateToVideo()
+            })
         }
+        .environmentObject(navigationManager)
         .background(themeManager.theme.background)
         .ignoresSafeArea(.keyboard)
         .preferredColorScheme(themeManager.isDark ? .dark : .light)
@@ -86,6 +88,7 @@ struct ContentView: View {
 
 struct CustomTabBar: View {
     @Binding var selectedTab: Int
+    var onVideoTap: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -98,7 +101,7 @@ struct CustomTabBar: View {
 
             TabBarButton(icon: "video", label: "Video", isSelected: selectedTab == 1) {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    selectedTab = 1
+                    onVideoTap?()
                 }
             }
 
