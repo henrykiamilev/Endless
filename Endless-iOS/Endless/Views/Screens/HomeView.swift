@@ -346,35 +346,77 @@ struct HomeView: View {
     // MARK: - Plays of the Week
 
     private var playsOfWeekScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                ForEach(Array(MockData.playsOfWeek.enumerated()), id: \.element.id) { index, play in
-                    PlayOfWeekCard(play: play) {
-                        selectedPlayIndex = index
-                        showingPlaysViewer = true
-                    }
+        Group {
+            if MockData.playsOfWeek.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "star")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No plays yet")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("Your best moments will appear here")
+                        .font(.system(size: 13))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(Array(MockData.playsOfWeek.enumerated()), id: \.element.id) { index, play in
+                            PlayOfWeekCard(play: play) {
+                                selectedPlayIndex = index
+                                showingPlaysViewer = true
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, -20)
             }
-            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, -20)
     }
 
     // MARK: - Sessions
 
     private var sessionsScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                ForEach(MockData.sessions) { session in
-                    SessionCard(session: session) {
-                        navigationManager.selectedSessionId = session.id
-                        navigationManager.navigateToVideo()
-                    }
+        Group {
+            if MockData.sessions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No sessions yet")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("Start a practice session to track your progress")
+                        .font(.system(size: 13))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(MockData.sessions) { session in
+                            SessionCard(session: session) {
+                                navigationManager.selectedSessionId = session.id
+                                navigationManager.navigateToVideo()
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, -20)
             }
-            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, -20)
     }
 
     // MARK: - Footer Branding
