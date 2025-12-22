@@ -15,7 +15,7 @@ struct HomeView: View {
     // Session data (editable)
     @State private var sessionDate = Date()
     @State private var sessionTime = Date()
-    @State private var sessionLocation = "Main, Birchwood Park Golf Centre"
+    @State private var sessionLocation = ""
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -112,7 +112,7 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(themeManager.theme.textSecondary)
 
-            Text(profileManager.profile.firstName)
+            Text(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)
                 .font(.system(size: 42, weight: .heavy))
                 .tracking(-1)
                 .foregroundColor(themeManager.theme.textPrimary)

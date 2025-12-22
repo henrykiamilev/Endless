@@ -113,7 +113,7 @@ struct RecruitView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Welcome \(profileManager.profile.firstName).")
+                Text("Welcome \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName).")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
 
@@ -130,7 +130,7 @@ struct RecruitView: View {
                         .fill(themeManager.theme.accentGreen)
                         .frame(width: 44, height: 44)
                         .overlay(
-                            Text(String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
+                            Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                         )

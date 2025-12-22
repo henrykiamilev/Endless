@@ -159,18 +159,18 @@ struct SettingsView: View {
                         .fill(themeManager.theme.primary)
                         .frame(width: 60, height: 60)
                         .overlay(
-                            Text(String(profileManager.profile.firstName.prefix(1)))
+                            Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                         )
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(profileManager.profile.fullName)
+                    Text(profileManager.profile.fullName.trimmingCharacters(in: .whitespaces).isEmpty ? "Set up your profile" : profileManager.profile.fullName)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text(profileManager.profile.email)
+                    Text(profileManager.profile.email.isEmpty ? "Tap to add your info" : profileManager.profile.email)
                         .font(.system(size: 13))
                         .foregroundColor(themeManager.theme.textSecondary)
 
