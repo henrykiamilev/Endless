@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
+    @ObservedObject private var authManager = AuthenticationManager.shared
     @State private var showingMenu = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
@@ -339,7 +340,7 @@ struct SettingsView: View {
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Sign Out", role: .destructive) {
-                navigationManager.navigateToHome()
+                authManager.signOut()
             }
         } message: {
             Text("Are you sure you want to sign out of your Endless account?")
