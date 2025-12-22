@@ -334,12 +334,63 @@ struct HomeView: View {
             QuickActionCard(title: "Today's Drills", subtitle: "\(DrillsManager.shared.drills.count - DrillsManager.shared.completedCount) remaining", icon: "figure.golf") {
                 showingDrills = true
             }
-            QuickActionCard(title: "Last Session", subtitle: "2 days ago", icon: "clock") {
+            QuickActionCard(title: "Last Session", subtitle: lastSessionSubtitle, icon: "clock") {
                 navigationManager.navigateToLastSession()
             }
-            QuickActionCard(title: "Recruit Views", subtitle: "12 coaches", icon: "eye") {
+            QuickActionCard(title: "Recruit Views", subtitle: recruitViewsSubtitle, icon: "eye") {
                 navigationManager.navigateToRecruit()
             }
+        }
+    }
+
+    /// Computes the subtitle for Last Session based on actual session data
+    private var lastSessionSubtitle: String {
+        guard !MockData.sessions.isEmpty,
+              let lastSession = MockData.sessions.first,
+              let sessionDate = parseSessionDate(lastSession.date) else {
+            return "--"
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: sessionDate, to: now)
+
+        if let days = components.day {
+            if days == 0 {
+                return "Today"
+            } else if days == 1 {
+                return "1 day ago"
+            } else {
+                return "\(days) days ago"
+            }
+        }
+        return "--"
+    }
+
+    /// Parses the session date string into a Date object
+    private func parseSessionDate(_ dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+
+        // Try parsing with the current year first
+        let currentYear = Calendar.current.component(.year, from: Date())
+        if let date = formatter.date(from: dateString) {
+            var components = Calendar.current.dateComponents([.month, .day], from: date)
+            components.year = currentYear
+            return Calendar.current.date(from: components)
+        }
+        return nil
+    }
+
+    /// Computes the subtitle for Recruit Views based on actual profile activity data
+    private var recruitViewsSubtitle: String {
+        let viewCount = MockData.profileActivities.count
+        if viewCount == 0 {
+            return "--"
+        } else if viewCount == 1 {
+            return "1 coach"
+        } else {
+            return "\(viewCount) coaches"
         }
     }
 
