@@ -4,6 +4,7 @@ import Combine
 struct HomeView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var profileManager = RecruitProfileManager.shared
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
@@ -15,9 +16,6 @@ struct HomeView: View {
     @State private var sessionDate = Date()
     @State private var sessionTime = Date()
     @State private var sessionLocation = "Main, Birchwood Park Golf Centre"
-
-    // User name (could be loaded from UserDefaults or a user model)
-    private let userName = "Henry"
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -114,7 +112,7 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(themeManager.theme.textSecondary)
 
-            Text(userName)
+            Text(profileManager.profile.firstName)
                 .font(.system(size: 42, weight: .heavy))
                 .tracking(-1)
                 .foregroundColor(themeManager.theme.textPrimary)
