@@ -211,48 +211,70 @@ struct VideoLibraryView: View {
             .padding(.bottom, 16)
 
             // Videos grid with better spacing
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 14),
-                GridItem(.flexible(), spacing: 14)
-            ], spacing: 18) {
-                ForEach(allVideos) { video in
-                    VideoCard(
-                        video: video,
-                        action: {
-                            // Play video when tapped
-                            selectedVideoForPlayback = video
-                        },
-                        onDelete: isDeletable(video) ? {
-                            videoToDelete = video
-                            showingDeleteConfirmation = true
-                        } : nil
-                    )
-                    .contextMenu {
-                        Button(action: {
-                            selectedVideoForPlayback = video
-                        }) {
-                            Label("Play Video", systemImage: "play.fill")
-                        }
-                        Button(action: {
-                            selectedVideoForAI = video
-                            showingAIAnalysis = true
-                        }) {
-                            Label("AI Analysis", systemImage: "sparkles")
-                        }
-                        if isDeletable(video) {
-                            Divider()
-                            Button(role: .destructive, action: {
+            if allVideos.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "video")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No videos yet")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("Record your golf sessions to see them here")
+                        .font(.system(size: 13))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+                .padding(.horizontal, 20)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            } else {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 14),
+                    GridItem(.flexible(), spacing: 14)
+                ], spacing: 18) {
+                    ForEach(allVideos) { video in
+                        VideoCard(
+                            video: video,
+                            action: {
+                                // Play video when tapped
+                                selectedVideoForPlayback = video
+                            },
+                            onDelete: isDeletable(video) ? {
                                 videoToDelete = video
                                 showingDeleteConfirmation = true
+                            } : nil
+                        )
+                        .contextMenu {
+                            Button(action: {
+                                selectedVideoForPlayback = video
                             }) {
-                                Label("Delete Video", systemImage: "trash")
+                                Label("Play Video", systemImage: "play.fill")
+                            }
+                            Button(action: {
+                                selectedVideoForAI = video
+                                showingAIAnalysis = true
+                            }) {
+                                Label("AI Analysis", systemImage: "sparkles")
+                            }
+                            if isDeletable(video) {
+                                Divider()
+                                Button(role: .destructive, action: {
+                                    videoToDelete = video
+                                    showingDeleteConfirmation = true
+                                }) {
+                                    Label("Delete Video", systemImage: "trash")
+                                }
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
 
             // AI Features Section - BELOW VIDEOS
             aiAnalysisSection
