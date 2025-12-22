@@ -14,7 +14,6 @@ struct VideoLibraryView: View {
     @State private var selectedCourses: Set<String> = []
     @State private var isGeneratingHighlight = false
     @State private var showingGeneratedReel = false
-    @State private var showingVideoPlayer = false
     @State private var selectedVideoForPlayback: Video?
     @State private var showingDeleteConfirmation = false
     @State private var videoToDelete: Video?
@@ -62,8 +61,8 @@ struct VideoLibraryView: View {
         .sheet(isPresented: $showingGeneratedReel) {
             GeneratedHighlightReelView(prompt: highlightPrompt, courses: Array(selectedCourses))
         }
-        .fullScreenCover(isPresented: $showingVideoPlayer) {
-            if let video = selectedVideoForPlayback, let videoFileName = video.videoFileName {
+        .fullScreenCover(item: $selectedVideoForPlayback) { video in
+            if let videoFileName = video.videoFileName {
                 VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
                     .environmentObject(themeManager)
             } else {
@@ -78,7 +77,7 @@ struct VideoLibraryView: View {
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(.white)
                         Button("Close") {
-                            showingVideoPlayer = false
+                            selectedVideoForPlayback = nil
                         }
                         .foregroundStyle(.blue)
                     }
@@ -222,7 +221,6 @@ struct VideoLibraryView: View {
                         action: {
                             // Play video when tapped
                             selectedVideoForPlayback = video
-                            showingVideoPlayer = true
                         },
                         onDelete: isDeletable(video) ? {
                             videoToDelete = video
@@ -232,7 +230,6 @@ struct VideoLibraryView: View {
                     .contextMenu {
                         Button(action: {
                             selectedVideoForPlayback = video
-                            showingVideoPlayer = true
                         }) {
                             Label("Play Video", systemImage: "play.fill")
                         }
