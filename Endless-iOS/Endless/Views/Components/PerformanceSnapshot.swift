@@ -128,33 +128,14 @@ struct PerformanceSnapshot: View {
     private var widgetGrid: some View {
         let enabled = widgetManager.enabledWidgets
 
-        return VStack(spacing: 12) {
+        return Group {
             if enabled.isEmpty {
                 emptyStateView
             } else {
-                // First row - 2 widgets side by side or 1 medium
-                if enabled.count >= 1 {
-                    HStack(spacing: 12) {
-                        if enabled.count >= 2 {
-                            WidgetCard(widget: enabled[0], onTap: onTap)
-                            WidgetCard(widget: enabled[1], onTap: onTap)
-                        } else {
-                            WidgetCard(widget: enabled[0], onTap: onTap)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-
-                // Second row
-                if enabled.count >= 3 {
-                    HStack(spacing: 12) {
-                        if enabled.count >= 4 {
-                            WidgetCard(widget: enabled[2], onTap: onTap)
-                            WidgetCard(widget: enabled[3], onTap: onTap)
-                        } else {
-                            WidgetCard(widget: enabled[2], onTap: onTap)
-                                .frame(maxWidth: .infinity)
-                        }
+                // All widgets in a single horizontal row
+                HStack(spacing: 8) {
+                    ForEach(enabled.prefix(4)) { widget in
+                        WidgetCard(widget: widget, onTap: onTap)
                     }
                 }
             }
@@ -194,61 +175,23 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Top section with icon
-                HStack {
-                    ZStack {
-                        // Subtle icon background
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(themeManager.theme.accentGreen.opacity(0.08))
-                            .frame(width: 34, height: 34)
+            VStack(spacing: 8) {
+                // Centered icon
+                Image(systemName: widget.icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(themeManager.theme.accentGreen)
 
-                        Image(systemName: widget.icon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(themeManager.theme.accentGreen.opacity(0.8))
-                    }
-
-                    Spacer()
-
-                    // Trend indicator - more subtle
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 9, weight: .bold))
-                        Text("+2%")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(themeManager.theme.accentGreen.opacity(0.06))
-                    .clipShape(Capsule())
-                }
-
-                Spacer()
-
-                // Value with modern styling
+                // Centered value
                 Text(widget.value)
-                    .font(.system(size: 32, weight: .heavy))
-                    .tracking(-0.5)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-
-                // Label
-                Text(widget.shortLabel)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-                    .padding(.top, 2)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 120)
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 1)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -275,7 +218,7 @@ struct WidgetCustomizationSheet: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text("Choose which stats to display")
+                    Text("\(widgetManager.enabledWidgets.count) of 4 selected")
                         .font(.system(size: 14))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
@@ -285,6 +228,9 @@ struct WidgetCustomizationSheet: View {
 
                 // Widget grid
                 ScrollView {
+                    let enabledCount = widgetManager.enabledWidgets.count
+                    let canAddMore = enabledCount < 4
+
                     LazyVGrid(columns: [
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12)
@@ -293,6 +239,7 @@ struct WidgetCustomizationSheet: View {
                             WidgetSelectionCard(
                                 widget: widget,
                                 isSelected: widget.isEnabled,
+                                canAdd: canAddMore,
                                 onToggle: {
                                     withAnimation(.spring(response: 0.3)) {
                                         widgetManager.toggleWidget(widget.id)
@@ -351,6 +298,7 @@ struct WidgetCustomizationSheet: View {
 struct WidgetSelectionCard: View {
     let widget: PerformanceWidget
     let isSelected: Bool
+    let canAdd: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
     @EnvironmentObject var themeManager: ThemeManager
@@ -401,19 +349,25 @@ struct WidgetSelectionCard: View {
             )
 
             // Toggle button
-            Button(action: onToggle) {
+            Button(action: {
+                // Only allow toggle if removing or if we can add
+                if isSelected || canAdd {
+                    onToggle()
+                }
+            }) {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
                         .font(.system(size: 14))
                     Text(isSelected ? "Added" : "Add")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.textSecondary)
+                .foregroundColor(isSelected ? themeManager.theme.textPrimary : (canAdd ? themeManager.theme.textSecondary : themeManager.theme.textMuted.opacity(0.5)))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(isSelected ? themeManager.theme.textPrimary.opacity(0.08) : themeManager.theme.cardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            .disabled(!isSelected && !canAdd)
         }
     }
 }

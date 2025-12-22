@@ -146,7 +146,7 @@ final class PoseSessionController: UIViewController,
         }
 
         // Capture UI-related values on main thread before entering async context
-        let displayScale = UIScreen.main.scale
+        let displayScale = view.traitCollection.displayScale
         let logoImage = UIImage(named: "AppLogoCircle")?.cgImage
 
         // Copy clipURLs to avoid race conditions

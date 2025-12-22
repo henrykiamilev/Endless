@@ -38,52 +38,73 @@ class VideoStorageManager: ObservableObject {
     ///   - title: The title for the video
     ///   - completion: Called with the saved Video object, or nil if saving failed
     func saveVideo(from sourceURL: URL, title: String? = nil, completion: @escaping (Video?) -> Void) {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MM/dd/yy"
-        let dateString = dateFormatter.string(from: Date())
+        Task {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MM/dd/yy"
+            let dateString = dateFormatter.string(from: Date())
 
-        let videoId = UUID().uuidString
-        let fileName = "session-\(videoId).mp4"
-        let destinationURL = videosDirectory.appendingPathComponent(fileName)
+            let videoId = UUID().uuidString
+            let fileName = "session-\(videoId).mp4"
+            let destinationURL = videosDirectory.appendingPathComponent(fileName)
 
-        do {
-            // Copy the video to local storage
-            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            do {
+                // Copy the video to local storage
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
 
-            // Create video metadata
-            let video = Video(
-                id: videoId,
-                title: title ?? "Golf Session",
-                date: dateString,
-                duration: getVideoDuration(url: destinationURL),
-                thumbnail: nil,
-                videoFileName: destinationURL.path  // Full local path
-            )
+                // Get video duration asynchronously
+                let duration = await getVideoDuration(url: destinationURL)
 
-            // Add to list and save metadata
-            DispatchQueue.main.async {
-                self.userVideos.insert(video, at: 0)  // Add to beginning (most recent first)
-                self.saveMetadata()
-                completion(video)
+                // Create video metadata
+                let video = Video(
+                    id: videoId,
+                    title: title ?? "Golf Session",
+                    date: dateString,
+                    duration: duration,
+                    thumbnail: nil,a
+                    videoFileName: destinationURL.path  // Full local path
+                )
+
+                // Add to list and save metadata
+                await MainActor.run {
+                    self.userVideos.insert(video, at: 0)  // Add to beginning (most recent first)
+                    self.saveMetadata()
+                    completion(video)
+                }
+
+                // Clean up temp file
+                try? fileManager.removeItem(at: sourceURL)
+
+            } catch {
+                print("Failed to save video: \(error)")
+                await MainActor.run {
+                    completion(nil)
+                }
             }
-
-            // Clean up temp file
-            try? fileManager.removeItem(at: sourceURL)
-
-        } catch {
-            print("Failed to save video: \(error)")
-            completion(nil)
         }
     }
 
     /// Gets the duration of a video file
-    private func getVideoDuration(url: URL) -> String {
+    private func getVideoDuration(url: URL) async -> String {
         let asset = AVURLAsset(url: url)
-        let duration = asset.duration
-        let seconds = Int(CMTimeGetSeconds(duration))
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        return String(format: "%d:%02d", minutes, remainingSeconds)
+        
+        do {
+            if #available(iOS 16.0, *) {
+                let duration = try await asset.load(.duration)
+                let seconds = Int(CMTimeGetSeconds(duration))
+                let minutes = seconds / 60
+                let remainingSeconds = seconds % 60
+                return String(format: "%d:%02d", minutes, remainingSeconds)
+            } else {
+                let duration = asset.duration
+                let seconds = Int(CMTimeGetSeconds(duration))
+                let minutes = seconds / 60
+                let remainingSeconds = seconds % 60
+                return String(format: "%d:%02d", minutes, remainingSeconds)
+            }
+        } catch {
+            print("Failed to load video duration: \(error)")
+            return "0:00"
+        }
     }
 
     /// Loads stored videos from metadata file
