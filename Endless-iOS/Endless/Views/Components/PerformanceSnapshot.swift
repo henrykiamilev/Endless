@@ -218,7 +218,7 @@ struct WidgetCustomizationSheet: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text("Choose which stats to display")
+                    Text("\(widgetManager.enabledWidgets.count) of 4 selected")
                         .font(.system(size: 14))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
@@ -228,6 +228,9 @@ struct WidgetCustomizationSheet: View {
 
                 // Widget grid
                 ScrollView {
+                    let enabledCount = widgetManager.enabledWidgets.count
+                    let canAddMore = enabledCount < 4
+
                     LazyVGrid(columns: [
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12)
@@ -236,6 +239,7 @@ struct WidgetCustomizationSheet: View {
                             WidgetSelectionCard(
                                 widget: widget,
                                 isSelected: widget.isEnabled,
+                                canAdd: canAddMore,
                                 onToggle: {
                                     withAnimation(.spring(response: 0.3)) {
                                         widgetManager.toggleWidget(widget.id)
@@ -294,6 +298,7 @@ struct WidgetCustomizationSheet: View {
 struct WidgetSelectionCard: View {
     let widget: PerformanceWidget
     let isSelected: Bool
+    let canAdd: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
     @EnvironmentObject var themeManager: ThemeManager
@@ -344,19 +349,25 @@ struct WidgetSelectionCard: View {
             )
 
             // Toggle button
-            Button(action: onToggle) {
+            Button(action: {
+                // Only allow toggle if removing or if we can add
+                if isSelected || canAdd {
+                    onToggle()
+                }
+            }) {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
                         .font(.system(size: 14))
                     Text(isSelected ? "Added" : "Add")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.textSecondary)
+                .foregroundColor(isSelected ? themeManager.theme.textPrimary : (canAdd ? themeManager.theme.textSecondary : themeManager.theme.textMuted.opacity(0.5)))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(isSelected ? themeManager.theme.textPrimary.opacity(0.08) : themeManager.theme.cardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            .disabled(!isSelected && !canAdd)
         }
     }
 }
