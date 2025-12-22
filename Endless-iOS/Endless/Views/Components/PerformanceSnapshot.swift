@@ -128,33 +128,14 @@ struct PerformanceSnapshot: View {
     private var widgetGrid: some View {
         let enabled = widgetManager.enabledWidgets
 
-        return VStack(spacing: 12) {
+        return Group {
             if enabled.isEmpty {
                 emptyStateView
             } else {
-                // First row - 2 widgets side by side or 1 medium
-                if enabled.count >= 1 {
-                    HStack(spacing: 12) {
-                        if enabled.count >= 2 {
-                            WidgetCard(widget: enabled[0], onTap: onTap)
-                            WidgetCard(widget: enabled[1], onTap: onTap)
-                        } else {
-                            WidgetCard(widget: enabled[0], onTap: onTap)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-
-                // Second row
-                if enabled.count >= 3 {
-                    HStack(spacing: 12) {
-                        if enabled.count >= 4 {
-                            WidgetCard(widget: enabled[2], onTap: onTap)
-                            WidgetCard(widget: enabled[3], onTap: onTap)
-                        } else {
-                            WidgetCard(widget: enabled[2], onTap: onTap)
-                                .frame(maxWidth: .infinity)
-                        }
+                // All widgets in a single horizontal row
+                HStack(spacing: 8) {
+                    ForEach(enabled.prefix(4)) { widget in
+                        WidgetCard(widget: widget, onTap: onTap)
                     }
                 }
             }
@@ -194,59 +175,51 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
                 // Top section with icon
-                HStack {
-                    ZStack {
-                        // Subtle icon background
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(themeManager.theme.accentGreen.opacity(0.08))
-                            .frame(width: 34, height: 34)
+                ZStack {
+                    // Subtle icon background
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(themeManager.theme.accentGreen.opacity(0.08))
+                        .frame(width: 28, height: 28)
 
-                        Image(systemName: widget.icon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(themeManager.theme.accentGreen.opacity(0.8))
-                    }
-
-                    Spacer()
-
-                    // Trend indicator - more subtle
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 9, weight: .bold))
-                        Text("+2%")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(themeManager.theme.accentGreen.opacity(0.06))
-                    .clipShape(Capsule())
+                    Image(systemName: widget.icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen.opacity(0.8))
                 }
 
                 Spacer()
 
                 // Value with modern styling
                 Text(widget.value)
-                    .font(.system(size: 32, weight: .heavy))
+                    .font(.system(size: 20, weight: .heavy))
                     .tracking(-0.5)
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.6)
 
                 // Label
                 Text(widget.shortLabel)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(themeManager.theme.textSecondary)
-                    .padding(.top, 2)
+
+                // Trend indicator - compact
+                HStack(spacing: 2) {
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 7, weight: .bold))
+                    Text("+2%")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
+                .padding(.top, 2)
             }
-            .padding(16)
+            .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 120)
+            .frame(height: 100)
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 1)
             )
         }
