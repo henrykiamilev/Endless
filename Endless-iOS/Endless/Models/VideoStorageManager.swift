@@ -60,7 +60,7 @@ class VideoStorageManager: ObservableObject {
                     title: title ?? "Golf Session",
                     date: dateString,
                     duration: duration,
-                    thumbnail: nil,a
+                    thumbnail: nil,
                     videoFileName: destinationURL.path  // Full local path
                 )
 
