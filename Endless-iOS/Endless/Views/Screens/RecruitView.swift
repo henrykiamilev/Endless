@@ -30,6 +30,14 @@ class RecruitProfileManager: ObservableObject {
         }
     }
 
+    /// Resets the profile to default empty state and clears UserDefaults
+    func resetToDefaults() {
+        UserDefaults.standard.removeObject(forKey: "recruitProfile")
+        UserDefaults.standard.removeObject(forKey: "coachMessages")
+        profile = RecruitProfile.default
+        messages = []
+    }
+
     private func saveProfile() {
         if let encoded = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(encoded, forKey: "recruitProfile")
@@ -113,7 +121,7 @@ struct RecruitView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Welcome \(profileManager.profile.firstName).")
+                Text("Welcome \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName).")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
 
@@ -130,7 +138,7 @@ struct RecruitView: View {
                         .fill(themeManager.theme.accentGreen)
                         .frame(width: 44, height: 44)
                         .overlay(
-                            Text(String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
+                            Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                         )
@@ -151,6 +159,13 @@ struct RecruitView: View {
 
     // MARK: - Academic Profile Section (Clickable)
 
+    private var isAcademicProfileEmpty: Bool {
+        profileManager.profile.gpa == 0 &&
+        profileManager.profile.satScore == nil &&
+        profileManager.profile.actScore == nil &&
+        profileManager.profile.highSchool.isEmpty
+    }
+
     private var academicProfileSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             editableSectionHeader(icon: "graduationcap.fill", title: "Academic Profile") {
@@ -158,41 +173,60 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .academic }) {
-                VStack(spacing: 0) {
-                    HStack(spacing: 0) {
-                        statBox(label: "GPA", value: String(format: "%.2f", profileManager.profile.gpa))
-                        dividerVertical
-                        statBox(label: "ACT Score", value: profileManager.profile.actScore.map { "\($0)" } ?? "—")
-                    }
-
-                    dividerHorizontal
-
-                    HStack(spacing: 0) {
-                        statBox(label: "SAT Score", value: profileManager.profile.satScore.map { "\($0)" } ?? "—")
-                        dividerVertical
-                        statBox(label: "Graduation Class", value: "\(profileManager.profile.graduationYear)")
-                    }
-
-                    dividerHorizontal
-
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("High School")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(themeManager.theme.textSecondary)
-                            Text(profileManager.profile.highSchool)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(themeManager.theme.textPrimary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
+                if isAcademicProfileEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "graduationcap")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No academic info yet")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("Tap to add your GPA, test scores, and school")
+                            .font(.system(size: 12))
                             .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 0) {
+                            statBox(label: "GPA", value: profileManager.profile.gpa > 0 ? String(format: "%.2f", profileManager.profile.gpa) : "--")
+                            dividerVertical
+                            statBox(label: "ACT Score", value: profileManager.profile.actScore.map { "\($0)" } ?? "--")
+                        }
+
+                        dividerHorizontal
+
+                        HStack(spacing: 0) {
+                            statBox(label: "SAT Score", value: profileManager.profile.satScore.map { "\($0)" } ?? "--")
+                            dividerVertical
+                            statBox(label: "Graduation Class", value: "\(profileManager.profile.graduationYear)")
+                        }
+
+                        dividerHorizontal
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("High School")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                Text(profileManager.profile.highSchool.isEmpty ? "Add high school" : profileManager.profile.highSchool)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(profileManager.profile.highSchool.isEmpty ? themeManager.theme.textMuted : themeManager.theme.textPrimary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                        .padding(16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -202,6 +236,14 @@ struct RecruitView: View {
 
     // MARK: - Physical Profile Section (Clickable)
 
+    private var isPhysicalProfileEmpty: Bool {
+        profileManager.profile.age == 0 &&
+        profileManager.profile.height.isEmpty &&
+        profileManager.profile.weight == 0 &&
+        profileManager.profile.firstName.isEmpty &&
+        profileManager.profile.lastName.isEmpty
+    }
+
     private var physicalProfileSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             editableSectionHeader(icon: "figure.stand", title: "Physical Profile") {
@@ -209,29 +251,48 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .physical }) {
-                HStack(spacing: 0) {
-                    statBox(label: "Age", value: "\(profileManager.profile.age)")
-                    dividerVertical
-                    statBox(label: "Height", value: profileManager.profile.height)
-                    dividerVertical
-                    VStack(spacing: 6) {
-                        Text("Weight")
-                            .font(.system(size: 11, weight: .medium))
+                if isPhysicalProfileEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "figure.stand")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No physical info yet")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(themeManager.theme.textSecondary)
-                        HStack(spacing: 4) {
-                            Text("\(profileManager.profile.weight) lbs")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(themeManager.theme.textPrimary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
-                                .foregroundColor(themeManager.theme.textMuted)
-                        }
+                        Text("Tap to add your name, age, height, and weight")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    HStack(spacing: 0) {
+                        statBox(label: "Age", value: profileManager.profile.age > 0 ? "\(profileManager.profile.age)" : "--")
+                        dividerVertical
+                        statBox(label: "Height", value: profileManager.profile.height.isEmpty ? "--" : profileManager.profile.height)
+                        dividerVertical
+                        VStack(spacing: 6) {
+                            Text("Weight")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(themeManager.theme.textSecondary)
+                            HStack(spacing: 4) {
+                                Text(profileManager.profile.weight > 0 ? "\(profileManager.profile.weight) lbs" : "--")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -249,7 +310,7 @@ struct RecruitView: View {
 
             Button(action: { editSection = .contact }) {
                 VStack(spacing: 0) {
-                    contactRow(icon: "phone.fill", label: "Phone", value: profileManager.profile.phone)
+                    contactRow(icon: "phone.fill", label: "Phone", value: profileManager.profile.phone.isEmpty ? "Add phone" : profileManager.profile.phone, isEmpty: profileManager.profile.phone.isEmpty)
                     dividerHorizontal
                     HStack(spacing: 12) {
                         Image(systemName: "envelope.fill")
@@ -261,9 +322,9 @@ struct RecruitView: View {
                             Text("Email")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(themeManager.theme.textSecondary)
-                            Text(profileManager.profile.email)
+                            Text(profileManager.profile.email.isEmpty ? "Add email" : profileManager.profile.email)
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(themeManager.theme.textPrimary)
+                                .foregroundColor(profileManager.profile.email.isEmpty ? themeManager.theme.textMuted : themeManager.theme.textPrimary)
                         }
 
                         Spacer()
@@ -291,17 +352,17 @@ struct RecruitView: View {
 
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    statBox(label: "Scoring Avg", value: "71.3", highlight: true)
+                    statBox(label: "Scoring Avg", value: "--", highlight: true)
                     dividerVertical
-                    statBox(label: "Driving Distance", value: "288 yds", highlight: true)
+                    statBox(label: "Driving Distance", value: "--", highlight: true)
                 }
 
                 dividerHorizontal
 
                 HStack(spacing: 0) {
-                    statBox(label: "GIR %", value: "63%", highlight: true)
+                    statBox(label: "GIR %", value: "--", highlight: true)
                     dividerVertical
-                    statBox(label: "Putts/Round", value: "28.4", highlight: true)
+                    statBox(label: "Putts/Round", value: "--", highlight: true)
                 }
             }
             .background(themeManager.theme.cardBackground)
@@ -317,26 +378,49 @@ struct RecruitView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(icon: "person.2.fill", title: "Profile Activity")
 
-            VStack(spacing: 0) {
-                ForEach(Array(MockData.profileActivities.enumerated()), id: \.element.id) { index, activity in
-                    Button(action: { selectedCoach = activity }) {
-                        activityRow(activity: activity)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+            if MockData.profileActivities.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 28))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No activity yet")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("When coaches view your profile, they'll appear here")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(MockData.profileActivities.enumerated()), id: \.element.id) { index, activity in
+                        Button(action: { selectedCoach = activity }) {
+                            activityRow(activity: activity)
+                        }
+                        .buttonStyle(PlainButtonStyle())
 
-                    if index < MockData.profileActivities.count - 1 {
-                        dividerHorizontal
+                        if index < MockData.profileActivities.count - 1 {
+                            dividerHorizontal
+                        }
                     }
                 }
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
     }
 
     // MARK: - Sponsorships Section (Clickable)
+
+    private var isSponsorshipsEmpty: Bool {
+        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil
+    }
 
     private var sponsorshipsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -345,29 +429,46 @@ struct RecruitView: View {
             }
 
             Button(action: { editSection = .sponsorship }) {
-                VStack(spacing: 0) {
-                    sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
-                    if profileManager.profile.ballSponsor != nil || profileManager.profile.clubSponsor != nil {
-                        dividerHorizontal
-                    }
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Ball Sponsor")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(themeManager.theme.textSecondary)
-                            Text(profileManager.profile.ballSponsor ?? "Add sponsor")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
+                if isSponsorshipsEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "star")
+                            .font(.system(size: 28))
+                            .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                        Text("No sponsorships yet")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("Tap to add your club and ball sponsors")
+                            .font(.system(size: 12))
                             .foregroundColor(themeManager.theme.textMuted)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    VStack(spacing: 0) {
+                        sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
+                        dividerHorizontal
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Ball Sponsor")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                Text(profileManager.profile.ballSponsor ?? "Add sponsor")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                        .padding(16)
+                    }
+                    .background(themeManager.theme.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -389,10 +490,29 @@ struct RecruitView: View {
                 }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(MockData.videos.prefix(4)) { video in
-                        filmThumbnail(video: video)
+            if MockData.videos.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "film")
+                        .font(.system(size: 28))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No videos yet")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("Record your swings to showcase your skills")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(MockData.videos.prefix(4)) { video in
+                            filmThumbnail(video: video)
+                        }
                     }
                 }
             }
@@ -458,7 +578,7 @@ struct RecruitView: View {
             .frame(height: 1)
     }
 
-    private func contactRow(icon: String, label: String, value: String) -> some View {
+    private func contactRow(icon: String, label: String, value: String, isEmpty: Bool = false) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 14))
@@ -471,7 +591,7 @@ struct RecruitView: View {
                     .foregroundColor(themeManager.theme.textSecondary)
                 Text(value)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+                    .foregroundColor(isEmpty ? themeManager.theme.textMuted : themeManager.theme.textPrimary)
             }
 
             Spacer()

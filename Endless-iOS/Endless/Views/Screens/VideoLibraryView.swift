@@ -211,48 +211,70 @@ struct VideoLibraryView: View {
             .padding(.bottom, 16)
 
             // Videos grid with better spacing
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 14),
-                GridItem(.flexible(), spacing: 14)
-            ], spacing: 18) {
-                ForEach(allVideos) { video in
-                    VideoCard(
-                        video: video,
-                        action: {
-                            // Play video when tapped
-                            selectedVideoForPlayback = video
-                        },
-                        onDelete: isDeletable(video) ? {
-                            videoToDelete = video
-                            showingDeleteConfirmation = true
-                        } : nil
-                    )
-                    .contextMenu {
-                        Button(action: {
-                            selectedVideoForPlayback = video
-                        }) {
-                            Label("Play Video", systemImage: "play.fill")
-                        }
-                        Button(action: {
-                            selectedVideoForAI = video
-                            showingAIAnalysis = true
-                        }) {
-                            Label("AI Analysis", systemImage: "sparkles")
-                        }
-                        if isDeletable(video) {
-                            Divider()
-                            Button(role: .destructive, action: {
+            if allVideos.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "video")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
+                    Text("No videos yet")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                    Text("Record your golf sessions to see them here")
+                        .font(.system(size: 13))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+                .padding(.horizontal, 20)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            } else {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 14),
+                    GridItem(.flexible(), spacing: 14)
+                ], spacing: 18) {
+                    ForEach(allVideos) { video in
+                        VideoCard(
+                            video: video,
+                            action: {
+                                // Play video when tapped
+                                selectedVideoForPlayback = video
+                            },
+                            onDelete: isDeletable(video) ? {
                                 videoToDelete = video
                                 showingDeleteConfirmation = true
+                            } : nil
+                        )
+                        .contextMenu {
+                            Button(action: {
+                                selectedVideoForPlayback = video
                             }) {
-                                Label("Delete Video", systemImage: "trash")
+                                Label("Play Video", systemImage: "play.fill")
+                            }
+                            Button(action: {
+                                selectedVideoForAI = video
+                                showingAIAnalysis = true
+                            }) {
+                                Label("AI Analysis", systemImage: "sparkles")
+                            }
+                            if isDeletable(video) {
+                                Divider()
+                                Button(role: .destructive, action: {
+                                    videoToDelete = video
+                                    showingDeleteConfirmation = true
+                                }) {
+                                    Label("Delete Video", systemImage: "trash")
+                                }
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
 
             // AI Features Section - BELOW VIDEOS
             aiAnalysisSection
@@ -488,10 +510,10 @@ struct VideoLibraryView: View {
             // Recent Round Stats
             sectionView(label: "RECENT ROUND STATS", icon: "chart.bar.fill") {
                 VStack(spacing: 0) {
-                    StatBar(label: "Greens in Regulation", value: "72", percentage: 72)
-                    StatBar(label: "Fairways Hit", value: "65", percentage: 65)
-                    StatBar(label: "Avg Putts per Round", value: "28.4", percentage: 71)
-                    StatBar(label: "Scoring Average", value: "71.3", percentage: 90, showPercentageBar: false)
+                    StatBar(label: "Greens in Regulation", value: "--", percentage: 0)
+                    StatBar(label: "Fairways Hit", value: "--", percentage: 0)
+                    StatBar(label: "Avg Putts per Round", value: "--", percentage: 0)
+                    StatBar(label: "Scoring Average", value: "--", percentage: 0, showPercentageBar: false)
                 }
                 .padding(20)
                 .background(themeManager.theme.cardBackground)
@@ -562,21 +584,21 @@ struct VideoLibraryView: View {
 
     private var statsOverviewCard: some View {
         HStack(spacing: 0) {
-            statItem(value: "72.1", label: "AVG SCORE", icon: "flag.fill")
+            statItem(value: "--", label: "AVG SCORE", icon: "flag.fill")
 
             Rectangle()
                 .fill(themeManager.theme.border)
                 .frame(width: 1)
                 .padding(.vertical, 16)
 
-            statItem(value: "18", label: "ROUNDS", icon: "repeat")
+            statItem(value: "0", label: "ROUNDS", icon: "repeat")
 
             Rectangle()
                 .fill(themeManager.theme.border)
                 .frame(width: 1)
                 .padding(.vertical, 16)
 
-            statItem(value: "4.2", label: "HANDICAP", icon: "chart.line.uptrend.xyaxis")
+            statItem(value: "--", label: "HANDICAP", icon: "chart.line.uptrend.xyaxis")
         }
         .padding(.vertical, 20)
         .background(themeManager.theme.cardBackground)

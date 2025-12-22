@@ -82,20 +82,20 @@ struct RecruitProfile: Codable {
     }
 
     static let `default` = RecruitProfile(
-        firstName: "William",
-        lastName: "Anderson",
-        age: 18,
-        height: "6'1\"",
-        weight: 175,
+        firstName: "",
+        lastName: "",
+        age: 0,
+        height: "",
+        weight: 0,
         graduationYear: 2025,
-        highSchool: "Torrey Pines High School",
-        gpa: 3.85,
-        satScore: 1480,
-        actScore: 32,
-        phone: "(619) 555-0123",
-        email: "william.anderson@email.com",
-        clubSponsor: "TaylorMade",
-        ballSponsor: "Titleist"
+        highSchool: "",
+        gpa: 0.0,
+        satScore: nil,
+        actScore: nil,
+        phone: "",
+        email: "",
+        clubSponsor: nil,
+        ballSponsor: nil
     )
 }
 
@@ -137,64 +137,23 @@ struct Drill: Identifiable {
     }
 }
 
-// Mock Data
+// Mock Data - Empty for new users
 struct MockData {
-    static let sessions: [Session] = [
-        Session(id: "1", title: "Oakmont CC", location: "Oakmont", date: "2 days ago", thumbnail: "swing-1.mp4"),
-        Session(id: "2", title: "Pebble Beach", location: "Pebble Beach", date: "5 days ago", thumbnail: "swing-2.mp4"),
-        Session(id: "3", title: "Del Mar", location: "Del Mar", date: "1 week ago", thumbnail: "swing-3.mp4")
-    ]
+    static let sessions: [Session] = []
 
-    static let playsOfWeek: [PlayOfTheWeek] = [
-        PlayOfTheWeek(id: "1", playerName: "Henry Kammler", playerTitle: "Class of 2025", location: "San Diego, CA", likes: 234, comments: []),
-        PlayOfTheWeek(id: "2", playerName: "John Smith", playerTitle: "Class of 2024", location: "Los Angeles, CA", likes: 189, comments: []),
-        PlayOfTheWeek(id: "3", playerName: "Sarah Johnson", playerTitle: "Class of 2025", location: "Scottsdale, AZ", likes: 312, comments: []),
-        PlayOfTheWeek(id: "4", playerName: "Mike Chen", playerTitle: "Class of 2026", location: "Austin, TX", likes: 156, comments: []),
-        PlayOfTheWeek(id: "5", playerName: "Emma Davis", playerTitle: "Class of 2024", location: "Miami, FL", likes: 278, comments: []),
-        PlayOfTheWeek(id: "6", playerName: "Tyler Brooks", playerTitle: "Class of 2025", location: "Denver, CO", likes: 201, comments: [])
-    ]
+    static let playsOfWeek: [PlayOfTheWeek] = []
 
-    static let videos: [Video] = [
-        Video(id: "1", title: "Oakmont CC", date: "10/15/25", duration: "0:12", videoFileName: "swing-1.mp4"),
-        Video(id: "2", title: "Pebble Beach", date: "10/10/25", duration: "0:14", videoFileName: "swing-2.mp4"),
-        Video(id: "3", title: "Del Mar", date: "10/05/25", duration: "0:16", videoFileName: "swing-3.mp4"),
-        Video(id: "4", title: "Torrey Pines", date: "10/01/25", duration: "0:12", videoFileName: "swing-1.mp4")
-    ]
+    static let videos: [Video] = []
 
-    static let roundHistory: [RoundHistory] = [
-        RoundHistory(id: "1", course: "Oakmont CC", date: "10/15/25", score: 72),
-        RoundHistory(id: "2", course: "Pebble Beach", date: "10/10/25", score: 72),
-        RoundHistory(id: "3", course: "Del Mar", date: "10/05/25", score: 74),
-        RoundHistory(id: "4", course: "Torrey Pines", date: "10/01/25", score: 71)
-    ]
+    static let roundHistory: [RoundHistory] = []
 
-    static let swingVideos: [SwingVideo] = [
-        SwingVideo(id: "1", title: "Down the Line - Current Swing", type: "DTL", date: "10/12/25", description: "Working on staying centered over the ball"),
-        SwingVideo(id: "2", title: "Face On View", type: "Face On", date: "10/10/25", description: "Focusing on reducing head sway")
-    ]
+    static let swingVideos: [SwingVideo] = []
 
-    static let team1Players: [Player] = [
-        Player(id: "1", name: "Craig Roberts", handicap: 19.2, isCaptain: true),
-        Player(id: "2", name: "Daniel Linch", handicap: 18.2, isCaptain: false)
-    ]
+    static let team1Players: [Player] = []
 
-    static let profileActivities: [ProfileActivity] = [
-        ProfileActivity(id: "1", coachName: "Mike Thompson", university: "Stanford University", message: "Welcome", timestamp: Date(), avatarColor: "22C55E"),
-        ProfileActivity(id: "2", coachName: "Sarah Johnson", university: "UCLA", message: "", timestamp: Date().addingTimeInterval(-86400), avatarColor: "3B82F6"),
-        ProfileActivity(id: "3", coachName: "David Martinez", university: "USC", message: "Great Job", timestamp: Date().addingTimeInterval(-172800), avatarColor: "8B5CF6")
-    ]
+    static let profileActivities: [ProfileActivity] = []
 
-    static let coachMessages: [CoachMessage] = [
-        CoachMessage(id: "1", coachName: "Mike Thompson", university: "Stanford University", message: "Hi William, I've been watching your progress and I'm impressed with your swing mechanics. Would love to chat about our program.", timestamp: Date(), isRead: false),
-        CoachMessage(id: "2", coachName: "Sarah Johnson", university: "UCLA", message: "Great round at Torrey Pines! We're looking for players like you.", timestamp: Date().addingTimeInterval(-86400), isRead: true),
-        CoachMessage(id: "3", coachName: "David Martinez", university: "USC", message: "Your GIR stats are excellent. Let's schedule a call to discuss opportunities.", timestamp: Date().addingTimeInterval(-172800), isRead: true)
-    ]
+    static let coachMessages: [CoachMessage] = []
 
-    static let todaysDrills: [Drill] = [
-        Drill(id: "1", title: "Lag Putting Drill", description: "Practice distance control from 30+ feet", duration: "15 min", category: .putting, isCompleted: false),
-        Drill(id: "2", title: "Tempo Training", description: "Work on consistent swing tempo with metronome", duration: "20 min", category: .driving, isCompleted: false),
-        Drill(id: "3", title: "Chip & Run", description: "Practice low running chips around the green", duration: "15 min", category: .shortGame, isCompleted: false),
-        Drill(id: "4", title: "7-Iron Accuracy", description: "Hit to specific targets at varying distances", duration: "20 min", category: .irons, isCompleted: false),
-        Drill(id: "5", title: "Pre-Shot Routine", description: "Establish consistent pre-shot routine", duration: "10 min", category: .mental, isCompleted: false)
-    ]
+    static let todaysDrills: [Drill] = []
 }

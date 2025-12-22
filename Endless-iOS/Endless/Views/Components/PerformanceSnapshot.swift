@@ -19,16 +19,16 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     }
 
     static let allWidgets: [PerformanceWidget] = [
-        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "72%", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "65%", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "28.4", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "71.3", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "4.2", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "275", color: "22C55E", isEnabled: false, size: .medium),
-        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "58%", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "45%", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "62%", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "18", color: "22C55E", isEnabled: false, size: .small)
+        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "--", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
@@ -85,6 +85,7 @@ class WidgetPreferencesManager: ObservableObject {
     }
 
     func resetToDefaults() {
+        UserDefaults.standard.removeObject(forKey: "performanceWidgets")
         widgets = PerformanceWidget.allWidgets
     }
 }
