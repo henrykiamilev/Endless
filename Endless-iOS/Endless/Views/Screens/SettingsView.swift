@@ -4,6 +4,7 @@ import Combine
 struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var profileManager = RecruitProfileManager.shared
     @State private var showingMenu = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
@@ -158,18 +159,18 @@ struct SettingsView: View {
                         .fill(themeManager.theme.primary)
                         .frame(width: 60, height: 60)
                         .overlay(
-                            Text("W")
+                            Text(String(profileManager.profile.firstName.prefix(1)))
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                         )
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Will Johnson")
+                    Text(profileManager.profile.fullName)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text("will.johnson@email.com")
+                    Text(profileManager.profile.email)
                         .font(.system(size: 13))
                         .foregroundColor(themeManager.theme.textSecondary)
 
@@ -437,10 +438,11 @@ struct SettingsView: View {
 struct EditProfileSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
-    @State private var name = "Will Johnson"
-    @State private var email = "will.johnson@email.com"
-    @State private var phone = "+1 (555) 123-4567"
-    @State private var bio = "Passionate golfer working on my game every day."
+    @ObservedObject private var profileManager = RecruitProfileManager.shared
+    @State private var firstName: String = ""
+    @State private var lastName: String = ""
+    @State private var email: String = ""
+    @State private var phone: String = ""
     @State private var showingImagePicker = false
 
     var body: some View {
@@ -466,7 +468,7 @@ struct EditProfileSheet: View {
                                     .fill(themeManager.theme.primary)
                                     .frame(width: 96, height: 96)
                                     .overlay(
-                                        Text("W")
+                                        Text(String(firstName.prefix(1)))
                                             .font(.system(size: 40, weight: .bold))
                                             .foregroundColor(.white)
                                     )
@@ -502,7 +504,9 @@ struct EditProfileSheet: View {
                                 .foregroundColor(themeManager.theme.textSecondary)
 
                             VStack(spacing: 0) {
-                                editableField(label: "Name", text: $name)
+                                editableField(label: "First Name", text: $firstName)
+                                Divider().padding(.leading, 16)
+                                editableField(label: "Last Name", text: $lastName)
                                 Divider().padding(.leading, 16)
                                 editableField(label: "Email", text: $email, keyboardType: .emailAddress)
                                 Divider().padding(.leading, 16)
@@ -510,21 +514,6 @@ struct EditProfileSheet: View {
                             }
                             .background(themeManager.theme.cardBackground)
                             .cornerRadius(16)
-                        }
-
-                        // Bio
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("BIO")
-                                .font(.system(size: 11, weight: .bold))
-                                .tracking(1.5)
-                                .foregroundColor(themeManager.theme.textSecondary)
-
-                            TextEditor(text: $bio)
-                                .font(.system(size: 15))
-                                .frame(height: 100)
-                                .padding(12)
-                                .background(themeManager.theme.cardBackground)
-                                .cornerRadius(16)
                         }
                     }
                     .padding(20)
@@ -539,12 +528,27 @@ struct EditProfileSheet: View {
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") { dismiss() }
+                    Button("Save") { saveProfile() }
                         .fontWeight(.semibold)
                         .foregroundColor(themeManager.theme.primary)
                 }
             }
+            .onAppear {
+                // Load current profile data
+                firstName = profileManager.profile.firstName
+                lastName = profileManager.profile.lastName
+                email = profileManager.profile.email
+                phone = profileManager.profile.phone
+            }
         }
+    }
+
+    private func saveProfile() {
+        profileManager.profile.firstName = firstName
+        profileManager.profile.lastName = lastName
+        profileManager.profile.email = email
+        profileManager.profile.phone = phone
+        dismiss()
     }
 
     private func editableField(label: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
@@ -552,7 +556,7 @@ struct EditProfileSheet: View {
             Text(label)
                 .font(.system(size: 15))
                 .foregroundColor(themeManager.theme.textSecondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: 90, alignment: .leading)
             TextField(label, text: text)
                 .font(.system(size: 15))
                 .keyboardType(keyboardType)
