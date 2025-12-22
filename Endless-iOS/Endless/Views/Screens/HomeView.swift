@@ -808,9 +808,9 @@ struct MenuSheetView: View {
                             dismiss()
                             navigationManager.navigateToRecord()
                         }
-                        menuButton(icon: "sparkles", title: "Endless AI", subtitle: "AI-powered analysis") {
+                        menuButton(icon: "sparkles", title: "Recruit", subtitle: "Automated recruit profile") {
                             dismiss()
-                            navigationManager.navigateToAI()
+                            navigationManager.navigateToRecruit()
                         }
                         menuButton(icon: "gearshape.fill", title: "Settings", subtitle: "Preferences & Account") {
                             dismiss()
