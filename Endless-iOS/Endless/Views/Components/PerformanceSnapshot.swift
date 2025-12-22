@@ -175,53 +175,23 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(alignment: .leading, spacing: 4) {
-                // Top section with icon
-                ZStack {
-                    // Subtle icon background
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(themeManager.theme.accentGreen.opacity(0.08))
-                        .frame(width: 28, height: 28)
+            VStack(spacing: 8) {
+                // Centered icon
+                Image(systemName: widget.icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(themeManager.theme.accentGreen)
 
-                    Image(systemName: widget.icon)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(themeManager.theme.accentGreen.opacity(0.8))
-                }
-
-                Spacer()
-
-                // Value with modern styling
+                // Centered value
                 Text(widget.value)
-                    .font(.system(size: 20, weight: .heavy))
-                    .tracking(-0.5)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-
-                // Label
-                Text(widget.shortLabel)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-
-                // Trend indicator - compact
-                HStack(spacing: 2) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 7, weight: .bold))
-                    Text("+2%")
-                        .font(.system(size: 8, weight: .bold))
-                }
-                .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
-                .padding(.top, 2)
+                    .minimumScaleFactor(0.7)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 100)
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 1)
-            )
         }
         .buttonStyle(PlainButtonStyle())
     }
