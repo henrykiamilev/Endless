@@ -205,3 +205,4 @@ private struct VideoMetadata: Codable {
 
 // We need to import AVFoundation for CMTimeGetSeconds
 import AVFoundation
+
