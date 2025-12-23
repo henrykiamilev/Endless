@@ -14,9 +14,53 @@ class RecruitProfileManager: ObservableObject {
         didSet { saveMessages() }
     }
 
+    /// The current user's ID - data is stored per-user
+    private var currentUserId: String?
+
+    /// User-specific key for profile storage
+    private var profileKey: String {
+        if let userId = currentUserId {
+            return "recruitProfile_\(userId)"
+        }
+        return "recruitProfile"
+    }
+
+    /// User-specific key for messages storage
+    private var messagesKey: String {
+        if let userId = currentUserId {
+            return "coachMessages_\(userId)"
+        }
+        return "coachMessages"
+    }
+
     private init() {
-        self.profile = Self.loadProfile()
-        self.messages = Self.loadMessages()
+        // Initialize with defaults - data will be loaded when user is set
+        self.profile = RecruitProfile.default
+        self.messages = []
+    }
+
+    // MARK: - User Context Management
+
+    /// Sets the current user and loads their profile data
+    /// Call this when a user signs in
+    func setCurrentUser(userId: String) {
+        guard currentUserId != userId else { return }
+
+        currentUserId = userId
+        loadUserData()
+    }
+
+    /// Clears the current user context without deleting data
+    /// Call this when a user signs out
+    func clearCurrentUser() {
+        currentUserId = nil
+        profile = RecruitProfile.default
+        messages = []
+    }
+
+    private func loadUserData() {
+        profile = loadProfile()
+        messages = loadMessages()
     }
 
     func sendMessage(to coachId: String, text: String) {
@@ -30,36 +74,39 @@ class RecruitProfileManager: ObservableObject {
         }
     }
 
-    /// Resets the profile to default empty state and clears UserDefaults
+    /// Permanently deletes the user's profile and messages
+    /// WARNING: This permanently deletes data. Use clearCurrentUser() for sign-out instead.
     func resetToDefaults() {
-        UserDefaults.standard.removeObject(forKey: "recruitProfile")
-        UserDefaults.standard.removeObject(forKey: "coachMessages")
+        UserDefaults.standard.removeObject(forKey: profileKey)
+        UserDefaults.standard.removeObject(forKey: messagesKey)
         profile = RecruitProfile.default
         messages = []
     }
 
     private func saveProfile() {
+        guard currentUserId != nil else { return }
         if let encoded = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(encoded, forKey: "recruitProfile")
+            UserDefaults.standard.set(encoded, forKey: profileKey)
         }
     }
 
     private func saveMessages() {
+        guard currentUserId != nil else { return }
         if let encoded = try? JSONEncoder().encode(messages) {
-            UserDefaults.standard.set(encoded, forKey: "coachMessages")
+            UserDefaults.standard.set(encoded, forKey: messagesKey)
         }
     }
 
-    private static func loadProfile() -> RecruitProfile {
-        if let data = UserDefaults.standard.data(forKey: "recruitProfile"),
+    private func loadProfile() -> RecruitProfile {
+        if let data = UserDefaults.standard.data(forKey: profileKey),
            let decoded = try? JSONDecoder().decode(RecruitProfile.self, from: data) {
             return decoded
         }
         return RecruitProfile.default
     }
 
-    private static func loadMessages() -> [CoachMessage] {
-        if let data = UserDefaults.standard.data(forKey: "coachMessages"),
+    private func loadMessages() -> [CoachMessage] {
+        if let data = UserDefaults.standard.data(forKey: messagesKey),
            let decoded = try? JSONDecoder().decode([CoachMessage].self, from: data) {
             return decoded
         }

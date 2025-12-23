@@ -180,6 +180,11 @@ final class AuthenticationManager: ObservableObject {
     }
 
     private func loadUserData(uid: String) {
+        // Set up user context for all managers
+        VideoStorageManager.shared.setCurrentUser(userId: uid)
+        RecruitProfileManager.shared.setCurrentUser(userId: uid)
+        WidgetPreferencesManager.shared.setCurrentUser(userId: uid)
+
         if let data = UserDefaults.standard.data(forKey: "currentUser_\(uid)"),
            let user = try? JSONDecoder().decode(AppUser.self, from: data) {
             currentUser = user
@@ -226,10 +231,10 @@ final class AuthenticationManager: ObservableObject {
     }
 
     private func clearAllUserData() {
-        // Reset managers to default state
-        RecruitProfileManager.shared.resetToDefaults()
-        WidgetPreferencesManager.shared.resetToDefaults()
-        VideoStorageManager.shared.clearAllVideos()
+        // Clear current user context from managers (preserves data on disk for next sign-in)
+        RecruitProfileManager.shared.clearCurrentUser()
+        WidgetPreferencesManager.shared.clearCurrentUser()
+        VideoStorageManager.shared.clearCurrentUser()
     }
 
     // MARK: - Error Handling
