@@ -8,13 +8,26 @@ class VideoStorageManager: ObservableObject {
 
     @Published private(set) var userVideos: [Video] = []
 
+    /// The current user's ID - videos are stored per-user
+    private var currentUserId: String?
+
     private let fileManager = FileManager.default
-    private let videosDirectoryName = "RecordedVideos"
+    private let baseVideosDirectoryName = "RecordedVideos"
     private let metadataFileName = "videos_metadata.json"
 
-    private var videosDirectory: URL {
+    /// Base directory for all video storage
+    private var baseVideosDirectory: URL {
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documentsPath.appendingPathComponent(videosDirectoryName)
+        return documentsPath.appendingPathComponent(baseVideosDirectoryName)
+    }
+
+    /// User-specific videos directory
+    private var videosDirectory: URL {
+        if let userId = currentUserId {
+            return baseVideosDirectory.appendingPathComponent(userId)
+        }
+        // Fallback for legacy/anonymous data
+        return baseVideosDirectory.appendingPathComponent("anonymous")
     }
 
     private var metadataURL: URL {
@@ -22,8 +35,71 @@ class VideoStorageManager: ObservableObject {
     }
 
     private init() {
+        // Don't load videos on init - wait for user to be set
+    }
+
+    // MARK: - User Context Management
+
+    /// Sets the current user and loads their videos
+    /// Call this when a user signs in
+    func setCurrentUser(userId: String) {
+        // Don't reload if same user
+        guard currentUserId != userId else { return }
+
+        currentUserId = userId
         createVideosDirectoryIfNeeded()
         loadStoredVideos()
+
+        // Migrate any legacy videos from old storage location to user's directory
+        migrateLegacyVideosIfNeeded()
+    }
+
+    /// Clears the current user context without deleting data
+    /// Call this when a user signs out
+    func clearCurrentUser() {
+        currentUserId = nil
+        userVideos = []
+    }
+
+    /// Migrates videos from the old non-user-specific location
+    private func migrateLegacyVideosIfNeeded() {
+        guard let userId = currentUserId else { return }
+
+        let legacyDirectory = baseVideosDirectory
+        let legacyMetadataURL = legacyDirectory.appendingPathComponent(metadataFileName)
+
+        // Check if legacy metadata exists at base level (not in a user folder)
+        guard fileManager.fileExists(atPath: legacyMetadataURL.path) else { return }
+
+        // Don't migrate if it's actually in a user subfolder
+        let userDirectory = baseVideosDirectory.appendingPathComponent(userId)
+        if legacyMetadataURL.path.contains(userDirectory.path) { return }
+
+        do {
+            let data = try Data(contentsOf: legacyMetadataURL)
+            let decoder = JSONDecoder()
+            let legacyMetadata = try decoder.decode([VideoMetadataLegacy].self, from: data)
+
+            // Move each video file to user directory
+            for meta in legacyMetadata {
+                let legacyVideoPath = legacyDirectory.appendingPathComponent(meta.fileName)
+                let newVideoPath = videosDirectory.appendingPathComponent(meta.fileName)
+
+                if fileManager.fileExists(atPath: legacyVideoPath.path) {
+                    try? fileManager.moveItem(at: legacyVideoPath, to: newVideoPath)
+                }
+            }
+
+            // Move metadata file
+            try? fileManager.moveItem(at: legacyMetadataURL, to: metadataURL)
+
+            // Reload videos after migration
+            loadStoredVideos()
+
+            print("Migrated legacy videos to user directory: \(userId)")
+        } catch {
+            print("Failed to migrate legacy videos: \(error)")
+        }
     }
 
     private func createVideosDirectoryIfNeeded() {
@@ -172,7 +248,9 @@ class VideoStorageManager: ObservableObject {
         saveMetadata()
     }
 
-    /// Clears all stored videos and metadata
+    /// Permanently deletes all stored videos and metadata for the current user
+    /// WARNING: This permanently deletes data. Use clearCurrentUser() for sign-out instead.
+    /// Only use this when the user explicitly requests to delete their data (e.g., account deletion)
     func clearAllVideos() {
         // Delete all video files
         for video in userVideos {
@@ -196,6 +274,15 @@ class VideoStorageManager: ObservableObject {
 
 // MARK: - Video Metadata for persistence
 private struct VideoMetadata: Codable {
+    let id: String
+    let title: String
+    let date: String
+    let duration: String
+    let fileName: String
+}
+
+/// Legacy metadata struct for migration from old storage format
+private struct VideoMetadataLegacy: Codable {
     let id: String
     let title: String
     let date: String

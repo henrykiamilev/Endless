@@ -44,8 +44,38 @@ class WidgetPreferencesManager: ObservableObject {
         }
     }
 
+    /// The current user's ID - widget preferences are stored per-user
+    private var currentUserId: String?
+
+    /// User-specific key for widget preferences storage
+    private var widgetsKey: String {
+        if let userId = currentUserId {
+            return "performanceWidgets_\(userId)"
+        }
+        return "performanceWidgets"
+    }
+
     private init() {
-        self.widgets = Self.loadWidgets()
+        // Initialize with defaults - data will be loaded when user is set
+        self.widgets = PerformanceWidget.allWidgets
+    }
+
+    // MARK: - User Context Management
+
+    /// Sets the current user and loads their widget preferences
+    /// Call this when a user signs in
+    func setCurrentUser(userId: String) {
+        guard currentUserId != userId else { return }
+
+        currentUserId = userId
+        widgets = loadWidgets()
+    }
+
+    /// Clears the current user context without deleting data
+    /// Call this when a user signs out
+    func clearCurrentUser() {
+        currentUserId = nil
+        widgets = PerformanceWidget.allWidgets
     }
 
     var enabledWidgets: [PerformanceWidget] {
@@ -71,21 +101,24 @@ class WidgetPreferencesManager: ObservableObject {
     }
 
     private func saveWidgets() {
+        guard currentUserId != nil else { return }
         if let encoded = try? JSONEncoder().encode(widgets) {
-            UserDefaults.standard.set(encoded, forKey: "performanceWidgets")
+            UserDefaults.standard.set(encoded, forKey: widgetsKey)
         }
     }
 
-    private static func loadWidgets() -> [PerformanceWidget] {
-        if let data = UserDefaults.standard.data(forKey: "performanceWidgets"),
+    private func loadWidgets() -> [PerformanceWidget] {
+        if let data = UserDefaults.standard.data(forKey: widgetsKey),
            let decoded = try? JSONDecoder().decode([PerformanceWidget].self, from: data) {
             return decoded
         }
         return PerformanceWidget.allWidgets
     }
 
+    /// Permanently deletes the user's widget preferences
+    /// WARNING: This permanently deletes data. Use clearCurrentUser() for sign-out instead.
     func resetToDefaults() {
-        UserDefaults.standard.removeObject(forKey: "performanceWidgets")
+        UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
     }
 }
