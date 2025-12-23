@@ -5,6 +5,9 @@ struct VideoLibraryView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var videoStorage = VideoStorageManager.shared
+    @ObservedObject private var swingVideoManager = SwingVideoManager.shared
+    @ObservedObject private var highlightGenerator = HighlightReelGenerator.shared
+
     @State private var showingMenu = false
     @State private var showingFilter = false
     @State private var showingAIAnalysis = false
@@ -14,9 +17,14 @@ struct VideoLibraryView: View {
     @State private var selectedCourses: Set<String> = []
     @State private var isGeneratingHighlight = false
     @State private var showingGeneratedReel = false
+    @State private var generatedReelResult: HighlightReelResult?
     @State private var selectedVideoForPlayback: Video?
     @State private var showingDeleteConfirmation = false
     @State private var videoToDelete: Video?
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var showingSwingAnalysis = false
+    @State private var selectedSwingVideo: ManagedSwingVideo?
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
 
@@ -59,7 +67,18 @@ struct VideoLibraryView: View {
             AIAnalysisView(video: selectedVideoForAI)
         }
         .sheet(isPresented: $showingGeneratedReel) {
-            GeneratedHighlightReelView(prompt: highlightPrompt, courses: Array(selectedCourses))
+            if let result = generatedReelResult {
+                GeneratedHighlightReelView(
+                    result: result,
+                    prompt: highlightPrompt,
+                    courses: Array(selectedCourses)
+                )
+            }
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
         .fullScreenCover(item: $selectedVideoForPlayback) { video in
             if let videoFileName = video.videoFileName {
@@ -413,11 +432,38 @@ struct VideoLibraryView: View {
     }
 
     private func generateHighlightReel() {
+        guard !videoStorage.allVideos.isEmpty else {
+            errorMessage = "No videos available. Record some golf sessions first!"
+            showingError = true
+            return
+        }
+
         isGeneratingHighlight = true
-        // Simulate generation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            isGeneratingHighlight = false
-            showingGeneratedReel = true
+
+        Task {
+            do {
+                let config = HighlightReelConfig(
+                    prompt: highlightPrompt,
+                    selectedCourses: Array(selectedCourses)
+                )
+
+                let result = try await highlightGenerator.generateHighlightReel(
+                    from: videoStorage.allVideos,
+                    config: config
+                )
+
+                await MainActor.run {
+                    isGeneratingHighlight = false
+                    generatedReelResult = result
+                    showingGeneratedReel = true
+                }
+            } catch {
+                await MainActor.run {
+                    isGeneratingHighlight = false
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                }
+            }
         }
     }
 
@@ -439,14 +485,14 @@ struct VideoLibraryView: View {
 
                 Spacer()
 
-                Button(action: {}) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 32, height: 32)
-                        .background(themeManager.theme.background)
-                        .clipShape(Circle())
-                }
+                // Progress indicator
+                Text("\(swingVideoManager.videoCount)/5")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(themeManager.theme.background)
+                    .clipShape(Capsule())
             }
             .padding(16)
 
@@ -455,49 +501,69 @@ struct VideoLibraryView: View {
                 .padding(.horizontal, 16)
 
             // Video list
-            VStack(spacing: 12) {
-                SwingVideoRow(
-                    title: "Down the Line - Current Swing",
-                    date: "DTL - 10/16/25",
-                    annotation: "Working on staying centered over the ball",
-                    onAnalyze: {
-                        selectedVideoForAI = MockData.videos.first
-                        showingAIAnalysis = true
-                    }
-                )
+            if swingVideoManager.swingVideos.isEmpty {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "video.badge.plus")
+                        .font(.system(size: 32))
+                        .foregroundColor(themeManager.theme.textMuted)
 
-                SwingVideoRow(
-                    title: "Face On View",
-                    date: "Face On - 10/15/25",
-                    annotation: "Focusing on reducing head sway",
-                    onAnalyze: {
-                        selectedVideoForAI = MockData.videos.first
-                        showingAIAnalysis = true
+                    Text("No swing videos yet")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    Text("Add videos to get AI analysis")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.textMuted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(swingVideoManager.swingVideos) { video in
+                        SwingVideoRow(
+                            title: video.type.displayName,
+                            date: video.dateString,
+                            annotation: video.annotation,
+                            hasAnalysis: video.analysisResult != nil,
+                            score: video.analysisResult?.overallScore,
+                            onAnalyze: {
+                                selectedSwingVideo = video
+                                showingSwingAnalysis = true
+                            }
+                        )
                     }
-                )
+                }
+                .padding(16)
             }
-            .padding(16)
 
             // Add more videos button
-            Button(action: {}) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 14))
-                    Text("Add Swing Video")
-                        .font(.system(size: 13, weight: .semibold))
+            if swingVideoManager.canAddMoreVideos {
+                Button(action: { navigationManager.navigateToRecord() }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 14))
+                        Text("Add Swing Video")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(themeManager.theme.accentGreen.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .foregroundColor(themeManager.theme.accentGreen)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(themeManager.theme.accentGreen.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
         .background(themeManager.theme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 16, x: 0, y: 8)
+        .sheet(isPresented: $showingSwingAnalysis) {
+            if let video = selectedSwingVideo {
+                SwingVideoAnalysisView(video: video)
+            }
+        }
     }
 
     // MARK: - Stats Tab
@@ -1207,24 +1273,39 @@ struct AIAnalysisView: View {
 struct AICoachChatView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject private var aiCoach = AICoachService.shared
     @State private var messageText = ""
-    @State private var messages: [AIMessage] = [
-        AIMessage(isUser: false, text: "Hi! I'm your AI Golf Coach. I've analyzed your swing and I'm here to help. What would you like to know?"),
-        AIMessage(isUser: true, text: "How can I improve my follow-through?"),
-        AIMessage(isUser: false, text: "Great question! Based on your swing analysis, I noticed your follow-through could use more extension. Here are some tips:\n\n1. Focus on pushing your hands toward the target after impact\n2. Let your arms fully extend before they begin to fold\n3. Your belt buckle should face the target at finish\n\nWould you like me to suggest some specific drills?")
-    ]
+    @State private var scrollToBottom = false
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Messages
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(messages) { message in
-                            MessageBubble(message: message)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(aiCoach.messages) { message in
+                                MessageBubble(message: message)
+                                    .id(message.id)
+                            }
+
+                            if aiCoach.isTyping {
+                                HStack {
+                                    TypingIndicator()
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                            }
+                        }
+                        .padding(16)
+                    }
+                    .onChange(of: aiCoach.messages.count) { _ in
+                        if let lastMessage = aiCoach.messages.last {
+                            withAnimation {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
-                    .padding(16)
                 }
 
                 // Input area
@@ -1235,13 +1316,16 @@ struct AICoachChatView: View {
                         .padding(.vertical, 12)
                         .background(themeManager.theme.cardBackground)
                         .clipShape(Capsule())
+                        .onSubmit {
+                            sendMessage()
+                        }
 
                     Button(action: sendMessage) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 36))
                             .foregroundColor(messageText.isEmpty ? themeManager.theme.textSecondary : themeManager.theme.accentGreen)
                     }
-                    .disabled(messageText.isEmpty)
+                    .disabled(messageText.isEmpty || aiCoach.isTyping)
                 }
                 .padding(16)
                 .background(themeManager.theme.background)
@@ -1260,26 +1344,43 @@ struct AICoachChatView: View {
 
     private func sendMessage() {
         guard !messageText.isEmpty else { return }
-        let userMessage = AIMessage(isUser: true, text: messageText)
-        messages.append(userMessage)
+        let text = messageText
         messageText = ""
-
-        // Simulate AI response
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let aiResponse = AIMessage(isUser: false, text: "That's a great follow-up question! Let me think about that based on your swing data...")
-            messages.append(aiResponse)
-        }
+        aiCoach.sendMessage(text)
     }
 }
 
-struct AIMessage: Identifiable {
-    let id = UUID()
-    let isUser: Bool
-    let text: String
+// MARK: - Typing Indicator
+
+struct TypingIndicator: View {
+    @State private var animating = false
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<3) { index in
+                Circle()
+                    .fill(themeManager.theme.textSecondary)
+                    .frame(width: 8, height: 8)
+                    .scaleEffect(animating ? 1.0 : 0.5)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                        .repeatForever()
+                        .delay(Double(index) * 0.2),
+                        value: animating
+                    )
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .onAppear { animating = true }
+    }
 }
 
 struct MessageBubble: View {
-    let message: AIMessage
+    let message: AICoachMessage
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -1350,6 +1451,8 @@ struct SwingVideoRow: View {
     let title: String
     let date: String
     let annotation: String
+    var hasAnalysis: Bool = false
+    var score: Int? = nil
     let onAnalyze: () -> Void
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -1361,24 +1464,45 @@ struct SwingVideoRow: View {
                     .fill(themeManager.theme.background)
                     .frame(width: 60, height: 60)
 
-                Image(systemName: "play.circle.fill")
+                Image(systemName: "figure.golf")
                     .font(.system(size: 24))
-                    .foregroundColor(themeManager.theme.accentGreen)
+                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.6))
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+
+                    if hasAnalysis {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(themeManager.theme.accentGreen)
+                    }
+                }
 
                 Text(date)
                     .font(.system(size: 11))
                     .foregroundColor(themeManager.theme.textSecondary)
 
-                Text(annotation)
-                    .font(.system(size: 11))
-                    .foregroundColor(themeManager.theme.textMuted)
-                    .lineLimit(1)
+                if !annotation.isEmpty {
+                    Text(annotation)
+                        .font(.system(size: 11))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .lineLimit(1)
+                }
+
+                if let score = score {
+                    HStack(spacing: 4) {
+                        Text("Score:")
+                            .font(.system(size: 10))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("\(score)/100")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(themeManager.theme.accentGreen)
+                    }
+                }
             }
 
             Spacer()
@@ -1401,12 +1525,23 @@ struct SwingVideoRow: View {
 // MARK: - Generated Highlight Reel View
 
 struct GeneratedHighlightReelView: View {
+    let result: HighlightReelResult
     let prompt: String
     let courses: [String]
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var isSendingToRecruit = false
     @State private var sentToRecruit = false
+    @State private var isSaving = false
+    @State private var saved = false
+    @State private var showingShareSheet = false
+
+    private var durationString: String {
+        let minutes = Int(result.totalDuration) / 60
+        let seconds = Int(result.totalDuration) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
 
     var body: some View {
         NavigationView {
@@ -1440,7 +1575,7 @@ struct GeneratedHighlightReelView: View {
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
 
-                            Text("2:14")
+                            Text(durationString)
                                 .font(.system(size: 13))
                                 .foregroundColor(.white.opacity(0.7))
                         }
@@ -1509,9 +1644,9 @@ struct GeneratedHighlightReelView: View {
 
                         // Stats
                         HStack(spacing: 24) {
-                            statItem(value: "12", label: "Clips")
-                            statItem(value: "8", label: "Best Shots")
-                            statItem(value: "4", label: "Courses")
+                            statItem(value: "\(result.clipCount)", label: "Clips")
+                            statItem(value: durationString, label: "Duration")
+                            statItem(value: "\(result.coursesIncluded.count)", label: "Courses")
                         }
                         .padding(.top, 8)
                     }
@@ -1550,11 +1685,20 @@ struct GeneratedHighlightReelView: View {
                         .disabled(isSendingToRecruit || sentToRecruit)
 
                         HStack(spacing: 12) {
-                            Button(action: {}) {
+                            Button(action: saveHighlightReel) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "square.and.arrow.down")
-                                        .font(.system(size: 14))
-                                    Text("Save")
+                                    if isSaving {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle())
+                                            .scaleEffect(0.7)
+                                    } else if saved {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14))
+                                    } else {
+                                        Image(systemName: "square.and.arrow.down")
+                                            .font(.system(size: 14))
+                                    }
+                                    Text(saved ? "Saved!" : "Save")
                                         .font(.system(size: 14, weight: .semibold))
                                 }
                                 .foregroundColor(themeManager.theme.textPrimary)
@@ -1563,8 +1707,9 @@ struct GeneratedHighlightReelView: View {
                                 .background(themeManager.theme.cardBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
+                            .disabled(isSaving || saved)
 
-                            Button(action: {}) {
+                            ShareLink(item: result.outputURL) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.system(size: 14))
@@ -1627,9 +1772,18 @@ struct GeneratedHighlightReelView: View {
 
     private func sendToRecruitPage() {
         isSendingToRecruit = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        // Save video to library first, then mark as sent
+        videoStorage.saveVideo(from: result.outputURL, title: "Highlight Reel") { savedVideo in
             isSendingToRecruit = false
-            sentToRecruit = true
+            sentToRecruit = savedVideo != nil
+        }
+    }
+
+    private func saveHighlightReel() {
+        isSaving = true
+        videoStorage.saveVideo(from: result.outputURL, title: "Highlight Reel - \(prompt.prefix(20))") { savedVideo in
+            isSaving = false
+            saved = savedVideo != nil
         }
     }
 }

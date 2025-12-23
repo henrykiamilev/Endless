@@ -3,10 +3,21 @@ import SwiftUI
 struct EndlessAIView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
+    @ObservedObject private var swingVideoManager = SwingVideoManager.shared
+    @ObservedObject private var highlightGenerator = HighlightReelGenerator.shared
+
     @State private var prompt = ""
     @State private var selectedCourses: Set<String> = []
     @State private var showingMenu = false
     @State private var isGenerating = false
+    @State private var showingGeneratedReel = false
+    @State private var generatedReelResult: HighlightReelResult?
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var showingAddSwingVideo = false
+    @State private var showingSwingAnalysis = false
+    @State private var selectedSwingVideo: ManagedSwingVideo?
 
     private let courseFilters = ["Oakmont CC", "Pebble Beach", "Del Mar"]
 
@@ -34,6 +45,63 @@ struct EndlessAIView: View {
             }
         }
         .background(themeManager.theme.background)
+        .sheet(isPresented: $showingGeneratedReel) {
+            if let result = generatedReelResult {
+                GeneratedHighlightReelView(
+                    result: result,
+                    prompt: prompt,
+                    courses: Array(selectedCourses)
+                )
+            }
+        }
+        .sheet(isPresented: $showingSwingAnalysis) {
+            if let video = selectedSwingVideo {
+                SwingVideoAnalysisView(video: video)
+            }
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+
+    // MARK: - Generate Highlight Reel
+
+    private func generateHighlightReel() {
+        guard !videoStorage.allVideos.isEmpty else {
+            errorMessage = "No videos available. Record some golf sessions first!"
+            showingError = true
+            return
+        }
+
+        isGenerating = true
+
+        Task {
+            do {
+                let config = HighlightReelConfig(
+                    prompt: prompt,
+                    selectedCourses: Array(selectedCourses)
+                )
+
+                let result = try await highlightGenerator.generateHighlightReel(
+                    from: videoStorage.allVideos,
+                    config: config
+                )
+
+                await MainActor.run {
+                    isGenerating = false
+                    generatedReelResult = result
+                    showingGeneratedReel = true
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                }
+            }
+        }
     }
 
     // MARK: - Branded Header
@@ -246,12 +314,9 @@ struct EndlessAIView: View {
                     icon: "sparkles",
                     isLoading: isGenerating
                 ) {
-                    isGenerating = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        isGenerating = false
-                        navigationManager.navigateToVideo()
-                    }
+                    generateHighlightReel()
                 }
+                .disabled(videoStorage.allVideos.isEmpty)
             }
             .padding(22)
             .background(themeManager.theme.cardBackground)
@@ -324,13 +389,13 @@ struct EndlessAIView: View {
             HStack(spacing: 6) {
                 ForEach(0..<5) { index in
                     Circle()
-                        .fill(index < MockData.swingVideos.count ?
+                        .fill(index < swingVideoManager.videoCount ?
                               themeManager.theme.primary :
                               themeManager.theme.border)
                         .frame(width: 8, height: 8)
                 }
                 Spacer()
-                Text("\(MockData.swingVideos.count)/5 videos")
+                Text("\(swingVideoManager.videoCount)/5 videos")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(themeManager.theme.textSecondary)
             }
@@ -338,8 +403,17 @@ struct EndlessAIView: View {
 
             // Swing videos list
             VStack(spacing: 14) {
-                ForEach(MockData.swingVideos) { video in
-                    SwingVideoCard(video: video)
+                ForEach(swingVideoManager.swingVideos) { video in
+                    ManagedSwingVideoCard(
+                        video: video,
+                        onAnalyze: {
+                            selectedSwingVideo = video
+                            showingSwingAnalysis = true
+                        },
+                        onDelete: {
+                            swingVideoManager.deleteSwingVideo(video)
+                        }
+                    )
                 }
             }
             .padding(.bottom, 16)
@@ -424,6 +498,511 @@ struct EndlessAIView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 32)
+    }
+}
+
+// MARK: - Managed Swing Video Card
+
+struct ManagedSwingVideoCard: View {
+    let video: ManagedSwingVideo
+    let onAnalyze: () -> Void
+    let onDelete: () -> Void
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: 14) {
+            // Thumbnail
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(themeManager.theme.backgroundSecondary)
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 24))
+                    .foregroundColor(themeManager.theme.primary.opacity(0.6))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(video.type.displayName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+
+                    if video.analysisResult != nil {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.primary)
+                    }
+                }
+
+                Text(video.dateString)
+                    .font(.system(size: 11))
+                    .foregroundColor(themeManager.theme.textSecondary)
+
+                if !video.annotation.isEmpty {
+                    Text(video.annotation)
+                        .font(.system(size: 11))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .lineLimit(1)
+                }
+
+                if let score = video.analysisResult?.overallScore {
+                    HStack(spacing: 4) {
+                        Text("Score:")
+                            .font(.system(size: 10))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                        Text("\(score)/100")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(themeManager.theme.primary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Actions
+            HStack(spacing: 8) {
+                Button(action: onAnalyze) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.primary)
+                        .frame(width: 36, height: 36)
+                        .background(themeManager.theme.primary.opacity(0.1))
+                        .clipShape(Circle())
+                }
+
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.error)
+                        .frame(width: 32, height: 32)
+                        .background(themeManager.theme.error.opacity(0.1))
+                        .clipShape(Circle())
+                }
+            }
+        }
+        .padding(14)
+        .background(themeManager.theme.cardBackground)
+        .cornerRadius(18)
+        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+    }
+}
+
+// MARK: - Swing Video Analysis View
+
+struct SwingVideoAnalysisView: View {
+    let video: ManagedSwingVideo
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject private var swingAnalyzer = SwingAnalyzer.shared
+    @ObservedObject private var swingVideoManager = SwingVideoManager.shared
+    @ObservedObject private var aiCoach = AICoachService.shared
+
+    @State private var analysisResult: SwingAnalysisResult?
+    @State private var isAnalyzing = false
+    @State private var selectedTab = 0
+    @State private var showingChat = false
+
+    var body: some View {
+        NavigationView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    headerSection
+
+                    if isAnalyzing {
+                        analyzingView
+                    } else if let result = analysisResult ?? video.analysisResult {
+                        analysisResultsView(result: result)
+                    } else {
+                        noAnalysisView
+                    }
+
+                    Spacer(minLength: 40)
+                }
+                .padding(20)
+            }
+            .background(themeManager.theme.background)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(themeManager.theme.cardBackground)
+                            .clipShape(Circle())
+                    }
+                }
+
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14))
+                            .foregroundColor(themeManager.theme.primary)
+                        Text("AI Analysis")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(themeManager.theme.textPrimary)
+                    }
+                }
+            }
+            .onAppear {
+                if video.analysisResult == nil {
+                    analyzeVideo()
+                }
+            }
+        }
+        .sheet(isPresented: $showingChat) {
+            AICoachChatView()
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(spacing: 16) {
+            // Video info
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "1A3A2A"), Color(hex: "0D1F15")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(height: 140)
+
+                VStack(spacing: 8) {
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 36))
+                        .foregroundColor(.white.opacity(0.4))
+
+                    Text(video.type.displayName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(video.type.displayName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+
+                    Text(video.dateString)
+                        .font(.system(size: 13))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                }
+
+                Spacer()
+
+                Button(action: { showingChat = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                            .font(.system(size: 12))
+                        Text("Ask AI")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(themeManager.theme.primary)
+                    .clipShape(Capsule())
+                }
+            }
+        }
+    }
+
+    private var analyzingView: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .stroke(themeManager.theme.cardBackground, lineWidth: 4)
+                    .frame(width: 80, height: 80)
+
+                Circle()
+                    .trim(from: 0, to: swingAnalyzer.analysisProgress)
+                    .stroke(themeManager.theme.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 80, height: 80)
+                    .rotationEffect(.degrees(-90))
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 28))
+                    .foregroundColor(themeManager.theme.primary)
+            }
+
+            Text("Analyzing your swing...")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(themeManager.theme.textPrimary)
+
+            Text("Our AI is reviewing your technique using pose detection")
+                .font(.system(size: 13))
+                .foregroundColor(themeManager.theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+        }
+        .padding(.vertical, 40)
+    }
+
+    private var noAnalysisView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "wand.and.stars")
+                .font(.system(size: 48))
+                .foregroundColor(themeManager.theme.primary.opacity(0.5))
+
+            Text("Ready to Analyze")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(themeManager.theme.textPrimary)
+
+            Text("Tap below to get AI-powered insights on your swing")
+                .font(.system(size: 14))
+                .foregroundColor(themeManager.theme.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button(action: analyzeVideo) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                    Text("Analyze Swing")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(themeManager.theme.primary)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(.vertical, 40)
+    }
+
+    private func analysisResultsView(result: SwingAnalysisResult) -> some View {
+        VStack(spacing: 20) {
+            // Overall score
+            overallScoreCard(result: result)
+
+            // Tab selection
+            ToggleButton(options: ["Breakdown", "Tips", "Drills"], selectedIndex: $selectedTab)
+
+            // Tab content
+            if selectedTab == 0 {
+                breakdownSection(result: result)
+            } else if selectedTab == 1 {
+                tipsSection(result: result)
+            } else {
+                drillsSection(result: result)
+            }
+        }
+    }
+
+    private func overallScoreCard(result: SwingAnalysisResult) -> some View {
+        HStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .stroke(themeManager.theme.cardBackground, lineWidth: 8)
+                    .frame(width: 90, height: 90)
+
+                Circle()
+                    .trim(from: 0, to: Double(result.overallScore) / 100.0)
+                    .stroke(themeManager.theme.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .frame(width: 90, height: 90)
+                    .rotationEffect(.degrees(-90))
+
+                VStack(spacing: 0) {
+                    Text("\(result.overallScore)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                    Text("/ 100")
+                        .font(.system(size: 11))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(scoreLabel(result.overallScore))
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text("Your technique shows good fundamentals with room for improvement.")
+                    .font(.system(size: 13))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .lineLimit(3)
+
+                if let improvement = result.improvement, improvement != 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: improvement > 0 ? "arrow.up.right" : "arrow.down.right")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("\(improvement > 0 ? "+" : "")\(improvement) from last analysis")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(improvement > 0 ? themeManager.theme.primary : themeManager.theme.error)
+                }
+            }
+        }
+        .padding(20)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func scoreLabel(_ score: Int) -> String {
+        switch score {
+        case 90...100: return "Excellent!"
+        case 80..<90: return "Great Swing!"
+        case 70..<80: return "Good Progress"
+        case 60..<70: return "Keep Practicing"
+        default: return "Room to Improve"
+        }
+    }
+
+    private func breakdownSection(result: SwingAnalysisResult) -> some View {
+        VStack(spacing: 12) {
+            ForEach(result.breakdown) { phase in
+                phaseRow(phase: phase)
+            }
+        }
+    }
+
+    private func phaseRow(phase: SwingPhaseScore) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(scoreColor(phase.score).opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Text("\(phase.score)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(scoreColor(phase.score))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(phase.phase.rawValue)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text(phase.feedback)
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(themeManager.theme.textMuted)
+        }
+        .padding(14)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func scoreColor(_ score: Int) -> Color {
+        if score >= 85 {
+            return themeManager.theme.primary
+        } else if score >= 70 {
+            return Color(hex: "F59E0B")
+        } else {
+            return themeManager.theme.error
+        }
+    }
+
+    private func tipsSection(result: SwingAnalysisResult) -> some View {
+        VStack(spacing: 12) {
+            ForEach(result.tips) { tip in
+                tipCard(tip: tip)
+            }
+        }
+    }
+
+    private func tipCard(tip: SwingTip) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.theme.primary.opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: tip.icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(themeManager.theme.primary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(tip.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text(tip.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func drillsSection(result: SwingAnalysisResult) -> some View {
+        VStack(spacing: 12) {
+            ForEach(result.drills) { drill in
+                drillCard(drill: drill)
+            }
+        }
+    }
+
+    private func drillCard(drill: RecommendedDrill) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(themeManager.theme.primary.opacity(0.1))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 18))
+                    .foregroundColor(themeManager.theme.primary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(drill.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+
+                    Spacer()
+
+                    Text(drill.duration)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(themeManager.theme.cardBackground)
+                        .clipShape(Capsule())
+                }
+
+                Text(drill.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+        }
+        .padding(14)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func analyzeVideo() {
+        isAnalyzing = true
+
+        Task {
+            let result = await swingVideoManager.analyzeSwingVideo(video)
+
+            await MainActor.run {
+                isAnalyzing = false
+                if let result = result {
+                    analysisResult = result
+                    aiCoach.setAnalysisContext(result)
+                }
+            }
+        }
     }
 }
 
