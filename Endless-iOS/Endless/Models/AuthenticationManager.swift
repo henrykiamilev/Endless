@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import FirebaseCore
 import FirebaseAuth
 
@@ -46,7 +47,7 @@ enum AuthenticationFlow {
 // MARK: - Authentication Manager
 
 @MainActor
-class AuthenticationManager: ObservableObject {
+final class AuthenticationManager: ObservableObject {
     static let shared = AuthenticationManager()
 
     @Published var authState: AuthenticationState = .undefined
