@@ -1321,7 +1321,7 @@ struct AICoachChatView: View {
                         }
                         .padding(16)
                     }
-                    .onChange(of: aiCoach.messages.count) { _ in
+                    .onChange(of: aiCoach.messages.count) {
                         if let lastMessage = aiCoach.messages.last {
                             withAnimation {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
