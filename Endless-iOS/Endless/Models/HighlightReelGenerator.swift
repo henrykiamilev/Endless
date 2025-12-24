@@ -491,6 +491,10 @@ class HighlightReelGenerator: ObservableObject {
     }
 
     private func stitchClips(clipURLs: [URL], transitionStyle: TransitionStyle) async throws -> URL {
+        guard !clipURLs.isEmpty else {
+            throw HighlightReelError.exportFailed
+        }
+
         let composition = AVMutableComposition()
 
         guard let videoTrack = composition.addMutableTrack(
@@ -503,10 +507,9 @@ class HighlightReelGenerator: ObservableObject {
         var audioTrack: AVMutableCompositionTrack?
         var cursor = CMTime.zero
         var renderSize = CGSize(width: 1080, height: 1920)
-        var layerInstructions: [AVMutableVideoCompositionLayerInstruction] = []
 
-        // Transition duration (0.5 seconds for cross dissolve)
-        let transitionDuration = transitionStyle == .none ? CMTime.zero : CMTime(seconds: 0.5, preferredTimescale: 600)
+        // Store transform configurations for each segment
+        var layerConfigurations: [AVVideoCompositionLayerInstruction.Configuration] = []
 
         for (index, url) in clipURLs.enumerated() {
             let asset = AVURLAsset(url: url)
@@ -520,11 +523,12 @@ class HighlightReelGenerator: ObservableObject {
                 let duration = try await asset.load(.duration)
 
                 if index == 0 {
-                    let natural = naturalSize.applying(preferredTransform)
-                    renderSize = CGSize(width: abs(natural.width), height: abs(natural.height))
+                    // Determine render size from first clip
+                    let transformed = naturalSize.applying(preferredTransform)
+                    renderSize = CGSize(width: abs(transformed.width), height: abs(transformed.height))
                 }
 
-                // Insert video
+                // Insert video segment
                 let timeRange = CMTimeRange(start: .zero, duration: duration)
                 try videoTrack.insertTimeRange(timeRange, of: sourceVideoTrack, at: cursor)
 
@@ -539,22 +543,19 @@ class HighlightReelGenerator: ObservableObject {
                     try audioTrack?.insertTimeRange(timeRange, of: sourceAudioTrack, at: cursor)
                 }
 
-                // Create layer instruction for transforms
-                let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
+                // Calculate the proper transform for this segment
+                // We need to handle the source video's preferredTransform and normalize to our render size
+                let transform = calculateNormalizedTransform(
+                    preferredTransform: preferredTransform,
+                    naturalSize: naturalSize,
+                    renderSize: renderSize
+                )
 
-                // Apply transform to fix orientation
-                var transform = preferredTransform
-                transform = transform.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
-                layerInstruction.setTransform(transform, at: cursor)
+                // Create layer configuration for this segment
+                var layerConfig = AVVideoCompositionLayerInstruction.Configuration(trackID: videoTrack.trackID)
+                layerConfig.setTransform(transform, at: cursor)
+                layerConfigurations.append(layerConfig)
 
-                // Add transition effect if not first clip
-                if index > 0 && transitionStyle != .none {
-                    // Fade in from previous clip
-                    layerInstruction.setOpacityRamp(fromStartOpacity: 0, toEndOpacity: 1,
-                                                     timeRange: CMTimeRange(start: cursor, duration: transitionDuration))
-                }
-
-                layerInstructions.append(layerInstruction)
                 cursor = cursor + duration
             } catch {
                 print("Error processing clip at \(url): \(error)")
@@ -566,19 +567,26 @@ class HighlightReelGenerator: ObservableObject {
             throw HighlightReelError.exportFailed
         }
 
-        // Create video composition
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.renderSize = renderSize
-        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+        // Build a single instruction that spans the full timeline
+        var instructionConfig = AVVideoCompositionInstruction.Configuration(
+            timeRange: CMTimeRange(start: .zero, duration: cursor)
+        )
+        instructionConfig.layerInstructions = layerConfigurations.map {
+            AVVideoCompositionLayerInstruction(configuration: $0)
+        }
+        let instruction = AVVideoCompositionInstruction(configuration: instructionConfig)
 
-        // Create main instruction
-        let mainInstruction = AVMutableVideoCompositionInstruction()
-        mainInstruction.timeRange = CMTimeRange(start: .zero, duration: cursor)
-        mainInstruction.layerInstructions = layerInstructions
-        videoComposition.instructions = [mainInstruction]
+        // Create video composition using the Configuration API
+        var videoCompConfig = AVVideoComposition.Configuration()
+        videoCompConfig.renderSize = renderSize
+        videoCompConfig.frameDuration = CMTime(value: 1, timescale: 30)
+        videoCompConfig.instructions = [instruction]
 
-        // Add overlay layers (logo, etc.)
-        addOverlays(to: videoComposition, renderSize: renderSize, duration: cursor)
+        // Add overlay layers (logo, badge)
+        let displayScale = await MainActor.run { UIScreen.main.scale }
+        addOverlaysToConfiguration(&videoCompConfig, renderSize: renderSize, displayScale: displayScale)
+
+        let videoComposition = AVVideoComposition(configuration: videoCompConfig)
 
         // Export
         let outputURL = FileManager.default.temporaryDirectory
@@ -598,11 +606,65 @@ class HighlightReelGenerator: ObservableObject {
         if exporter.status == .completed {
             return outputURL
         } else {
+            print("Export failed: \(exporter.error?.localizedDescription ?? "unknown")")
             throw HighlightReelError.exportFailed
         }
     }
 
-    private func addOverlays(to videoComposition: AVMutableVideoComposition, renderSize: CGSize, duration: CMTime) {
+    /// Calculates the proper transform to normalize a video segment to the target render size
+    private func calculateNormalizedTransform(
+        preferredTransform: CGAffineTransform,
+        naturalSize: CGSize,
+        renderSize: CGSize
+    ) -> CGAffineTransform {
+        // Apply the preferred transform to get the oriented size
+        let orientedSize = naturalSize.applying(preferredTransform)
+        let width = abs(orientedSize.width)
+        let height = abs(orientedSize.height)
+
+        // Start with the preferred transform
+        var transform = preferredTransform
+
+        // Handle the transform's translation component
+        // The preferredTransform may have translations that need adjustment
+        let tx = transform.tx
+        let ty = transform.ty
+
+        // If the video was rotated, we need to adjust translations
+        if transform.b == 1.0 && transform.c == -1.0 {
+            // 90 degree rotation (portrait from landscape)
+            transform.tx = height
+            transform.ty = 0
+        } else if transform.b == -1.0 && transform.c == 1.0 {
+            // -90 degree rotation
+            transform.tx = 0
+            transform.ty = width
+        } else if transform.a == -1.0 && transform.d == -1.0 {
+            // 180 degree rotation
+            transform.tx = width
+            transform.ty = height
+        }
+
+        // Scale to fit render size if needed
+        if width != renderSize.width || height != renderSize.height {
+            let scaleX = renderSize.width / width
+            let scaleY = renderSize.height / height
+            let scale = min(scaleX, scaleY)  // Fit within bounds
+
+            // Center the video
+            let scaledWidth = width * scale
+            let scaledHeight = height * scale
+            let offsetX = (renderSize.width - scaledWidth) / 2
+            let offsetY = (renderSize.height - scaledHeight) / 2
+
+            transform = transform.scaledBy(x: scale, y: scale)
+            transform = transform.translatedBy(x: offsetX / scale, y: offsetY / scale)
+        }
+
+        return transform
+    }
+
+    private func addOverlaysToConfiguration(_ config: inout AVVideoComposition.Configuration, renderSize: CGSize, displayScale: CGFloat) {
         let parentLayer = CALayer()
         parentLayer.frame = CGRect(origin: .zero, size: renderSize)
 
@@ -610,20 +672,21 @@ class HighlightReelGenerator: ObservableObject {
         videoLayer.frame = parentLayer.frame
         parentLayer.addSublayer(videoLayer)
 
-        // Add "Endless AI" badge at top
+        // Add "Endless AI" badge at top-left
         let badgeLayer = CATextLayer()
-        badgeLayer.contentsScale = UIScreen.main.scale
+        badgeLayer.contentsScale = displayScale
         badgeLayer.string = "ENDLESS AI"
-        badgeLayer.font = UIFont.systemFont(ofSize: 24, weight: .bold)
-        badgeLayer.fontSize = 24
+        badgeLayer.font = UIFont.systemFont(ofSize: 28, weight: .bold)
+        badgeLayer.fontSize = 28
         badgeLayer.foregroundColor = UIColor.white.cgColor
         badgeLayer.backgroundColor = UIColor.black.withAlphaComponent(0.5).cgColor
-        badgeLayer.cornerRadius = 8
+        badgeLayer.cornerRadius = 10
         badgeLayer.alignmentMode = .center
+        badgeLayer.contentsGravity = .center
 
-        let badgeWidth: CGFloat = 150
-        let badgeHeight: CGFloat = 40
-        let padding: CGFloat = 20
+        let badgeWidth: CGFloat = 180
+        let badgeHeight: CGFloat = 50
+        let padding: CGFloat = 24
         badgeLayer.frame = CGRect(
             x: padding,
             y: renderSize.height - badgeHeight - padding,
@@ -632,12 +695,13 @@ class HighlightReelGenerator: ObservableObject {
         )
         parentLayer.addSublayer(badgeLayer)
 
-        // Add logo at bottom right
+        // Add logo at bottom-right
         if let logoImage = UIImage(named: "AppLogoCircle")?.cgImage {
             let logoLayer = CALayer()
             logoLayer.contents = logoImage
             logoLayer.contentsGravity = .resizeAspect
-            let logoSize: CGFloat = 80
+            logoLayer.contentsScale = displayScale
+            let logoSize: CGFloat = 100
             logoLayer.frame = CGRect(
                 x: renderSize.width - logoSize - padding,
                 y: padding,
@@ -648,10 +712,15 @@ class HighlightReelGenerator: ObservableObject {
             parentLayer.addSublayer(logoLayer)
         }
 
-        videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
+        config.animationTool = AVVideoCompositionCoreAnimationTool(
             postProcessingAsVideoLayer: videoLayer,
             in: parentLayer
         )
+    }
+
+    // Keep the old method for backward compatibility but mark it deprecated
+    private func addOverlays(to videoComposition: AVMutableVideoComposition, renderSize: CGSize, duration: CMTime) {
+        // This method is no longer used - using addOverlaysToConfiguration instead
     }
 }
 

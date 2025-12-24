@@ -1531,11 +1531,15 @@ struct GeneratedHighlightReelView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject private var videoStorage = VideoStorageManager.shared
+    @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
     @State private var isSendingToRecruit = false
     @State private var sentToRecruit = false
-    @State private var isSaving = false
-    @State private var saved = false
-    @State private var showingShareSheet = false
+    @State private var isSavingToLibrary = false
+    @State private var savedToLibrary = false
+    @State private var isSavingToCameraRoll = false
+    @State private var savedToCameraRoll = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     private var durationString: String {
         let minutes = Int(result.totalDuration) / 60
@@ -1656,6 +1660,7 @@ struct GeneratedHighlightReelView: View {
 
                     // Action buttons
                     VStack(spacing: 12) {
+                        // Primary action - Save to Recruit Profile
                         Button(action: sendToRecruitPage) {
                             HStack(spacing: 8) {
                                 if isSendingToRecruit {
@@ -1669,7 +1674,7 @@ struct GeneratedHighlightReelView: View {
                                     Image(systemName: "person.crop.rectangle.stack")
                                         .font(.system(size: 16))
                                 }
-                                Text(sentToRecruit ? "Sent to Recruit Page!" : "Send to Recruit Page")
+                                Text(sentToRecruit ? "Added to Recruit Profile!" : "Add to Recruit Profile")
                                     .font(.system(size: 15, weight: .bold))
                             }
                             .foregroundColor(.white)
@@ -1684,21 +1689,47 @@ struct GeneratedHighlightReelView: View {
                         }
                         .disabled(isSendingToRecruit || sentToRecruit)
 
+                        // Save to Camera Roll
+                        Button(action: saveToCameraRoll) {
+                            HStack(spacing: 8) {
+                                if isSavingToCameraRoll {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.8)
+                                } else if savedToCameraRoll {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 16))
+                                } else {
+                                    Image(systemName: "photo.on.rectangle")
+                                        .font(.system(size: 16))
+                                }
+                                Text(savedToCameraRoll ? "Saved to Camera Roll!" : "Save to Camera Roll")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .foregroundColor(themeManager.theme.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(themeManager.theme.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .disabled(isSavingToCameraRoll || savedToCameraRoll)
+
+                        // Save to App Library & Share
                         HStack(spacing: 12) {
-                            Button(action: saveHighlightReel) {
+                            Button(action: saveToLibrary) {
                                 HStack(spacing: 6) {
-                                    if isSaving {
+                                    if isSavingToLibrary {
                                         ProgressView()
                                             .progressViewStyle(CircularProgressViewStyle())
                                             .scaleEffect(0.7)
-                                    } else if saved {
+                                    } else if savedToLibrary {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 14))
                                     } else {
                                         Image(systemName: "square.and.arrow.down")
                                             .font(.system(size: 14))
                                     }
-                                    Text(saved ? "Saved!" : "Save")
+                                    Text(savedToLibrary ? "Saved!" : "Save to App")
                                         .font(.system(size: 14, weight: .semibold))
                                 }
                                 .foregroundColor(themeManager.theme.textPrimary)
@@ -1707,7 +1738,7 @@ struct GeneratedHighlightReelView: View {
                                 .background(themeManager.theme.cardBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
-                            .disabled(isSaving || saved)
+                            .disabled(isSavingToLibrary || savedToLibrary)
 
                             ShareLink(item: result.outputURL) {
                                 HStack(spacing: 6) {
@@ -1730,6 +1761,11 @@ struct GeneratedHighlightReelView: View {
                 .padding(20)
             }
             .background(themeManager.theme.background)
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1772,18 +1808,47 @@ struct GeneratedHighlightReelView: View {
 
     private func sendToRecruitPage() {
         isSendingToRecruit = true
-        // Save video to library first, then mark as sent
-        videoStorage.saveVideo(from: result.outputURL, title: "Highlight Reel") { savedVideo in
-            isSendingToRecruit = false
-            sentToRecruit = savedVideo != nil
+        let title = prompt.isEmpty ? "Highlight Reel" : "Highlight Reel - \(prompt.prefix(30))"
+        filmHighlights.saveHighlight(from: result.outputURL, title: title) { success in
+            DispatchQueue.main.async {
+                isSendingToRecruit = false
+                if success {
+                    sentToRecruit = true
+                } else {
+                    errorMessage = "Failed to save to recruit profile"
+                    showingError = true
+                }
+            }
         }
     }
 
-    private func saveHighlightReel() {
-        isSaving = true
-        videoStorage.saveVideo(from: result.outputURL, title: "Highlight Reel - \(prompt.prefix(20))") { savedVideo in
-            isSaving = false
-            saved = savedVideo != nil
+    private func saveToCameraRoll() {
+        isSavingToCameraRoll = true
+        filmHighlights.saveToCameraRoll(from: result.outputURL) { success, error in
+            DispatchQueue.main.async {
+                isSavingToCameraRoll = false
+                if success {
+                    savedToCameraRoll = true
+                } else {
+                    errorMessage = error?.localizedDescription ?? "Failed to save to camera roll"
+                    showingError = true
+                }
+            }
+        }
+    }
+
+    private func saveToLibrary() {
+        isSavingToLibrary = true
+        let title = prompt.isEmpty ? "Highlight Reel" : "Highlight Reel - \(prompt.prefix(30))"
+        videoStorage.saveVideo(from: result.outputURL, title: title) { savedVideo in
+            DispatchQueue.main.async {
+                isSavingToLibrary = false
+                savedToLibrary = savedVideo != nil
+                if savedVideo == nil {
+                    errorMessage = "Failed to save to app library"
+                    showingError = true
+                }
+            }
         }
     }
 }

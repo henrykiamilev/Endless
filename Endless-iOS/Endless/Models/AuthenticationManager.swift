@@ -186,6 +186,7 @@ final class AuthenticationManager: ObservableObject {
         WidgetPreferencesManager.shared.setCurrentUser(userId: uid)
         SwingVideoManager.shared.setCurrentUser(userId: uid)
         EndlessAIService.shared.setCurrentUser(userId: uid)
+        FilmHighlightsManager.shared.setCurrentUser(userId: uid)
 
         if let data = UserDefaults.standard.data(forKey: "currentUser_\(uid)"),
            let user = try? JSONDecoder().decode(AppUser.self, from: data) {
@@ -239,6 +240,7 @@ final class AuthenticationManager: ObservableObject {
         VideoStorageManager.shared.clearCurrentUser()
         SwingVideoManager.shared.clearCurrentUser()
         EndlessAIService.shared.clearCurrentUser()
+        FilmHighlightsManager.shared.clearCurrentUser()
     }
 
     // MARK: - Error Handling
