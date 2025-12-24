@@ -120,11 +120,15 @@ struct RecruitView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
+    @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
     @State private var showingEditProfile = false
     @State private var showingEditContact = false
     @State private var showingMessages = false
     @State private var selectedCoach: ProfileActivity?
     @State private var editSection: EditSection?
+    @State private var selectedHighlight: FilmHighlight?
+    @State private var highlightToDelete: FilmHighlight?
+    @State private var showingDeleteConfirmation = false
 
     enum EditSection: Identifiable {
         case academic, physical, contact, sponsorship
@@ -160,6 +164,25 @@ struct RecruitView: View {
         }
         .sheet(item: $selectedCoach) { coach in
             CoachProfileView(coach: coach)
+        }
+        .fullScreenCover(item: $selectedHighlight) { highlight in
+            VideoPlayerView(videoFileName: highlight.videoPath, videoTitle: highlight.title)
+                .environmentObject(themeManager)
+        }
+        .alert("Delete Highlight", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                highlightToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let highlight = highlightToDelete {
+                    withAnimation {
+                        filmHighlights.deleteHighlight(highlight)
+                    }
+                    highlightToDelete = nil
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this highlight reel? This action cannot be undone.")
         }
     }
 
@@ -531,24 +554,39 @@ struct RecruitView: View {
                 sectionHeader(icon: "film.fill", title: "Film Highlights")
                 Spacer()
                 Button(action: { navigationManager.navigateToVideo() }) {
-                    Text("View All")
+                    Text("Add More")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(themeManager.theme.textSecondary)
+                        .foregroundColor(themeManager.theme.accentGreen)
                 }
             }
 
-            if MockData.videos.isEmpty {
+            if filmHighlights.highlights.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "film")
+                    Image(systemName: "film.stack")
                         .font(.system(size: 28))
                         .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
-                    Text("No videos yet")
+                    Text("No highlight reels yet")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Record your swings to showcase your skills")
+                    Text("Create AI highlight reels from your videos to showcase your skills")
                         .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
+
+                    Button(action: { navigationManager.navigateToVideo() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12))
+                            Text("Create Highlight Reel")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(themeManager.theme.accentGreen)
+                        .clipShape(Capsule())
+                    }
+                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
@@ -557,8 +595,8 @@ struct RecruitView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(MockData.videos.prefix(4)) { video in
-                            filmThumbnail(video: video)
+                        ForEach(filmHighlights.highlights) { highlight in
+                            highlightThumbnail(highlight: highlight)
                         }
                     }
                 }
@@ -721,6 +759,95 @@ struct RecruitView: View {
                 .foregroundColor(themeManager.theme.textSecondary)
         }
         .frame(width: 140)
+    }
+
+    private func highlightThumbnail(highlight: FilmHighlight) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                // Thumbnail or gradient background
+                if let thumbnailImage = highlight.thumbnailImage {
+                    Image(uiImage: thumbnailImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 160, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "1A3A2A"), Color(hex: "0D1F15")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 160, height: 100)
+                }
+
+                // Play button overlay
+                Button(action: {
+                    selectedHighlight = highlight
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 36, height: 36)
+
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .offset(x: 1)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Top row: Delete button and AI badge
+                VStack {
+                    HStack {
+                        // Delete button
+                        Button(action: {
+                            highlightToDelete = highlight
+                            showingDeleteConfirmation = true
+                        }) {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.white)
+                                .padding(6)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        Spacer()
+
+                        // AI badge
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 8))
+                            Text("AI")
+                                .font(.system(size: 8, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                    }
+                    Spacer()
+                }
+                .padding(8)
+            }
+            .frame(width: 160, height: 100)
+
+            Text(highlight.title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(themeManager.theme.textPrimary)
+                .lineLimit(1)
+
+            Text(highlight.dateString)
+                .font(.system(size: 10))
+                .foregroundColor(themeManager.theme.textSecondary)
+        }
+        .frame(width: 160)
     }
 }
 
