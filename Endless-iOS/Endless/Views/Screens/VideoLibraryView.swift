@@ -25,6 +25,7 @@ struct VideoLibraryView: View {
     @State private var errorMessage = ""
     @State private var showingSwingAnalysis = false
     @State private var selectedSwingVideo: ManagedSwingVideo?
+    @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
 
@@ -61,7 +62,11 @@ struct VideoLibraryView: View {
 
                 Spacer(minLength: 120)
             }
+            .onTapGesture {
+                isPromptFocused = false
+            }
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(themeManager.theme.background)
         .sheet(isPresented: $showingAIAnalysis) {
             AIAnalysisView(video: selectedVideoForAI)
@@ -369,6 +374,17 @@ struct VideoLibraryView: View {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .stroke(themeManager.theme.border, lineWidth: 1)
                         )
+                        .focused($isPromptFocused)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") {
+                                    isPromptFocused = false
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(themeManager.theme.accentGreen)
+                            }
+                        }
 
                     // Course filter tags
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -432,6 +448,9 @@ struct VideoLibraryView: View {
     }
 
     private func generateHighlightReel() {
+        // Dismiss keyboard
+        isPromptFocused = false
+
         guard !videoStorage.allVideos.isEmpty else {
             errorMessage = "No videos available. Record some golf sessions first!"
             showingError = true
@@ -456,6 +475,9 @@ struct VideoLibraryView: View {
                     isGeneratingHighlight = false
                     generatedReelResult = result
                     showingGeneratedReel = true
+                    // Reset the prompt and course selection after successful generation
+                    highlightPrompt = ""
+                    selectedCourses = []
                 }
             } catch {
                 await MainActor.run {

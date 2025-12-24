@@ -126,6 +126,7 @@ struct RecruitView: View {
     @State private var showingMessages = false
     @State private var selectedCoach: ProfileActivity?
     @State private var editSection: EditSection?
+    @State private var selectedHighlight: FilmHighlight?
 
     enum EditSection: Identifiable {
         case academic, physical, contact, sponsorship
@@ -161,6 +162,10 @@ struct RecruitView: View {
         }
         .sheet(item: $selectedCoach) { coach in
             CoachProfileView(coach: coach)
+        }
+        .fullScreenCover(item: $selectedHighlight) { highlight in
+            VideoPlayerView(videoFileName: highlight.videoPath, videoTitle: highlight.title)
+                .environmentObject(themeManager)
         }
     }
 
@@ -740,62 +745,67 @@ struct RecruitView: View {
     }
 
     private func highlightThumbnail(highlight: FilmHighlight) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "1A3A2A"), Color(hex: "0D1F15")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        Button(action: {
+            selectedHighlight = highlight
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "1A3A2A"), Color(hex: "0D1F15")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 160, height: 100)
+                        .frame(width: 160, height: 100)
 
-                VStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 36, height: 36)
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 36, height: 36)
 
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                            .offset(x: 1)
-                    }
-                }
-
-                // AI badge
-                VStack {
-                    HStack {
-                        Spacer()
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8))
-                            Text("AI")
-                                .font(.system(size: 8, weight: .bold))
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .offset(x: 1)
                         }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
                     }
-                    Spacer()
+
+                    // AI badge
+                    VStack {
+                        HStack {
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 8))
+                                Text("AI")
+                                    .font(.system(size: 8, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                        }
+                        Spacer()
+                    }
+                    .padding(8)
                 }
-                .padding(8)
+
+                Text(highlight.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+                    .lineLimit(1)
+
+                Text(highlight.dateString)
+                    .font(.system(size: 10))
+                    .foregroundColor(themeManager.theme.textSecondary)
             }
-
-            Text(highlight.title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(themeManager.theme.textPrimary)
-                .lineLimit(1)
-
-            Text(highlight.dateString)
-                .font(.system(size: 10))
-                .foregroundColor(themeManager.theme.textSecondary)
+            .frame(width: 160)
         }
-        .frame(width: 160)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
