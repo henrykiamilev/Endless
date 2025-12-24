@@ -2,6 +2,7 @@ import Foundation
 import Photos
 import UIKit
 import AVFoundation
+import Combine
 
 /// Manages film highlights for the recruit profile
 class FilmHighlightsManager: ObservableObject {
@@ -108,15 +109,26 @@ class FilmHighlightsManager: ObservableObject {
         // Get frame at 1 second or middle of video
         let time = CMTime(seconds: 1.0, preferredTimescale: 600)
 
-        do {
-            let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
-            let uiImage = UIImage(cgImage: cgImage)
-
-            if let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
-                try jpegData.write(to: thumbnailURL)
+        generator.generateCGImageAsynchronously(for: time) { cgImage, actualTime, error in
+            if let error = error {
+                print("Failed to generate thumbnail: \(error)")
+                return
             }
-        } catch {
-            print("Failed to generate thumbnail: \(error)")
+            
+            guard let cgImage = cgImage else {
+                print("Failed to generate thumbnail: No image returned")
+                return
+            }
+            
+            let uiImage = UIImage(cgImage: cgImage)
+            
+            if let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
+                do {
+                    try jpegData.write(to: thumbnailURL)
+                } catch {
+                    print("Failed to write thumbnail: \(error)")
+                }
+            }
         }
     }
 
