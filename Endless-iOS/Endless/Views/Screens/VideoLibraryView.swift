@@ -1669,8 +1669,7 @@ struct GeneratedHighlightReelView: View {
                         }
 
                         // Stats
-                        HStack(spacing: 24) {
-                            statItem(value: "\(result.clipCount)", label: "Clips")
+                        HStack(spacing: 32) {
                             statItem(value: durationString, label: "Duration")
                             statItem(value: "\(result.coursesIncluded.count)", label: "Courses")
                         }

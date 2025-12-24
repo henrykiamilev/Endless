@@ -1,6 +1,7 @@
 import Foundation
 import Photos
 import UIKit
+import AVFoundation
 
 /// Manages film highlights for the recruit profile
 class FilmHighlightsManager: ObservableObject {
@@ -62,6 +63,8 @@ class FilmHighlightsManager: ObservableObject {
         let highlightId = UUID().uuidString
         let fileName = "highlight-\(highlightId).mp4"
         let destinationURL = userDirectory.appendingPathComponent(fileName)
+        let thumbnailFileName = "thumbnail-\(highlightId).jpg"
+        let thumbnailURL = userDirectory.appendingPathComponent(thumbnailFileName)
 
         do {
             // Copy the video file
@@ -70,11 +73,15 @@ class FilmHighlightsManager: ObservableObject {
             }
             try fileManager.copyItem(at: sourceURL, to: destinationURL)
 
+            // Generate thumbnail from video
+            generateThumbnail(from: destinationURL, to: thumbnailURL)
+
             // Create highlight metadata
             let highlight = FilmHighlight(
                 id: highlightId,
                 title: title,
                 videoPath: destinationURL.path,
+                thumbnailPath: thumbnailURL.path,
                 createdAt: Date(),
                 isAIGenerated: true
             )
@@ -88,6 +95,28 @@ class FilmHighlightsManager: ObservableObject {
             print("Failed to save highlight: \(error)")
             isSaving = false
             completion(false)
+        }
+    }
+
+    /// Generates a thumbnail from a video file
+    private func generateThumbnail(from videoURL: URL, to thumbnailURL: URL) {
+        let asset = AVURLAsset(url: videoURL)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 400, height: 400)
+
+        // Get frame at 1 second or middle of video
+        let time = CMTime(seconds: 1.0, preferredTimescale: 600)
+
+        do {
+            let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+            let uiImage = UIImage(cgImage: cgImage)
+
+            if let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
+                try jpegData.write(to: thumbnailURL)
+            }
+        } catch {
+            print("Failed to generate thumbnail: \(error)")
         }
     }
 
@@ -118,6 +147,11 @@ class FilmHighlightsManager: ObservableObject {
 
         // Delete the video file
         try? fileManager.removeItem(atPath: highlight.videoPath)
+
+        // Delete the thumbnail file
+        if let thumbnailPath = highlight.thumbnailPath {
+            try? fileManager.removeItem(atPath: thumbnailPath)
+        }
 
         // Remove from array
         highlights.remove(at: index)
@@ -167,6 +201,9 @@ class FilmHighlightsManager: ObservableObject {
     func clearAllHighlights() {
         for highlight in highlights {
             try? fileManager.removeItem(atPath: highlight.videoPath)
+            if let thumbnailPath = highlight.thumbnailPath {
+                try? fileManager.removeItem(atPath: thumbnailPath)
+            }
         }
         highlights = []
         try? fileManager.removeItem(at: metadataURL)
@@ -179,6 +216,7 @@ struct FilmHighlight: Identifiable, Codable {
     let id: String
     let title: String
     let videoPath: String
+    let thumbnailPath: String?
     let createdAt: Date
     let isAIGenerated: Bool
 
@@ -186,6 +224,16 @@ struct FilmHighlight: Identifiable, Codable {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd/yy"
         return formatter.string(from: createdAt)
+    }
+
+    /// Returns a UIImage for the thumbnail if available
+    var thumbnailImage: UIImage? {
+        guard let path = thumbnailPath,
+              FileManager.default.fileExists(atPath: path),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            return nil
+        }
+        return UIImage(data: data)
     }
 }
 
