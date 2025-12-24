@@ -3,6 +3,7 @@ import AVFoundation
 import Vision
 import CoreML
 import UIKit
+import Combine
 
 /// Generates highlight reels from user's golf videos
 class HighlightReelGenerator: ObservableObject {
@@ -237,7 +238,8 @@ class HighlightReelGenerator: ObservableObject {
         while currentTime < totalDuration {
             let cmTime = CMTime(seconds: currentTime, preferredTimescale: 600)
 
-            if let cgImage = try? generator.copyCGImage(at: cmTime, actualTime: nil) {
+            do {
+                let cgImage = try await generator.image(at: cmTime).image
                 let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
                 do {
@@ -271,6 +273,8 @@ class HighlightReelGenerator: ObservableObject {
                 } catch {
                     print("Pose detection failed: \(error)")
                 }
+            } catch {
+                print("Image generation failed at time \(currentTime): \(error)")
             }
 
             currentTime += sampleInterval
@@ -398,7 +402,7 @@ class HighlightReelGenerator: ObservableObject {
         maxDuration: TimeInterval
     ) -> [HighlightClip] {
         // Sort clips by quality score (highest first)
-        var rankedClips = clips.sorted { $0.qualityScore > $1.qualityScore }
+        let rankedClips = clips.sorted { $0.qualityScore > $1.qualityScore }
 
         // Select clips up to the target duration or max count
         var selectedClips: [HighlightClip] = []
@@ -473,20 +477,25 @@ class HighlightReelGenerator: ObservableObject {
             return nil
         }
 
-        exportSession.outputURL = outputURL
-        exportSession.outputFileType = .mp4
-
         let startTime = CMTime(seconds: clip.startTime, preferredTimescale: 600)
         let endTime = CMTime(seconds: clip.endTime, preferredTimescale: 600)
         exportSession.timeRange = CMTimeRange(start: startTime, end: endTime)
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .mp4
 
-        await exportSession.export()
-
-        if exportSession.status == .completed {
+        if #available(iOS 18.0, *) {
+            try await exportSession.export(to: outputURL, as: .mp4)
             return outputURL
         } else {
-            print("Clip export failed: \(exportSession.error?.localizedDescription ?? "unknown")")
-            return nil
+            await exportSession.export()
+            
+            switch exportSession.status {
+            case .completed:
+                return outputURL
+            default:
+                print("Clip export failed: \(exportSession.error?.localizedDescription ?? "unknown")")
+                return nil
+            }
         }
     }
 
@@ -583,7 +592,8 @@ class HighlightReelGenerator: ObservableObject {
         videoCompConfig.instructions = [instruction]
 
         // Add overlay layers (logo, badge)
-        let displayScale = await MainActor.run { UIScreen.main.scale }
+        // Use a default scale suitable for video rendering (2x or 3x for high-quality output)
+        let displayScale: CGFloat = 3.0
         addOverlaysToConfiguration(&videoCompConfig, renderSize: renderSize, displayScale: displayScale)
 
         let videoComposition = AVVideoComposition(configuration: videoCompConfig)
@@ -596,18 +606,23 @@ class HighlightReelGenerator: ObservableObject {
             throw HighlightReelError.exportFailed
         }
 
-        exporter.outputURL = outputURL
-        exporter.outputFileType = .mp4
         exporter.videoComposition = videoComposition
         exporter.shouldOptimizeForNetworkUse = true
 
-        await exporter.export()
-
-        if exporter.status == .completed {
+        if #available(iOS 18.0, *) {
+            try await exporter.export(to: outputURL, as: .mp4)
             return outputURL
         } else {
-            print("Export failed: \(exporter.error?.localizedDescription ?? "unknown")")
-            throw HighlightReelError.exportFailed
+            exporter.outputURL = outputURL
+            exporter.outputFileType = .mp4
+            await exporter.export()
+            
+            if exporter.status == .completed {
+                return outputURL
+            } else {
+                print("Export failed: \(exporter.error?.localizedDescription ?? "unknown")")
+                throw HighlightReelError.exportFailed
+            }
         }
     }
 
@@ -624,11 +639,6 @@ class HighlightReelGenerator: ObservableObject {
 
         // Start with the preferred transform
         var transform = preferredTransform
-
-        // Handle the transform's translation component
-        // The preferredTransform may have translations that need adjustment
-        let tx = transform.tx
-        let ty = transform.ty
 
         // If the video was rotated, we need to adjust translations
         if transform.b == 1.0 && transform.c == -1.0 {
@@ -716,11 +726,6 @@ class HighlightReelGenerator: ObservableObject {
             postProcessingAsVideoLayer: videoLayer,
             in: parentLayer
         )
-    }
-
-    // Keep the old method for backward compatibility but mark it deprecated
-    private func addOverlays(to videoComposition: AVMutableVideoComposition, renderSize: CGSize, duration: CMTime) {
-        // This method is no longer used - using addOverlaysToConfiguration instead
     }
 }
 
