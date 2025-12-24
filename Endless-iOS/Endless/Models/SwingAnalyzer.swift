@@ -3,6 +3,7 @@ import AVFoundation
 import Vision
 import CoreML
 import UIKit
+import Combine
 
 /// Analyzes golf swing videos using Vision framework and GolfPoseClassifier
 class SwingAnalyzer: ObservableObject {
@@ -143,10 +144,14 @@ class SwingAnalyzer: ObservableObject {
             while currentTime < durationSeconds {
                 let cmTime = CMTime(seconds: currentTime, preferredTimescale: 600)
 
-                if let cgImage = try? generator.copyCGImage(at: cmTime, actualTime: nil) {
+                do {
+                    let cgImage = try await generator.image(at: cmTime).image
                     if let poseData = await analyzePoseInFrame(cgImage, at: currentTime) {
                         poseFrames.append(poseData)
                     }
+                } catch {
+                    // Skip frames that fail to generate
+                    print("Failed to generate image at time \(currentTime): \(error)")
                 }
 
                 currentTime += sampleRate
