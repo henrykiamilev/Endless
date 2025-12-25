@@ -673,6 +673,7 @@ struct SwingVideoAnalysisView: View {
         }
         .sheet(isPresented: $showingChat) {
             AICoachChatView()
+                .environmentObject(themeManager)
         }
     }
 
@@ -721,7 +722,7 @@ struct SwingVideoAnalysisView: View {
                         Text("Ask AI")
                             .font(.system(size: 12, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.theme.textInverse)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(themeManager.theme.primary)
@@ -783,7 +784,7 @@ struct SwingVideoAnalysisView: View {
                     Text("Analyze Swing")
                         .font(.system(size: 15, weight: .bold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.theme.textInverse)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
                 .background(themeManager.theme.primary)
