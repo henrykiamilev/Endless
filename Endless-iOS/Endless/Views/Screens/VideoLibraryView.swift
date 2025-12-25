@@ -25,6 +25,8 @@ struct VideoLibraryView: View {
     @State private var errorMessage = ""
     @State private var showingSwingAnalysis = false
     @State private var selectedSwingVideo: ManagedSwingVideo?
+    @State private var showingAddVideoOptions = false
+    @State private var showingVideoPicker = false
     @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
@@ -561,7 +563,7 @@ struct VideoLibraryView: View {
 
             // Add more videos button
             if swingVideoManager.canAddMoreVideos {
-                Button(action: { navigationManager.navigateToRecord() }) {
+                Button(action: { showingAddVideoOptions = true }) {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 14))
@@ -584,7 +586,23 @@ struct VideoLibraryView: View {
         .sheet(isPresented: $showingSwingAnalysis) {
             if let video = selectedSwingVideo {
                 SwingVideoAnalysisView(video: video)
+                    .environmentObject(themeManager)
             }
+        }
+        .confirmationDialog("Add Swing Video", isPresented: $showingAddVideoOptions, titleVisibility: .visible) {
+            Button("Choose from Camera Roll") {
+                showingVideoPicker = true
+            }
+            Button("Record New Video") {
+                navigationManager.navigateToRecord()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Select a video from your library or record a new swing")
+        }
+        .sheet(isPresented: $showingVideoPicker) {
+            SwingVideoPickerView()
+                .environmentObject(themeManager)
         }
     }
 
