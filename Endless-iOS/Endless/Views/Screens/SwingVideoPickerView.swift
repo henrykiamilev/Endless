@@ -141,7 +141,7 @@ struct SwingVideoPickerView: View {
                     Text("Choose from Library")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.theme.textInverse)
                 .padding(.vertical, 16)
                 .padding(.horizontal, 32)
                 .background(themeManager.theme.primary)
@@ -265,7 +265,7 @@ struct SwingVideoPickerView: View {
                         Text("Import & Analyze")
                             .font(.system(size: 16, weight: .bold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.theme.textInverse)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(themeManager.theme.primary)
@@ -299,11 +299,11 @@ struct SwingVideoPickerView: View {
             VStack(spacing: 8) {
                 Image(systemName: iconForType(type))
                     .font(.system(size: 20))
-                    .foregroundColor(isSelected ? .white : themeManager.theme.primary)
+                    .foregroundColor(isSelected ? themeManager.theme.textInverse : themeManager.theme.primary)
 
                 Text(type.displayName)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(isSelected ? .white : themeManager.theme.textPrimary)
+                    .foregroundColor(isSelected ? themeManager.theme.textInverse : themeManager.theme.textPrimary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -416,7 +416,7 @@ struct SwingVideoPickerView: View {
 
                 Image(systemName: isComplete ? "checkmark" : icon)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(isComplete ? .white : themeManager.theme.textMuted)
+                    .foregroundColor(isComplete ? themeManager.theme.textInverse : themeManager.theme.textMuted)
             }
 
             Text(text)
@@ -445,7 +445,7 @@ struct SwingVideoPickerView: View {
 
                 Image(systemName: "checkmark")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.theme.textInverse)
             }
 
             VStack(spacing: 8) {
@@ -479,7 +479,7 @@ struct SwingVideoPickerView: View {
                         Text("View Full Analysis")
                             .font(.system(size: 16, weight: .bold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.theme.textInverse)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(themeManager.theme.primary)
