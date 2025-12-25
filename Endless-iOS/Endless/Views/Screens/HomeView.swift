@@ -611,34 +611,6 @@ struct SessionEditorSheet: View {
                         }
                         .padding(.vertical, 4)
 
-                        // Currently selected location
-                        if !sessionLocation.isEmpty && searchText.isEmpty {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Current Location")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .tracking(0.5)
-                                        .foregroundColor(themeManager.theme.textMuted)
-
-                                    Text(sessionLocation.components(separatedBy: ", ").last ?? sessionLocation)
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(themeManager.theme.textPrimary)
-
-                                    if sessionLocation.contains(", ") {
-                                        Text(sessionLocation.components(separatedBy: ", ").first ?? "")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(themeManager.theme.textSecondary)
-                                    }
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(themeManager.theme.primary)
-                            }
-                            .padding(.vertical, 4)
-                        }
-
                         // Search results
                         if !searchService.searchResults.isEmpty {
                             ForEach(searchService.searchResults) { result in
