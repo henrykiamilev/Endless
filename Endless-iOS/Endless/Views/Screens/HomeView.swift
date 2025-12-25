@@ -287,7 +287,7 @@ struct HomeView: View {
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
     }
 
@@ -681,19 +681,6 @@ struct SessionEditorSheet: View {
                     }
                 }
                 .listStyle(.insetGrouped)
-
-                // Save button
-                Button(action: { dismiss() }) {
-                    Text("Save Changes")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(themeManager.theme.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(themeManager.theme.primary)
-                        .cornerRadius(28)
-                }
-                .padding(20)
-                .background(themeManager.theme.background)
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
