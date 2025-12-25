@@ -554,6 +554,9 @@ struct VideoLibraryView: View {
                             onAnalyze: {
                                 selectedSwingVideo = video
                                 showingSwingAnalysis = true
+                            },
+                            onDelete: {
+                                swingVideoManager.deleteSwingVideo(video)
                             }
                         )
                     }
@@ -1494,6 +1497,7 @@ struct SwingVideoRow: View {
     var hasAnalysis: Bool = false
     var score: Int? = nil
     let onAnalyze: () -> Void
+    var onDelete: (() -> Void)? = nil
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -1547,13 +1551,27 @@ struct SwingVideoRow: View {
 
             Spacer()
 
-            Button(action: onAnalyze) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .frame(width: 32, height: 32)
-                    .background(themeManager.theme.accentGreen.opacity(0.15))
-                    .clipShape(Circle())
+            // Action buttons
+            HStack(spacing: 8) {
+                Button(action: onAnalyze) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .frame(width: 32, height: 32)
+                        .background(themeManager.theme.accentGreen.opacity(0.15))
+                        .clipShape(Circle())
+                }
+
+                if let onDelete = onDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.error)
+                            .frame(width: 32, height: 32)
+                            .background(themeManager.theme.error.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                }
             }
         }
         .padding(12)

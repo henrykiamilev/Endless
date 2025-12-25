@@ -40,7 +40,11 @@ class SwingVideoManager: ObservableObject {
         swingVideos.count
     }
 
-    private init() {}
+    private init() {
+        // Load videos for anonymous user by default
+        createDirectoryIfNeeded()
+        loadSwingVideos()
+    }
 
     // MARK: - User Context
 
