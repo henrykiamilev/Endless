@@ -403,7 +403,7 @@ struct HomeView: View {
                     Text("No plays yet")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Your best moments will appear here")
+                    Text("The best moments from the week will appear here")
                         .font(.system(size: 13))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
