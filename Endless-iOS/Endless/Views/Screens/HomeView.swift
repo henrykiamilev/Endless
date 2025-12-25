@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var showingWidgetCustomization = false
     @State private var showingDrills = false
     @State private var showingPlaysViewer = false
+    @State private var showingPlaysGallery = false
     @State private var selectedPlayIndex = 0
 
     var body: some View {
@@ -45,7 +46,9 @@ struct HomeView: View {
                 }
 
                 // Plays of the Week
-                sectionView(label: "PLAYS OF THE WEEK", showViewAll: true) {
+                sectionView(label: "PLAYS OF THE WEEK", showViewAll: true, viewAllAction: {
+                    showingPlaysGallery = true
+                }) {
                     playsOfWeekScroll
                 }
 
@@ -69,6 +72,9 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $showingPlaysViewer) {
             PlaysOfWeekViewer(startingIndex: selectedPlayIndex)
+        }
+        .sheet(isPresented: $showingPlaysGallery) {
+            PlaysOfWeekGalleryView()
         }
     }
 
