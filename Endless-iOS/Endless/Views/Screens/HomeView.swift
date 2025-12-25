@@ -6,6 +6,7 @@ struct HomeView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var sessionManager = SessionManager.shared
+    @ObservedObject private var drillsManager = DrillsManager.shared
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
@@ -327,7 +328,7 @@ struct HomeView: View {
 
     private var quickActionsRow: some View {
         HStack(spacing: 12) {
-            QuickActionCard(title: "Today's Drills", subtitle: "\(DrillsManager.shared.drills.count - DrillsManager.shared.completedCount) remaining", icon: "figure.golf") {
+            QuickActionCard(title: "Today's Drills", subtitle: "\(drillsManager.drills.count - drillsManager.completedCount) remaining", icon: "figure.golf") {
                 showingDrills = true
             }
             QuickActionCard(title: "Last Session", subtitle: lastSessionSubtitle, icon: "clock") {
