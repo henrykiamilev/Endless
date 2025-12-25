@@ -157,7 +157,7 @@ struct SettingsView: View {
                         .frame(width: 68, height: 68)
 
                     Circle()
-                        .fill(themeManager.theme.primary)
+                        .fill(themeManager.theme.accentGreen)
                         .frame(width: 60, height: 60)
                         .overlay(
                             Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
@@ -466,7 +466,7 @@ struct EditProfileSheet: View {
                                     .frame(width: 104, height: 104)
 
                                 Circle()
-                                    .fill(themeManager.theme.primary)
+                                    .fill(themeManager.theme.accentGreen)
                                     .frame(width: 96, height: 96)
                                     .overlay(
                                         Text(String(firstName.prefix(1)))

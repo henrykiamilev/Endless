@@ -1588,12 +1588,12 @@ struct GeneratedHighlightReelView: View {
                         VStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(.ultraThinMaterial)
+                                    .fill(themeManager.theme.cardBackground.opacity(0.9))
                                     .frame(width: 70, height: 70)
 
                                 Image(systemName: "play.fill")
                                     .font(.system(size: 28))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(themeManager.theme.primary)
                                     .offset(x: 2)
                             }
 

@@ -24,7 +24,7 @@ struct SwingVideoCard: View {
 
                     // Play button
                     Circle()
-                        .fill(Color.white.opacity(0.9))
+                        .fill(themeManager.theme.cardBackground.opacity(0.95))
                         .frame(width: 28, height: 28)
                         .overlay(
                             Image(systemName: "play.fill")
