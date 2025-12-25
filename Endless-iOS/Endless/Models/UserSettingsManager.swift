@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Manages persistence of all user settings and preferences
 class UserSettingsManager: ObservableObject {
