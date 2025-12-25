@@ -260,52 +260,67 @@ class SwingAnalyzer: ObservableObject {
             y: (leftWrist.y + rightWrist.y) / 2
         )
 
-        // Hands height relative to shoulders (positive = above shoulders)
-        let handsHeightRelative = shoulderCenter.y - wristCenter.y
+        // Vision framework: Y=0 at BOTTOM, Y=1 at TOP
+        // Hands height relative to shoulders (positive = hands above shoulders in frame)
+        let handsHeightRelative = wristCenter.y - shoulderCenter.y
 
         // Hands horizontal position relative to hip center
         let handsHorizontalOffset = wristCenter.x - hipCenter.x
 
-        // Shoulder rotation (difference in Y position indicates rotation)
+        // Shoulder rotation (difference in Y position indicates rotation/tilt)
         let shoulderTilt = abs(rightShoulder.y - leftShoulder.y)
 
         // Wrist separation (how close hands are together)
         let wristSeparation = sqrt(pow(rightWrist.x - leftWrist.x, 2) + pow(rightWrist.y - leftWrist.y, 2))
 
-        // Ready position: hands near waist level, centered, shoulders level
-        let isReadyPosition = handsHeightRelative < 0.1 &&
-                              handsHeightRelative > -0.15 &&
+        // Calculate body extension (arms away from torso)
+        let armExtensionLeft = sqrt(pow(leftWrist.x - leftShoulder.x, 2) + pow(leftWrist.y - leftShoulder.y, 2))
+        let armExtensionRight = sqrt(pow(rightWrist.x - rightShoulder.x, 2) + pow(rightWrist.y - rightShoulder.y, 2))
+        let avgArmExtension = (armExtensionLeft + armExtensionRight) / 2
+
+        // Ready position: hands near waist level (below shoulders), centered, shoulders level
+        // In Vision coords: hands below shoulders means wristCenter.y < shoulderCenter.y (negative handsHeightRelative)
+        let isReadyPosition = handsHeightRelative > -0.2 &&
+                              handsHeightRelative < 0.05 &&
                               abs(handsHorizontalOffset) < 0.15 &&
                               shoulderTilt < 0.08 &&
                               wristSeparation < 0.2
 
         // End swing/follow-through: hands high (above shoulders), significant shoulder rotation
-        let isEndSwing = handsHeightRelative > 0.1 &&
-                         shoulderTilt > 0.05
+        // In Vision coords: hands above shoulders means wristCenter.y > shoulderCenter.y (positive handsHeightRelative)
+        let isEndSwing = handsHeightRelative > 0.08 &&
+                         (shoulderTilt > 0.04 || avgArmExtension > 0.2)
 
-        // Backswing: hands moving up and back (to the right for right-handed)
-        let isBackswing = handsHeightRelative > 0.05 &&
-                          handsHorizontalOffset > 0.1 &&
+        // Backswing: hands moving up and back (to the right for right-handed golfer)
+        let isBackswing = handsHeightRelative > 0.02 &&
+                          handsHorizontalOffset > 0.08 &&
                           wristSeparation < 0.25
 
-        // Downswing: hands coming down, moving toward impact
-        let isDownswing = handsHeightRelative > -0.05 &&
+        // Downswing: hands coming down from top, moving toward ball
+        let isDownswing = handsHeightRelative > -0.08 &&
                           handsHeightRelative < 0.15 &&
-                          shoulderTilt > 0.03
+                          (shoulderTilt > 0.02 || handsHorizontalOffset < 0.05)
 
-        if isReadyPosition {
-            let confidence = 0.7 + min(0.25, (0.08 - shoulderTilt) * 2)
-            return ("ready", confidence)
-        } else if isEndSwing {
-            let confidence = 0.6 + min(0.35, handsHeightRelative * 2)
+        // Prioritize classification based on swing sequence logic
+        if isEndSwing && handsHeightRelative > 0.12 {
+            // Strong endswing signal - hands clearly above shoulders
+            let confidence = 0.65 + min(0.30, handsHeightRelative * 1.5)
             return ("endswing", confidence)
-        } else if isBackswing {
-            return ("backswing", 0.65)
+        } else if isReadyPosition && handsHeightRelative < 0.02 {
+            let confidence = 0.70 + min(0.25, (0.08 - shoulderTilt) * 2)
+            return ("ready", confidence)
+        } else if isBackswing && handsHorizontalOffset > 0.1 {
+            let confidence = 0.60 + min(0.25, handsHorizontalOffset)
+            return ("backswing", confidence)
         } else if isDownswing {
-            return ("downswing", 0.6)
+            return ("downswing", 0.60)
+        } else if isEndSwing {
+            return ("endswing", 0.55)
+        } else if isReadyPosition {
+            return ("ready", 0.55)
         }
 
-        return ("others", 0.4)
+        return ("others", 0.35)
     }
 
     private func buildFeatureVector(from joints: [String: CGPoint]) -> [Float] {
@@ -536,210 +551,419 @@ class SwingAnalyzer: ObservableObject {
     }
 
     private func calculateGripScore(poseFrames: [PoseFrameData]) -> Int {
-        // Score based on wrist stability and hand position during ready phase
+        // Score based on wrist stability, hand position, and consistency through swing
         let readyFrames = poseFrames.filter { $0.classifiedState == "ready" }
-        guard readyFrames.count >= 2 else {
-            // No clear ready position detected - moderate score
-            return 65 + Int.random(in: 0...10)
+
+        // Also check hand position throughout the swing
+        let allFrames = poseFrames.filter { $0.confidence > 0.3 }
+
+        guard !allFrames.isEmpty else {
+            return 55 + Int.random(in: 0...10)
         }
 
-        // Check wrist position consistency (hands should be steady at address)
-        var wristVariance: Double = 0
-        var prevWristY: Double?
+        var score: Double = 0.3
 
-        for frame in readyFrames {
-            if let leftWrist = frame.joints["left_wrist_1_joint"],
-               let rightWrist = frame.joints["right_wrist_1_joint"] {
-                let avgWristY = (leftWrist.y + rightWrist.y) / 2
-                if let prev = prevWristY {
-                    wristVariance += abs(avgWristY - prev)
+        // Check wrist position consistency during ready phase
+        if readyFrames.count >= 2 {
+            var wristVariance: Double = 0
+            var prevWristPos: CGPoint?
+
+            for frame in readyFrames {
+                if let leftWrist = frame.joints["left_wrist_1_joint"],
+                   let rightWrist = frame.joints["right_wrist_1_joint"] {
+                    let avgWrist = CGPoint(x: (leftWrist.x + rightWrist.x) / 2, y: (leftWrist.y + rightWrist.y) / 2)
+                    if let prev = prevWristPos {
+                        wristVariance += sqrt(pow(avgWrist.x - prev.x, 2) + pow(avgWrist.y - prev.y, 2))
+                    }
+                    prevWristPos = avgWrist
                 }
-                prevWristY = avgWristY
             }
+            // Less movement = better grip stability
+            let stabilityScore = max(0, 1.0 - wristVariance * 15)
+            score += stabilityScore * 0.25
         }
 
-        // Less movement = better grip stability
-        let stabilityScore = max(0, 1.0 - wristVariance * 20)
-
-        // Check hand separation (should be close together for proper grip)
-        var avgSeparation: Double = 0
-        for frame in readyFrames {
+        // Check hand separation throughout swing (should stay connected)
+        var separations: [Double] = []
+        for frame in allFrames {
             if let leftWrist = frame.joints["left_wrist_1_joint"],
                let rightWrist = frame.joints["right_wrist_1_joint"] {
-                avgSeparation += sqrt(pow(rightWrist.x - leftWrist.x, 2) + pow(rightWrist.y - leftWrist.y, 2))
+                let sep = sqrt(pow(rightWrist.x - leftWrist.x, 2) + pow(rightWrist.y - leftWrist.y, 2))
+                separations.append(sep)
             }
         }
-        avgSeparation /= Double(readyFrames.count)
-        let separationScore = max(0, 1.0 - avgSeparation * 3)
 
-        let finalScore = Int(60 + (stabilityScore * 0.5 + separationScore * 0.5) * 35)
-        return min(95, max(55, finalScore))
+        if !separations.isEmpty {
+            let avgSeparation = separations.reduce(0, +) / Double(separations.count)
+            let separationVariance = separations.map { abs($0 - avgSeparation) }.reduce(0, +) / Double(separations.count)
+
+            // Good grip: hands stay close (low separation) and consistent (low variance)
+            if avgSeparation < 0.12 && separationVariance < 0.03 {
+                score += 0.35  // Excellent grip connection
+            } else if avgSeparation < 0.18 && separationVariance < 0.05 {
+                score += 0.25  // Good grip
+            } else if avgSeparation < 0.22 {
+                score += 0.15  // Moderate grip
+            } else {
+                score += 0.05  // Hands separating too much
+            }
+        }
+
+        // Check for proper hand position relative to body at address
+        if let readyFrame = readyFrames.first,
+           let leftWrist = readyFrame.joints["left_wrist_1_joint"],
+           let leftHip = readyFrame.joints["left_hip_1_joint"],
+           let rightHip = readyFrame.joints["right_hip_1_joint"] {
+            let hipCenter = CGPoint(x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2)
+            let handsBelowHips = hipCenter.y - leftWrist.y  // Positive = hands below hips (in Vision coords, hands lower = smaller Y)
+            if handsBelowHips > 0.05 && handsBelowHips < 0.2 {
+                score += 0.15  // Hands in good position at address
+            }
+        }
+
+        let finalScore = Int(45 + score * 55)
+        return min(98, max(42, finalScore))
     }
 
     private func calculateStanceScore(poseFrames: [PoseFrameData]) -> Int {
-        guard let readyFrame = poseFrames.first(where: { $0.classifiedState == "ready" }) else {
-            return 62 + Int.random(in: 0...12)
+        // Try to find a ready frame, otherwise use first frame with good confidence
+        let readyFrame = poseFrames.first(where: { $0.classifiedState == "ready" })
+            ?? poseFrames.first(where: { $0.confidence > 0.5 })
+
+        guard let frame = readyFrame else {
+            return 50 + Int.random(in: 0...15)
         }
 
-        var score: Double = 0.5
+        var score: Double = 0.25
 
         // Check hip alignment (hips should be level)
-        if let leftHip = readyFrame.joints["left_hip_1_joint"],
-           let rightHip = readyFrame.joints["right_hip_1_joint"] {
+        if let leftHip = frame.joints["left_hip_1_joint"],
+           let rightHip = frame.joints["right_hip_1_joint"] {
             let hipLevel = abs(leftHip.y - rightHip.y)
-            score += max(0, 0.2 - hipLevel * 2)  // Up to 0.2 for level hips
+            if hipLevel < 0.02 {
+                score += 0.20  // Very level hips
+            } else if hipLevel < 0.05 {
+                score += 0.12  // Reasonably level
+            } else if hipLevel < 0.08 {
+                score += 0.05  // Slight tilt
+            }
+            // Greater tilt = no additional points
         }
 
         // Check shoulder alignment
-        if let leftShoulder = readyFrame.joints["left_shoulder_1_joint"],
-           let rightShoulder = readyFrame.joints["right_shoulder_1_joint"] {
+        if let leftShoulder = frame.joints["left_shoulder_1_joint"],
+           let rightShoulder = frame.joints["right_shoulder_1_joint"] {
             let shoulderLevel = abs(leftShoulder.y - rightShoulder.y)
-            score += max(0, 0.15 - shoulderLevel * 1.5)  // Up to 0.15 for level shoulders
+            if shoulderLevel < 0.03 {
+                score += 0.18  // Very level shoulders
+            } else if shoulderLevel < 0.06 {
+                score += 0.10  // Reasonably level
+            } else if shoulderLevel < 0.10 {
+                score += 0.04
+            }
         }
 
         // Check stance width (feet/ankles apart appropriately)
-        if let leftAnkle = readyFrame.joints["left_ankle_1_joint"],
-           let rightAnkle = readyFrame.joints["right_ankle_1_joint"] {
+        if let leftAnkle = frame.joints["left_ankle_1_joint"],
+           let rightAnkle = frame.joints["right_ankle_1_joint"] {
             let stanceWidth = abs(rightAnkle.x - leftAnkle.x)
-            // Ideal stance width is roughly shoulder width (0.15-0.25 in normalized coords)
-            if stanceWidth > 0.12 && stanceWidth < 0.3 {
-                score += 0.15
+            // Ideal stance width varies, but ~0.15-0.28 is typically good
+            if stanceWidth > 0.14 && stanceWidth < 0.28 {
+                score += 0.18  // Good width
+            } else if stanceWidth > 0.10 && stanceWidth < 0.32 {
+                score += 0.08  // Acceptable width
             } else {
+                score += 0.02  // Too narrow or too wide
+            }
+        }
+
+        // Check knee flex (knees should be slightly ahead of ankles - proper athletic stance)
+        if let leftKnee = frame.joints["left_knee_1_joint"],
+           let leftAnkle = frame.joints["left_ankle_1_joint"],
+           let rightKnee = frame.joints["right_knee_1_joint"],
+           let rightAnkle = frame.joints["right_ankle_1_joint"] {
+            let leftKneeFlex = leftKnee.y - leftAnkle.y  // In Vision coords, higher Y = higher in frame
+            let rightKneeFlex = rightKnee.y - rightAnkle.y
+            let avgFlex = (leftKneeFlex + rightKneeFlex) / 2
+
+            // Knees should be above ankles but not too much (indicating athletic stance with knee bend)
+            if avgFlex > 0.08 && avgFlex < 0.18 {
+                score += 0.14  // Good athletic stance
+            } else if avgFlex > 0.05 && avgFlex < 0.22 {
+                score += 0.07
+            }
+        }
+
+        // Check spine angle (forward tilt from hips)
+        if let leftHip = frame.joints["left_hip_1_joint"],
+           let rightHip = frame.joints["right_hip_1_joint"],
+           let leftShoulder = frame.joints["left_shoulder_1_joint"],
+           let rightShoulder = frame.joints["right_shoulder_1_joint"] {
+            let hipCenter = CGPoint(x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2)
+            let shoulderCenter = CGPoint(x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2)
+
+            // Spine angle - shoulders should be higher and slightly forward of hips
+            let spineAngle = atan2(shoulderCenter.y - hipCenter.y, shoulderCenter.x - hipCenter.x)
+            let angleDegrees = abs(spineAngle * 180 / .pi)
+
+            // Good spine angle is roughly 70-100 degrees (slightly tilted forward)
+            if angleDegrees > 65 && angleDegrees < 105 {
+                score += 0.12
+            } else if angleDegrees > 55 && angleDegrees < 115 {
                 score += 0.05
             }
         }
 
-        let finalScore = Int(55 + score * 40)
-        return min(92, max(58, finalScore))
+        let finalScore = Int(40 + score * 58)
+        return min(98, max(38, finalScore))
     }
 
     private func calculateBackswingScore(metrics: SwingMetrics) -> Int {
-        var score: Double = 0.4
+        var score: Double = 0.2
 
-        // Good shoulder turn is 60-100 degrees
-        if metrics.shoulderTurnAngle > 20 {
-            score += min(0.3, metrics.shoulderTurnAngle / 100.0 * 0.3)
+        // Good shoulder turn is 40-90+ degrees (pros often exceed 90)
+        if metrics.shoulderTurnAngle > 60 {
+            score += 0.30  // Excellent turn
+        } else if metrics.shoulderTurnAngle > 40 {
+            score += 0.22  // Good turn
+        } else if metrics.shoulderTurnAngle > 25 {
+            score += 0.12  // Moderate turn
+        } else if metrics.shoulderTurnAngle > 15 {
+            score += 0.05  // Limited turn
         }
 
-        // Ideal tempo ratio is about 2.5-3.5:1
-        if metrics.tempoRatio >= 2.0 && metrics.tempoRatio <= 4.0 {
-            let tempoScore = 1.0 - abs(metrics.tempoRatio - 3.0) / 2.0
-            score += tempoScore * 0.2
+        // Ideal tempo ratio is about 2.5-3.5:1 (pros often 3:1)
+        if metrics.tempoRatio >= 2.5 && metrics.tempoRatio <= 3.5 {
+            score += 0.25  // Excellent tempo
+        } else if metrics.tempoRatio >= 2.0 && metrics.tempoRatio <= 4.0 {
+            score += 0.15  // Good tempo
+        } else if metrics.tempoRatio >= 1.5 && metrics.tempoRatio <= 5.0 {
+            score += 0.06  // Acceptable tempo
         }
 
-        // Check for minimal head movement (stability)
-        let headScore = max(0, 0.1 - metrics.headMovement * 0.5)
-        score += headScore
+        // Check for minimal head movement (stability) - pros keep head very still
+        if metrics.headMovement < 0.03 {
+            score += 0.20  // Excellent stability
+        } else if metrics.headMovement < 0.06 {
+            score += 0.12  // Good stability
+        } else if metrics.headMovement < 0.10 {
+            score += 0.05  // Some sway
+        }
+        // More sway = no additional points
 
-        let finalScore = Int(58 + score * 38)
-        return min(94, max(55, finalScore))
+        // Hip turn should be less than shoulder turn (X-factor)
+        if metrics.shoulderTurnAngle > 0 && metrics.hipTurnAngle > 0 {
+            let xFactor = metrics.shoulderTurnAngle - metrics.hipTurnAngle
+            if xFactor > 30 {
+                score += 0.15  // Excellent X-factor (good separation)
+            } else if xFactor > 15 {
+                score += 0.08
+            }
+        }
+
+        let finalScore = Int(35 + score * 62)
+        return min(98, max(32, finalScore))
     }
 
     private func calculateDownswingScore(metrics: SwingMetrics) -> Int {
-        var score: Double = 0.45
+        var score: Double = 0.2
 
-        // Check tempo ratio - downswing should be quick relative to backswing
-        if metrics.tempoRatio >= 2.0 && metrics.tempoRatio <= 4.5 {
-            score += 0.2
+        // Tempo ratio - downswing should be quick relative to backswing (ideal 2.5-3.5:1)
+        if metrics.tempoRatio >= 2.5 && metrics.tempoRatio <= 3.5 {
+            score += 0.28  // Excellent tempo ratio
+        } else if metrics.tempoRatio >= 2.0 && metrics.tempoRatio <= 4.0 {
+            score += 0.18  // Good tempo
+        } else if metrics.tempoRatio >= 1.5 && metrics.tempoRatio <= 5.0 {
+            score += 0.08  // Acceptable
         }
 
-        // Check hip leads shoulders (positive hip turn with good sequence)
-        if metrics.hipTurnAngle > 15 {
-            score += 0.15
+        // Hip leads shoulders in downswing (hip turn indicates proper sequencing)
+        if metrics.hipTurnAngle > 35 {
+            score += 0.22  // Excellent hip rotation
+        } else if metrics.hipTurnAngle > 20 {
+            score += 0.14  // Good rotation
+        } else if metrics.hipTurnAngle > 10 {
+            score += 0.06
         }
 
-        // Swing duration should be reasonable (not too fast or slow)
-        if metrics.swingDuration > 0.8 && metrics.swingDuration < 2.5 {
-            score += 0.15
+        // Swing duration - pros typically 1.0-1.5 seconds total
+        if metrics.swingDuration > 0.9 && metrics.swingDuration < 1.6 {
+            score += 0.18  // Pro-like timing
+        } else if metrics.swingDuration > 0.7 && metrics.swingDuration < 2.0 {
+            score += 0.10  // Good timing
+        } else if metrics.swingDuration > 0.5 && metrics.swingDuration < 2.5 {
+            score += 0.04  // Acceptable
         }
 
-        let finalScore = Int(55 + score * 40)
-        return min(93, max(52, finalScore))
+        // Downswing duration should be faster than backswing
+        if metrics.downswingDuration > 0 && metrics.backswingDuration > 0 {
+            if metrics.downswingDuration < metrics.backswingDuration * 0.5 {
+                score += 0.15  // Excellent acceleration
+            } else if metrics.downswingDuration < metrics.backswingDuration * 0.7 {
+                score += 0.08
+            }
+        }
+
+        let finalScore = Int(38 + score * 60)
+        return min(98, max(35, finalScore))
     }
 
     private func calculateImpactScore(poseFrames: [PoseFrameData]) -> Int {
-        // Look for the transition frames between backswing/downswing and endswing
-        let transitionFrames = poseFrames.filter {
+        // Look for frames in the impact zone (downswing and transition to endswing)
+        let impactZoneFrames = poseFrames.filter {
             $0.classifiedState == "downswing" || $0.classifiedState == "others"
         }
 
-        guard !transitionFrames.isEmpty else {
-            return 60 + Int.random(in: 0...15)
+        // Also analyze early endswing frames (just after impact)
+        let earlyEndswingFrames = poseFrames.enumerated().compactMap { index, frame -> PoseFrameData? in
+            if frame.classifiedState == "endswing" && index < poseFrames.count / 2 {
+                return frame
+            }
+            return nil
         }
 
-        var score: Double = 0.5
+        let allImpactFrames = impactZoneFrames + earlyEndswingFrames
 
-        // Check for pose confidence during impact zone
-        let avgConfidence = transitionFrames.map { $0.confidence }.reduce(0, +) / Double(transitionFrames.count)
-        score += avgConfidence * 0.25
+        guard !allImpactFrames.isEmpty else {
+            return 45 + Int.random(in: 0...18)
+        }
 
-        // Check for hip rotation during impact
-        for frame in transitionFrames {
+        var score: Double = 0.2
+
+        // Check for pose confidence during impact zone (clear detection = better form)
+        let avgConfidence = allImpactFrames.map { $0.confidence }.reduce(0, +) / Double(allImpactFrames.count)
+        if avgConfidence > 0.7 {
+            score += 0.18
+        } else if avgConfidence > 0.5 {
+            score += 0.10
+        } else if avgConfidence > 0.3 {
+            score += 0.04
+        }
+
+        var maxHipRotation: Double = 0
+        var maxArmExtension: Double = 0
+        var minHeadMovement: Double = 1.0
+
+        // Analyze body positions at impact
+        for frame in allImpactFrames {
+            // Hip rotation at impact (hips should be open to target)
             if let leftHip = frame.joints["left_hip_1_joint"],
                let rightHip = frame.joints["right_hip_1_joint"] {
                 let hipRotation = abs(rightHip.y - leftHip.y)
-                if hipRotation > 0.03 {
-                    score += 0.1
-                    break
-                }
+                maxHipRotation = max(maxHipRotation, hipRotation)
             }
-        }
 
-        // Check arm extension during impact
-        for frame in transitionFrames {
+            // Arm extension at impact (full extension = power and accuracy)
             if let leftWrist = frame.joints["left_wrist_1_joint"],
-               let leftShoulder = frame.joints["left_shoulder_1_joint"] {
-                let armExtension = sqrt(pow(leftWrist.x - leftShoulder.x, 2) + pow(leftWrist.y - leftShoulder.y, 2))
-                if armExtension > 0.15 {
-                    score += 0.1
-                    break
-                }
+               let rightWrist = frame.joints["right_wrist_1_joint"],
+               let leftShoulder = frame.joints["left_shoulder_1_joint"],
+               let rightShoulder = frame.joints["right_shoulder_1_joint"] {
+                let leftExt = sqrt(pow(leftWrist.x - leftShoulder.x, 2) + pow(leftWrist.y - leftShoulder.y, 2))
+                let rightExt = sqrt(pow(rightWrist.x - rightShoulder.x, 2) + pow(rightWrist.y - rightShoulder.y, 2))
+                maxArmExtension = max(maxArmExtension, (leftExt + rightExt) / 2)
+            }
+
+            // Head stability (minimal lateral movement through impact)
+            if let nose = frame.joints["nose"] {
+                minHeadMovement = min(minHeadMovement, abs(nose.x - 0.5))  // Distance from center
             }
         }
 
-        let finalScore = Int(52 + score * 45)
-        return min(95, max(50, finalScore))
+        // Score hip rotation
+        if maxHipRotation > 0.08 {
+            score += 0.22  // Excellent hip clearance
+        } else if maxHipRotation > 0.04 {
+            score += 0.12
+        } else if maxHipRotation > 0.02 {
+            score += 0.05
+        }
+
+        // Score arm extension
+        if maxArmExtension > 0.28 {
+            score += 0.22  // Full extension
+        } else if maxArmExtension > 0.20 {
+            score += 0.14
+        } else if maxArmExtension > 0.12 {
+            score += 0.06
+        }
+
+        // Score head stability (staying centered over ball)
+        if minHeadMovement < 0.08 {
+            score += 0.18  // Very stable
+        } else if minHeadMovement < 0.15 {
+            score += 0.10
+        } else if minHeadMovement < 0.22 {
+            score += 0.04
+        }
+
+        let finalScore = Int(35 + score * 62)
+        return min(98, max(32, finalScore))
     }
 
     private func calculateFollowThroughScore(poseFrames: [PoseFrameData]) -> Int {
         // Check endswing pose quality
         let endSwingFrames = poseFrames.filter { $0.classifiedState == "endswing" }
         guard !endSwingFrames.isEmpty else {
-            return 58 + Int.random(in: 0...14)
+            return 55 + Int.random(in: 0...12)
         }
 
-        var score: Double = 0.4
+        var score: Double = 0.35
+        var maxHandsHeight: Double = 0
+        var maxShoulderRotation: Double = 0
+        var maxArmExtension: Double = 0
 
-        // Check hands finish high (good extension)
+        // Analyze all endswing frames for best positions
         for frame in endSwingFrames {
+            // Check hands finish high (good extension)
+            // Vision: Y=0 at bottom, so higher hands = higher Y value
             if let leftWrist = frame.joints["left_wrist_1_joint"],
-               let leftShoulder = frame.joints["left_shoulder_1_joint"] {
-                let handsAboveShoulders = leftShoulder.y - leftWrist.y
-                if handsAboveShoulders > 0.1 {
-                    score += 0.25
-                    break
-                }
+               let rightWrist = frame.joints["right_wrist_1_joint"],
+               let leftShoulder = frame.joints["left_shoulder_1_joint"],
+               let rightShoulder = frame.joints["right_shoulder_1_joint"] {
+                let avgWristY = (leftWrist.y + rightWrist.y) / 2
+                let avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2
+                let handsAboveShoulders = avgWristY - avgShoulderY  // Positive = hands above
+                maxHandsHeight = max(maxHandsHeight, handsAboveShoulders)
+
+                // Check for full rotation (shoulders facing target)
+                let shoulderRotation = abs(rightShoulder.y - leftShoulder.y)
+                maxShoulderRotation = max(maxShoulderRotation, shoulderRotation)
+
+                // Check arm extension
+                let armExt = sqrt(pow(leftWrist.x - leftShoulder.x, 2) + pow(leftWrist.y - leftShoulder.y, 2))
+                maxArmExtension = max(maxArmExtension, armExt)
             }
         }
 
-        // Check for full rotation (shoulders facing target)
-        for frame in endSwingFrames {
-            if let leftShoulder = frame.joints["left_shoulder_1_joint"],
-               let rightShoulder = frame.joints["right_shoulder_1_joint"] {
-                let shoulderRotation = abs(rightShoulder.y - leftShoulder.y)
-                if shoulderRotation > 0.06 {
-                    score += 0.2
-                    break
-                }
-            }
+        // Score based on hands finishing high
+        if maxHandsHeight > 0.15 {
+            score += 0.30  // Excellent - hands well above shoulders
+        } else if maxHandsHeight > 0.08 {
+            score += 0.20  // Good - hands above shoulders
+        } else if maxHandsHeight > 0.02 {
+            score += 0.10  // Moderate - hands near shoulder level
+        }
+
+        // Score based on shoulder rotation
+        if maxShoulderRotation > 0.08 {
+            score += 0.20  // Full rotation
+        } else if maxShoulderRotation > 0.04 {
+            score += 0.12
+        }
+
+        // Score based on arm extension
+        if maxArmExtension > 0.25 {
+            score += 0.15
+        } else if maxArmExtension > 0.18 {
+            score += 0.08
         }
 
         // State confidence indicates clear follow-through position
         let avgConfidence = endSwingFrames.map { $0.stateConfidence }.reduce(0, +) / Double(endSwingFrames.count)
-        score += avgConfidence * 0.15
+        score += avgConfidence * 0.10
 
-        let finalScore = Int(55 + score * 42)
-        return min(94, max(52, finalScore))
+        let finalScore = Int(50 + score * 48)
+        return min(98, max(48, finalScore))
     }
 
     private func generateTips(breakdown: [SwingPhaseScore], metrics: SwingMetrics) -> [SwingTip] {
@@ -748,60 +972,135 @@ class SwingAnalyzer: ObservableObject {
         // Sort by lowest scores first
         let sortedPhases = breakdown.sorted { $0.score < $1.score }
 
+        // Only generate tips for phases that need improvement (score < 85)
+        let phasesNeedingWork = sortedPhases.filter { $0.score < 85 }
+
         // Generate tips for the weakest 3 areas
-        for phase in sortedPhases.prefix(3) {
+        for phase in phasesNeedingWork.prefix(3) {
+            let priority: TipPriority = phase.score < 60 ? .high : (phase.score < 75 ? .medium : .low)
+
             switch phase.phase {
             case .grip:
-                tips.append(SwingTip(
-                    icon: "hand.raised.fill",
-                    title: "Strengthen Your Grip",
-                    description: "Focus on maintaining consistent grip pressure throughout the swing. Avoid squeezing too tight at the top.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "hand.raised.fill",
+                        title: "Fix Your Grip Connection",
+                        description: "Your hands appear to be separating during the swing. Focus on keeping your hands connected as a unit throughout. Practice the interlocking or overlapping grip.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "hand.raised.fill",
+                        title: "Refine Grip Pressure",
+                        description: "Maintain consistent grip pressure (about 4 out of 10) throughout the swing. Avoid tightening at the top of the backswing.",
+                        priority: priority
+                    ))
+                }
             case .stance:
-                tips.append(SwingTip(
-                    icon: "figure.stand",
-                    title: "Check Your Setup",
-                    description: "Ensure your feet are shoulder-width apart with slight knee flex. Your weight should be balanced on the balls of your feet.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "figure.stand",
+                        title: "Rebuild Your Setup",
+                        description: "Your stance shows alignment issues. Set up with feet shoulder-width apart, knees slightly flexed, and spine tilted forward from the hips. Check your balance is centered.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "figure.stand",
+                        title: "Fine-Tune Your Setup",
+                        description: "Small adjustments: ensure weight is on balls of feet, knees have athletic flex, and shoulders are slightly tilted (right lower for right-handed golfers).",
+                        priority: priority
+                    ))
+                }
             case .backswing:
-                tips.append(SwingTip(
-                    icon: "arrow.up.backward",
-                    title: "Complete Your Turn",
-                    description: "Focus on turning your shoulders fully while maintaining your spine angle. Your back should face the target at the top.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "arrow.up.backward",
+                        title: "Increase Shoulder Turn",
+                        description: "Your shoulder rotation is limited. Focus on turning your back fully to the target while keeping your lower body stable. This creates power through coil.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "arrow.up.backward",
+                        title: "Complete Your Turn",
+                        description: "You're close - try to get your lead shoulder under your chin at the top. Maintain spine angle and resist excessive hip turn for better X-factor.",
+                        priority: priority
+                    ))
+                }
             case .downswing:
-                tips.append(SwingTip(
-                    icon: "hand.raised.fill",
-                    title: "Maintain Lag Longer",
-                    description: "Keep your wrists cocked until your hands pass your right thigh. This stores power for impact.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "arrow.down.forward",
+                        title: "Start from the Ground",
+                        description: "Initiate the downswing with your lower body, not your arms. Shift weight to your lead foot and let your hips rotate before your shoulders follow.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "hand.raised.fill",
+                        title: "Maintain Lag Longer",
+                        description: "Keep your wrist angle until your hands pass your right thigh. This stores energy for maximum clubhead speed at impact.",
+                        priority: priority
+                    ))
+                }
             case .impact:
-                tips.append(SwingTip(
-                    icon: "bolt.fill",
-                    title: "Square at Impact",
-                    description: "Focus on returning the clubface to square at impact. Your hips should be open while shoulders are nearly square.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "bolt.fill",
+                        title: "Improve Impact Position",
+                        description: "Focus on: hips open 30-45°, weight on front foot, hands ahead of the clubhead, and head behind the ball. Practice impact drills daily.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "bolt.fill",
+                        title: "Square the Clubface",
+                        description: "Your impact position is good, but focus on squaring the clubface through proper rotation. Keep your chest moving through impact.",
+                        priority: priority
+                    ))
+                }
             case .followThrough:
-                tips.append(SwingTip(
-                    icon: "arrow.right.circle.fill",
-                    title: "Extend Through Impact",
-                    description: "Push your arms toward the target after contact. Finish with your weight on your front foot and belt buckle facing the target.",
-                    priority: phase.score < 70 ? .high : .medium
-                ))
+                if phase.score < 60 {
+                    tips.append(SwingTip(
+                        icon: "arrow.right.circle.fill",
+                        title: "Complete Your Finish",
+                        description: "You're stopping the swing too early. Extend your arms toward the target and finish with your belt buckle facing the target and weight on your front foot.",
+                        priority: priority
+                    ))
+                } else {
+                    tips.append(SwingTip(
+                        icon: "arrow.right.circle.fill",
+                        title: "Finish in Balance",
+                        description: "Good extension - now focus on holding your finish position for 3 seconds. This promotes balance and helps ingrain proper swing mechanics.",
+                        priority: priority
+                    ))
+                }
             }
         }
 
-        // Add tempo tip if needed
-        if metrics.tempoRatio < 2.0 || metrics.tempoRatio > 4.0 {
+        // Add specific tips based on metrics
+        if metrics.headMovement > 0.08 {
+            tips.append(SwingTip(
+                icon: "eyes",
+                title: "Reduce Head Movement",
+                description: "Your head is moving too much laterally during the swing. Keep your eyes fixed on the ball and feel your body rotating around a stable spine.",
+                priority: metrics.headMovement > 0.12 ? .high : .medium
+            ))
+        }
+
+        if metrics.tempoRatio < 2.0 {
             tips.append(SwingTip(
                 icon: "metronome.fill",
-                title: "Smooth Tempo",
-                description: "Try a 3:1 backswing to downswing ratio for better timing. Use a metronome at 60 BPM to practice.",
+                title: "Slow Your Backswing",
+                description: "Your backswing is too quick. Aim for a 3:1 ratio - take your time going back to build power. Try counting '1-2-3' on the backswing.",
+                priority: .medium
+            ))
+        } else if metrics.tempoRatio > 4.5 {
+            tips.append(SwingTip(
+                icon: "metronome.fill",
+                title: "Speed Up Transition",
+                description: "Your transition is too slow. Work on a smoother, quicker transition from backswing to downswing while maintaining control.",
                 priority: .medium
             ))
         }
