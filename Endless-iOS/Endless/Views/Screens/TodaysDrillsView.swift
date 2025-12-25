@@ -6,21 +6,25 @@ import Combine
 class DrillsManager: ObservableObject {
     static let shared = DrillsManager()
 
+    private static let drillsKey = "savedDailyDrills"
+    private static let refreshDateKey = "drillsLastRefresh"
+    private static let dailyDrillCount = 5
+
     @Published var drills: [Drill] {
         didSet { saveDrills() }
     }
 
     @Published var lastRefreshDate: Date {
         didSet {
-            UserDefaults.standard.set(lastRefreshDate.timeIntervalSince1970, forKey: "drillsLastRefresh")
+            UserDefaults.standard.set(lastRefreshDate.timeIntervalSince1970, forKey: Self.refreshDateKey)
         }
     }
 
     private init() {
-        let savedDate = UserDefaults.standard.double(forKey: "drillsLastRefresh")
-        self.lastRefreshDate = savedDate > 0 ? Date(timeIntervalSince1970: savedDate) : Date()
-        self.drills = Self.loadDrills()
-        checkForNewDay()
+        let savedDate = UserDefaults.standard.double(forKey: Self.refreshDateKey)
+        self.lastRefreshDate = savedDate > 0 ? Date(timeIntervalSince1970: savedDate) : Date.distantPast
+        self.drills = []
+        loadOrGenerateDrills()
     }
 
     var completedCount: Int {
@@ -41,22 +45,82 @@ class DrillsManager: ObservableObject {
         }
     }
 
-    private func checkForNewDay() {
+    private func loadOrGenerateDrills() {
         let calendar = Calendar.current
+
+        // Check if we need new drills for today
         if !calendar.isDateInToday(lastRefreshDate) {
-            // Reset drills for new day
-            drills = MockData.todaysDrills.shuffled()
-            lastRefreshDate = Date()
+            // Generate new random drills for today
+            generateNewDailyDrills()
+        } else {
+            // Load saved drills for today
+            if let savedDrills = loadSavedDrills(), !savedDrills.isEmpty {
+                drills = savedDrills
+            } else {
+                generateNewDailyDrills()
+            }
         }
     }
 
-    private func saveDrills() {
-        // In a real app, save to UserDefaults or database
+    private func generateNewDailyDrills() {
+        // Shuffle all drills and pick 5
+        let shuffled = MockData.allDrills.shuffled()
+        let selected = Array(shuffled.prefix(Self.dailyDrillCount))
+
+        // Reset completion status for new day
+        drills = selected.map { drill in
+            Drill(
+                id: drill.id,
+                title: drill.title,
+                description: drill.description,
+                duration: drill.duration,
+                category: drill.category,
+                isCompleted: false
+            )
+        }
+
+        lastRefreshDate = Date()
     }
 
-    private static func loadDrills() -> [Drill] {
-        // In a real app, load from UserDefaults or database
-        return MockData.todaysDrills
+    private func saveDrills() {
+        let drillData = drills.map { drill -> [String: Any] in
+            return [
+                "id": drill.id,
+                "title": drill.title,
+                "description": drill.description,
+                "duration": drill.duration,
+                "category": drill.category.rawValue,
+                "isCompleted": drill.isCompleted
+            ]
+        }
+        UserDefaults.standard.set(drillData, forKey: Self.drillsKey)
+    }
+
+    private func loadSavedDrills() -> [Drill]? {
+        guard let drillData = UserDefaults.standard.array(forKey: Self.drillsKey) as? [[String: Any]] else {
+            return nil
+        }
+
+        return drillData.compactMap { data -> Drill? in
+            guard let id = data["id"] as? String,
+                  let title = data["title"] as? String,
+                  let description = data["description"] as? String,
+                  let duration = data["duration"] as? String,
+                  let categoryRaw = data["category"] as? String,
+                  let category = Drill.DrillCategory(rawValue: categoryRaw),
+                  let isCompleted = data["isCompleted"] as? Bool else {
+                return nil
+            }
+
+            return Drill(
+                id: id,
+                title: title,
+                description: description,
+                duration: duration,
+                category: category,
+                isCompleted: isCompleted
+            )
+        }
     }
 }
 
