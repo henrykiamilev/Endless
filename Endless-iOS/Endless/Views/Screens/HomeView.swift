@@ -5,17 +5,13 @@ struct HomeView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
+    @ObservedObject private var sessionManager = SessionManager.shared
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
     @State private var showingDrills = false
     @State private var showingPlaysViewer = false
     @State private var selectedPlayIndex = 0
-
-    // Session data (editable)
-    @State private var sessionDate = Date()
-    @State private var sessionTime = Date()
-    @State private var sessionLocation = ""
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -218,14 +214,14 @@ struct HomeView: View {
                             Image(systemName: "calendar")
                                 .font(.system(size: 14))
                                 .foregroundColor(themeManager.theme.primary)
-                            Text(formatDate(sessionDate))
+                            Text(formatDate(sessionManager.sessionDate))
                                 .font(.system(size: 14, weight: .semibold))
                         }
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
                                 .font(.system(size: 14))
                                 .foregroundColor(themeManager.theme.primary)
-                            Text(formatTime(sessionTime))
+                            Text(formatTime(sessionManager.sessionTime))
                                 .font(.system(size: 14, weight: .semibold))
                         }
                     }
@@ -235,7 +231,7 @@ struct HomeView: View {
                         Image(systemName: "location.fill")
                             .font(.system(size: 12))
                             .foregroundColor(themeManager.theme.primary)
-                        Text(sessionLocation)
+                        Text(sessionManager.sessionLocation)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(themeManager.theme.textSecondary)
                     }
@@ -272,9 +268,9 @@ struct HomeView: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingSessionEditor) {
             SessionEditorSheet(
-                sessionDate: $sessionDate,
-                sessionTime: $sessionTime,
-                sessionLocation: $sessionLocation
+                sessionDate: $sessionManager.sessionDate,
+                sessionTime: $sessionManager.sessionTime,
+                sessionLocation: $sessionManager.sessionLocation
             )
         }
     }

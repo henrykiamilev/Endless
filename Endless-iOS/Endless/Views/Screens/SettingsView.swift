@@ -672,9 +672,7 @@ struct RecruitmentProfileSheet: View {
 struct PrivacySecuritySheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
-    @State private var twoFactorEnabled = false
-    @State private var faceIDEnabled = true
-    @State private var privateProfile = false
+    @ObservedObject private var settings = UserSettingsManager.shared
     @State private var showingChangePassword = false
 
     var body: some View {
@@ -692,12 +690,12 @@ struct PrivacySecuritySheet: View {
                     }
                     .foregroundColor(themeManager.theme.textPrimary)
 
-                    Toggle(isOn: $twoFactorEnabled) {
+                    Toggle(isOn: $settings.twoFactorEnabled) {
                         Label("Two-Factor Authentication", systemImage: "lock.shield.fill")
                     }
                     .tint(themeManager.theme.accentGreen)
 
-                    Toggle(isOn: $faceIDEnabled) {
+                    Toggle(isOn: $settings.faceIDEnabled) {
                         Label("Face ID / Touch ID", systemImage: "faceid")
                     }
                     .tint(themeManager.theme.accentGreen)
@@ -706,7 +704,7 @@ struct PrivacySecuritySheet: View {
                 }
 
                 Section {
-                    Toggle(isOn: $privateProfile) {
+                    Toggle(isOn: $settings.privateProfile) {
                         Label("Private Profile", systemImage: "eye.slash.fill")
                     }
                     .tint(themeManager.theme.accentGreen)
@@ -874,30 +872,24 @@ struct ChangePasswordSheet: View {
 struct NotificationsSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
-    @State private var pushEnabled = true
-    @State private var emailEnabled = true
-    @State private var smsEnabled = false
-    @State private var coachMessages = true
-    @State private var sessionReminders = true
-    @State private var weeklyDigest = true
-    @State private var newFeatures = false
+    @ObservedObject private var settings = UserSettingsManager.shared
 
     var body: some View {
         NavigationView {
             List {
                 Section {
-                    Toggle("Push Notifications", isOn: $pushEnabled)
-                    Toggle("Email Notifications", isOn: $emailEnabled)
-                    Toggle("SMS Notifications", isOn: $smsEnabled)
+                    Toggle("Push Notifications", isOn: $settings.pushEnabled)
+                    Toggle("Email Notifications", isOn: $settings.emailEnabled)
+                    Toggle("SMS Notifications", isOn: $settings.smsEnabled)
                 } header: {
                     Text("Notification Methods")
                 }
 
                 Section {
-                    Toggle("Coach Messages", isOn: $coachMessages)
-                    Toggle("Session Reminders", isOn: $sessionReminders)
-                    Toggle("Weekly Progress Digest", isOn: $weeklyDigest)
-                    Toggle("New Features & Updates", isOn: $newFeatures)
+                    Toggle("Coach Messages", isOn: $settings.coachMessages)
+                    Toggle("Session Reminders", isOn: $settings.sessionReminders)
+                    Toggle("Weekly Progress Digest", isOn: $settings.weeklyDigest)
+                    Toggle("New Features & Updates", isOn: $settings.newFeatures)
                 } header: {
                     Text("What to Notify")
                 }
@@ -945,11 +937,7 @@ struct MutedConversationsView: View {
 struct GolfSettingsSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
-    @State private var handicap = "4.2"
-    @State private var homeCourse = "Oakmont Country Club"
-    @State private var preferredTees = "Championship"
-    @State private var measurementUnit = "Yards"
-    @State private var dominantHand = "Right"
+    @ObservedObject private var settings = UserSettingsManager.shared
 
     let courses = ["Oakmont Country Club", "Pebble Beach Golf Links", "Augusta National", "Torrey Pines", "Del Mar Country Club"]
     let teeOptions = ["Championship", "Back", "Middle", "Forward"]
@@ -963,19 +951,20 @@ struct GolfSettingsSheet: View {
                     HStack {
                         Text("Handicap Index")
                         Spacer()
-                        TextField("0.0", text: $handicap)
+                        TextField("0.0", text: $settings.handicap)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .foregroundColor(themeManager.theme.primary)
                     }
 
-                    Picker("Home Course", selection: $homeCourse) {
+                    Picker("Home Course", selection: $settings.homeCourse) {
+                        Text("Select a course").tag("")
                         ForEach(courses, id: \.self) { course in
                             Text(course).tag(course)
                         }
                     }
 
-                    Picker("Preferred Tees", selection: $preferredTees) {
+                    Picker("Preferred Tees", selection: $settings.preferredTees) {
                         ForEach(teeOptions, id: \.self) { tee in
                             Text(tee).tag(tee)
                         }
@@ -985,13 +974,13 @@ struct GolfSettingsSheet: View {
                 }
 
                 Section {
-                    Picker("Distance Unit", selection: $measurementUnit) {
+                    Picker("Distance Unit", selection: $settings.measurementUnit) {
                         ForEach(units, id: \.self) { unit in
                             Text(unit).tag(unit)
                         }
                     }
 
-                    Picker("Dominant Hand", selection: $dominantHand) {
+                    Picker("Dominant Hand", selection: $settings.dominantHand) {
                         ForEach(hands, id: \.self) { hand in
                             Text(hand).tag(hand)
                         }
