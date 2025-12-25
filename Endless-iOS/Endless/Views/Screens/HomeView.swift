@@ -537,14 +537,9 @@ struct SessionEditorSheet: View {
     @Binding var sessionTime: Date
     @Binding var sessionLocation: String
 
-    private let locations = [
-        "Main, Birchwood Park Golf Centre",
-        "Oakmont Country Club",
-        "Pebble Beach Golf Links",
-        "Torrey Pines Golf Course",
-        "Del Mar Country Club",
-        "Augusta National Golf Club"
-    ]
+    @StateObject private var searchService = GolfCourseSearchService()
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         NavigationView {
@@ -583,34 +578,134 @@ struct SessionEditorSheet: View {
                     }
 
                     Section {
-                        ForEach(locations, id: \.self) { location in
-                            Button(action: { sessionLocation = location }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(location.components(separatedBy: ", ").last ?? location)
-                                            .font(.system(size: 15, weight: .medium))
-                                            .foregroundColor(themeManager.theme.textPrimary)
+                        // Search text field
+                        HStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16))
+                                .foregroundColor(themeManager.theme.textSecondary)
 
-                                        if location.contains(", ") {
-                                            Text(location.components(separatedBy: ", ").first ?? "")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(themeManager.theme.textSecondary)
-                                        }
+                            TextField("Search golf courses...", text: $searchText)
+                                .font(.system(size: 15))
+                                .foregroundColor(themeManager.theme.textPrimary)
+                                .focused($isSearchFocused)
+                                .autocorrectionDisabled()
+                                .onChange(of: searchText) { _, newValue in
+                                    searchService.search(query: newValue)
+                                }
+
+                            if !searchText.isEmpty {
+                                Button(action: {
+                                    searchText = ""
+                                    searchService.clearResults()
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(themeManager.theme.textSecondary)
+                                }
+                            }
+
+                            if searchService.isSearching {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        .padding(.vertical, 4)
+
+                        // Currently selected location
+                        if !sessionLocation.isEmpty && searchText.isEmpty {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Current Location")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .tracking(0.5)
+                                        .foregroundColor(themeManager.theme.textMuted)
+
+                                    Text(sessionLocation.components(separatedBy: ", ").last ?? sessionLocation)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(themeManager.theme.textPrimary)
+
+                                    if sessionLocation.contains(", ") {
+                                        Text(sessionLocation.components(separatedBy: ", ").first ?? "")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(themeManager.theme.textSecondary)
                                     }
+                                }
 
-                                    Spacer()
+                                Spacer()
 
-                                    if sessionLocation == location {
-                                        Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(themeManager.theme.primary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        // Search results
+                        if !searchService.searchResults.isEmpty {
+                            ForEach(searchService.searchResults) { result in
+                                Button(action: {
+                                    sessionLocation = result.displayName
+                                    searchText = ""
+                                    searchService.clearResults()
+                                    isSearchFocused = false
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(result.name)
+                                                .font(.system(size: 15, weight: .medium))
+                                                .foregroundColor(themeManager.theme.textPrimary)
+
+                                            if !result.address.isEmpty {
+                                                Text(result.address)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(themeManager.theme.textSecondary)
+                                            }
+                                        }
+
+                                        Spacer()
+
+                                        Image(systemName: "location.fill")
+                                            .font(.system(size: 12))
                                             .foregroundColor(themeManager.theme.primary)
                                     }
                                 }
                             }
                         }
+
+                        // Empty state when searching
+                        if searchText.count >= 2 && searchService.searchResults.isEmpty && !searchService.isSearching {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(themeManager.theme.textMuted)
+
+                                Text("No golf courses found")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                            }
+                            .padding(.vertical, 8)
+                        }
+
+                        // Error state
+                        if let error = searchService.searchError {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(themeManager.theme.error)
+
+                                Text(error)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     } header: {
                         Text("Location")
                             .font(.system(size: 11, weight: .bold))
                             .tracking(1)
+                    } footer: {
+                        Text("Type to search for golf courses worldwide")
+                            .font(.system(size: 11))
+                            .foregroundColor(themeManager.theme.textMuted)
                     }
                 }
                 .listStyle(.insetGrouped)
