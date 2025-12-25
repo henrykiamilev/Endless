@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Manages persistence of upcoming session data
 class SessionManager: ObservableObject {
