@@ -789,12 +789,12 @@ struct RecruitView: View {
                 }) {
                     ZStack {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .fill(themeManager.theme.cardBackground.opacity(0.9))
                             .frame(width: 36, height: 36)
 
                         Image(systemName: "play.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.theme.primary)
                             .offset(x: 1)
                     }
                 }

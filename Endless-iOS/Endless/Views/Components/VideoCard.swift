@@ -56,7 +56,7 @@ struct VideoCard: View {
                                 .frame(width: 40, height: 40)
 
                             Circle()
-                                .fill(Color.white)
+                                .fill(themeManager.theme.cardBackground)
                                 .frame(width: 34, height: 34)
 
                             Image(systemName: "play.fill")
