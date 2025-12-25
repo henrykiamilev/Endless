@@ -25,6 +25,8 @@ struct VideoLibraryView: View {
     @State private var errorMessage = ""
     @State private var showingSwingAnalysis = false
     @State private var selectedSwingVideo: ManagedSwingVideo?
+    @State private var showingAddVideoOptions = false
+    @State private var showingVideoPicker = false
     @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
@@ -552,6 +554,9 @@ struct VideoLibraryView: View {
                             onAnalyze: {
                                 selectedSwingVideo = video
                                 showingSwingAnalysis = true
+                            },
+                            onDelete: {
+                                swingVideoManager.deleteSwingVideo(video)
                             }
                         )
                     }
@@ -561,7 +566,7 @@ struct VideoLibraryView: View {
 
             // Add more videos button
             if swingVideoManager.canAddMoreVideos {
-                Button(action: { navigationManager.navigateToRecord() }) {
+                Button(action: { showingAddVideoOptions = true }) {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 14))
@@ -584,7 +589,23 @@ struct VideoLibraryView: View {
         .sheet(isPresented: $showingSwingAnalysis) {
             if let video = selectedSwingVideo {
                 SwingVideoAnalysisView(video: video)
+                    .environmentObject(themeManager)
             }
+        }
+        .confirmationDialog("Add Swing Video", isPresented: $showingAddVideoOptions, titleVisibility: .visible) {
+            Button("Choose from Camera Roll") {
+                showingVideoPicker = true
+            }
+            Button("Record New Video") {
+                navigationManager.navigateToRecord()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Select a video from your library or record a new swing")
+        }
+        .sheet(isPresented: $showingVideoPicker) {
+            SwingVideoPickerView()
+                .environmentObject(themeManager)
         }
     }
 
@@ -1476,6 +1497,7 @@ struct SwingVideoRow: View {
     var hasAnalysis: Bool = false
     var score: Int? = nil
     let onAnalyze: () -> Void
+    var onDelete: (() -> Void)? = nil
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -1529,13 +1551,27 @@ struct SwingVideoRow: View {
 
             Spacer()
 
-            Button(action: onAnalyze) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .frame(width: 32, height: 32)
-                    .background(themeManager.theme.accentGreen.opacity(0.15))
-                    .clipShape(Circle())
+            // Action buttons
+            HStack(spacing: 8) {
+                Button(action: onAnalyze) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .frame(width: 32, height: 32)
+                        .background(themeManager.theme.accentGreen.opacity(0.15))
+                        .clipShape(Circle())
+                }
+
+                if let onDelete = onDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.error)
+                            .frame(width: 32, height: 32)
+                            .background(themeManager.theme.error.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                }
             }
         }
         .padding(12)

@@ -18,6 +18,8 @@ struct EndlessAIView: View {
     @State private var showingAddSwingVideo = false
     @State private var showingSwingAnalysis = false
     @State private var selectedSwingVideo: ManagedSwingVideo?
+    @State private var showingAddVideoOptions = false
+    @State private var showingVideoPicker = false
 
     private let courseFilters = ["Oakmont CC", "Pebble Beach", "Del Mar"]
 
@@ -63,6 +65,21 @@ struct EndlessAIView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .confirmationDialog("Add Swing Video", isPresented: $showingAddVideoOptions, titleVisibility: .visible) {
+            Button("Choose from Camera Roll") {
+                showingVideoPicker = true
+            }
+            Button("Record New Video") {
+                navigationManager.navigateToRecord()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Select a video from your library or record a new swing")
+        }
+        .sheet(isPresented: $showingVideoPicker) {
+            SwingVideoPickerView()
+                .environmentObject(themeManager)
         }
     }
 
@@ -364,7 +381,7 @@ struct EndlessAIView: View {
 
                 Spacer()
 
-                Button(action: { navigationManager.navigateToRecord() }) {
+                Button(action: { showingAddVideoOptions = true }) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .semibold))
@@ -419,7 +436,7 @@ struct EndlessAIView: View {
             .padding(.bottom, 16)
 
             // Add video card
-            Button(action: { navigationManager.navigateToRecord() }) {
+            Button(action: { showingAddVideoOptions = true }) {
                 HStack(spacing: 16) {
                     ZStack {
                         Circle()
@@ -656,6 +673,7 @@ struct SwingVideoAnalysisView: View {
         }
         .sheet(isPresented: $showingChat) {
             AICoachChatView()
+                .environmentObject(themeManager)
         }
     }
 
@@ -704,7 +722,7 @@ struct SwingVideoAnalysisView: View {
                         Text("Ask AI")
                             .font(.system(size: 12, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.theme.textInverse)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(themeManager.theme.primary)
@@ -766,7 +784,7 @@ struct SwingVideoAnalysisView: View {
                     Text("Analyze Swing")
                         .font(.system(size: 15, weight: .bold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.theme.textInverse)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
                 .background(themeManager.theme.primary)
