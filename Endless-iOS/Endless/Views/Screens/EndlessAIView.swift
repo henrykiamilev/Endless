@@ -79,6 +79,7 @@ struct EndlessAIView: View {
         }
         .sheet(isPresented: $showingVideoPicker) {
             SwingVideoPickerView()
+                .environmentObject(themeManager)
         }
     }
 

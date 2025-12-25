@@ -87,6 +87,7 @@ struct SwingVideoPickerView: View {
         .sheet(isPresented: $showingAnalysis) {
             if let video = importedVideo {
                 SwingVideoAnalysisView(video: video)
+                    .environmentObject(themeManager)
             }
         }
         .alert("Error", isPresented: $showingError) {
