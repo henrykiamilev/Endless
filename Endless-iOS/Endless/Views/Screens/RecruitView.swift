@@ -787,10 +787,9 @@ struct RecruitView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Top row: Delete button and AI badge
+                // Delete button
                 VStack {
                     HStack {
-                        // Delete button
                         Button(action: {
                             highlightToDelete = highlight
                             showingDeleteConfirmation = true
@@ -805,19 +804,6 @@ struct RecruitView: View {
                         .buttonStyle(PlainButtonStyle())
 
                         Spacer()
-
-                        // AI badge
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8))
-                            Text("AI")
-                                .font(.system(size: 8, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
                     }
                     Spacer()
                 }

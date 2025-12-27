@@ -10,7 +10,6 @@ struct VideoLibraryView: View {
     @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
 
     @State private var showingMenu = false
-    @State private var showingFilter = false
     @State private var showingAIAnalysis = false
     @State private var selectedVideoForAI: Video?
     @State private var showingHighlightGenerator = false
@@ -243,40 +242,6 @@ struct VideoLibraryView: View {
 
     private var videoTabContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Filter header with better styling
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.primary)
-                    Text("October 2025")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                }
-
-                Spacer()
-
-                Button(action: { showingFilter = true }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 14))
-                        Text("Filter")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(themeManager.theme.textSecondary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(themeManager.theme.cardBackground)
-                    .cornerRadius(20)
-                    .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
-                }
-                .sheet(isPresented: $showingFilter) {
-                    FilterSheetView()
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-
             // Section label with icon - MATCH VIDEOS AT TOP
             HStack(spacing: 8) {
                 Image(systemName: "play.rectangle.fill")
