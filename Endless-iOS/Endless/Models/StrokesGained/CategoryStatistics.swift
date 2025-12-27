@@ -339,9 +339,11 @@ struct StatRowModel: Identifiable {
 struct CategoryStatsBuilder {
 
     // Build Scoring rows from statistics
+    // Includes ALL stats from the Scoring tab: scoring averages, GIR by par, scoring events, ratios
     static func buildScoringRows(from stats: ScoringStatistics) -> [StatRowModel] {
         var rows: [StatRowModel] = []
 
+        // Core Scoring
         if let stat = stats.scoringAverage {
             rows.append(StatRowModel(
                 label: "Scoring Average",
@@ -360,6 +362,7 @@ struct CategoryStatsBuilder {
             ))
         }
 
+        // Par Scoring
         if let stat = stats.par3Scoring {
             rows.append(StatRowModel(
                 label: "Par 3 Scoring",
@@ -387,6 +390,44 @@ struct CategoryStatsBuilder {
             ))
         }
 
+        // GIR by Par
+        if let stat = stats.par3GIR {
+            rows.append(StatRowModel(
+                label: "Par 3 GIR",
+                values: [stat.timeframe: stat],
+                displayType: .percentage,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.par4GIR {
+            rows.append(StatRowModel(
+                label: "Par 4 GIR",
+                values: [stat.timeframe: stat],
+                displayType: .percentage,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.par5GIR {
+            rows.append(StatRowModel(
+                label: "Par 5 GIR",
+                values: [stat.timeframe: stat],
+                displayType: .percentage,
+                category: .scoring
+            ))
+        }
+
+        // Scoring Events
+        if let stat = stats.eaglesPerRound {
+            rows.append(StatRowModel(
+                label: "Eagles per Round",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
         if let stat = stats.birdiesPerRound {
             rows.append(StatRowModel(
                 label: "Birdies per Round",
@@ -399,6 +440,62 @@ struct CategoryStatsBuilder {
         if let stat = stats.bogeysPerRound {
             rows.append(StatRowModel(
                 label: "Bogeys per Round",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.doubleBogeyPlusPerRound {
+            rows.append(StatRowModel(
+                label: "Double Bogey+ per Round",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.doubleBogeysPerRound {
+            rows.append(StatRowModel(
+                label: "Double Bogeys per Round",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
+        // Ratios
+        if let stat = stats.bogeysPerRoundPar5 {
+            rows.append(StatRowModel(
+                label: "Bogeys per Round/Par 5",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.birdiesToBogeys {
+            rows.append(StatRowModel(
+                label: "Birdies/Bogeys",
+                values: [stat.timeframe: stat],
+                displayType: .ratio,
+                category: .scoring
+            ))
+        }
+
+        // Lie-based Scoring Averages
+        if let stat = stats.rightRoughScoringAverage {
+            rows.append(StatRowModel(
+                label: "Right Rough Scoring Average",
+                values: [stat.timeframe: stat],
+                displayType: .number,
+                category: .scoring
+            ))
+        }
+
+        if let stat = stats.leftRoughScoringAverage {
+            rows.append(StatRowModel(
+                label: "Left Rough Scoring Average",
                 values: [stat.timeframe: stat],
                 displayType: .number,
                 category: .scoring

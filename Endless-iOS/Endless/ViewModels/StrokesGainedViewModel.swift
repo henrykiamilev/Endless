@@ -57,22 +57,36 @@ final class StrokesGainedViewModel: ObservableObject {
     func loadDemoData() {
         // Generate demo statistics matching the screenshot format
 
-        // SCORING Stats
+        // SCORING Stats - Complete set matching the Scoring screenshot
         var scoring = ScoringStatistics()
+        // Core Scoring
         scoring.scoringAverage = StatValue(value: 74.18, sampleSize: 11, timeframe: .season)
         scoring.strokesGainedPutting = StatValue(value: -1.81, sampleSize: 207, timeframe: .season)
+
+        // Par Scoring
         scoring.par3Scoring = StatValue(value: 3.17, sampleSize: 46, timeframe: .season)
         scoring.par4Scoring = StatValue(value: 4.21, sampleSize: 115, timeframe: .season)
         scoring.par5Scoring = StatValue(value: 4.85, sampleSize: 46, timeframe: .season)
+
+        // GIR by Par
         scoring.par3GIR = StatValue(value: 0.6087, sampleSize: 46, timeframe: .season)
         scoring.par4GIR = StatValue(value: 0.6522, sampleSize: 115, timeframe: .season)
         scoring.par5GIR = StatValue(value: 0.7826, sampleSize: 46, timeframe: .season)
+
+        // Scoring Events
         scoring.eaglesPerRound = StatValue(value: 0.09, sampleSize: 11, timeframe: .season)
         scoring.birdiesPerRound = StatValue(value: 2.26, sampleSize: 11, timeframe: .season)
         scoring.bogeysPerRound = StatValue(value: 3.74, sampleSize: 11, timeframe: .season)
         scoring.doubleBogeyPlusPerRound = StatValue(value: 0.44, sampleSize: 11, timeframe: .season)
         scoring.doubleBogeysPerRound = StatValue(value: 0.44, sampleSize: 11, timeframe: .season)
+
+        // Ratios
+        scoring.bogeysPerRoundPar5 = StatValue(value: 0.54, sampleSize: 11, timeframe: .season)
         scoring.birdiesToBogeys = StatValue(value: 0.56, sampleSize: 207, timeframe: .season)
+
+        // Lie-based Scoring Averages
+        scoring.rightRoughScoringAverage = StatValue(value: 3.24, sampleSize: 52, timeframe: .season)
+        scoring.leftRoughScoringAverage = StatValue(value: 3.42, sampleSize: 25, timeframe: .season)
 
         scoringRows = CategoryStatsBuilder.buildScoringRows(from: scoring)
 
