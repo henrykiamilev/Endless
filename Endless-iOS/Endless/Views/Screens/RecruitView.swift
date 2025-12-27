@@ -567,28 +567,13 @@ struct RecruitView: View {
                     Image(systemName: "film.stack")
                         .font(.system(size: 28))
                         .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
-                    Text("No highlight reels yet")
+                    Text("No highlights yet")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Create AI highlight reels from your videos to showcase your skills")
+                    Text("Share videos from your library to add them here")
                         .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
-
-                    Button(action: { navigationManager.navigateToVideo() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 12))
-                            Text("Create Highlight Reel")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(themeManager.theme.accentGreen)
-                        .clipShape(Capsule())
-                    }
-                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
