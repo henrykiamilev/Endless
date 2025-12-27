@@ -437,9 +437,110 @@ struct RecruitView: View {
             }
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            // Strokes Gained Section
+            strokesGainedStatsSection
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+
+    // MARK: - Strokes Gained Stats for Recruit Profile
+
+    @State private var showingStrokesGainedFullView = false
+
+    private var strokesGainedStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                    Text("Strokes Gained")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
+
+                Spacer()
+
+                Button(action: { showingStrokesGainedFullView = true }) {
+                    Text("View Details")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
+            }
+
+            VStack(spacing: 0) {
+                // Total SG row
+                HStack {
+                    Text("Total Strokes Gained")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    Spacer()
+
+                    let totalSG = StrokesGainedViewModel.shared.currentSummary?.totalSG ?? 0
+                    Text(formatRecruitSG(totalSG))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(recruitSGColor(for: totalSG))
+                }
+                .padding(14)
+
+                Divider()
+                    .background(themeManager.theme.border)
+
+                // Category breakdown
+                HStack(spacing: 0) {
+                    recruitSGCategory(label: "OTT", category: .offTheTee)
+                    recruitSGCategory(label: "APP", category: .approach)
+                    recruitSGCategory(label: "ARG", category: .shortGame)
+                    recruitSGCategory(label: "PUTT", category: .putting)
+                }
+            }
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .sheet(isPresented: $showingStrokesGainedFullView) {
+            NavigationView {
+                StrokesGainedOverviewView()
+                    .environmentObject(themeManager)
+            }
+        }
+    }
+
+    private func recruitSGCategory(label: String, category: SGCategory) -> some View {
+        let sg = StrokesGainedViewModel.shared.currentSummary?.sgByCategory[category] ?? 0
+
+        return VStack(spacing: 4) {
+            Text(formatRecruitSG(sg))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(recruitSGColor(for: sg))
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(themeManager.theme.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private func formatRecruitSG(_ value: Double) -> String {
+        if value == 0 { return "--" }
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func recruitSGColor(for value: Double) -> Color {
+        if value > 0.3 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.3 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
+        }
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)

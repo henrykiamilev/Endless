@@ -613,6 +613,9 @@ struct VideoLibraryView: View {
 
     private var statsTabContent: some View {
         VStack(alignment: .leading, spacing: 28) {
+            // Strokes Gained Section - NEW
+            strokesGainedSection
+
             // Stats Overview Card
             statsOverviewCard
 
@@ -687,6 +690,134 @@ struct VideoLibraryView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+
+    // MARK: - Strokes Gained Section
+
+    @State private var showingStrokesGainedDetail = false
+
+    private var strokesGainedSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Section header
+            HStack(spacing: 8) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.accentGreen)
+                Text("STROKES GAINED")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundColor(themeManager.theme.textSecondary)
+
+                Spacer()
+
+                Button(action: { showingStrokesGainedDetail = true }) {
+                    HStack(spacing: 4) {
+                        Text("View All")
+                            .font(.system(size: 12, weight: .semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(themeManager.theme.accentGreen)
+                }
+            }
+
+            // SG Overview Card
+            VStack(spacing: 16) {
+                HStack(spacing: 16) {
+                    // Total SG
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Total SG")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(StrokesGainedViewModel.shared.currentSummary?.formattedTotalSG ?? "--")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(sgColor(for: StrokesGainedViewModel.shared.currentSummary?.totalSG ?? 0))
+
+                            Text("strokes")
+                                .font(.system(size: 12))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                    }
+
+                    Spacer()
+
+                    // Trend indicator
+                    if StrokesGainedViewModel.shared.currentSummary != nil {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.shield.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.theme.accentGreen)
+                                Text(StrokesGainedViewModel.shared.currentSummary?.confidenceStats.autoConfirmedPercent ?? "")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                            }
+
+                            Text("Last Round")
+                                .font(.system(size: 10))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                    }
+                }
+
+                // Category breakdown
+                HStack(spacing: 0) {
+                    sgCategoryMini(category: .offTheTee)
+                    sgCategoryMini(category: .approach)
+                    sgCategoryMini(category: .shortGame)
+                    sgCategoryMini(category: .putting)
+                }
+            }
+            .padding(18)
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 12, x: 0, y: 6)
+        }
+        .sheet(isPresented: $showingStrokesGainedDetail) {
+            NavigationView {
+                StrokesGainedOverviewView()
+                    .environmentObject(themeManager)
+            }
+        }
+    }
+
+    private func sgCategoryMini(category: SGCategory) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: category.icon)
+                .font(.system(size: 14))
+                .foregroundColor(themeManager.theme.textSecondary)
+
+            let sg = StrokesGainedViewModel.shared.currentSummary?.sgByCategory[category] ?? 0
+            Text(formatSGValue(sg))
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(sgColor(for: sg))
+
+            Text(category.rawValue)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(themeManager.theme.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
+    private func formatSGValue(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func sgColor(for value: Double) -> Color {
+        if value > 0.3 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.3 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
+        }
     }
 
     // MARK: - Stats Overview Card
