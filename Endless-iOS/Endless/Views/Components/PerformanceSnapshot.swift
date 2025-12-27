@@ -20,18 +20,23 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     }
 
     static let allWidgets: [PerformanceWidget] = [
-        // Strokes Gained widgets (align with Stats tab)
-        PerformanceWidget(id: "totalsg", icon: "chart.bar.fill", label: "Total Strokes Gained", shortLabel: "Total SG", value: "--", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "sg_ott", icon: "figure.golf", label: "SG Off the Tee", shortLabel: "SG OTT", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "sg_app", icon: "scope", label: "SG Approach", shortLabel: "SG APP", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "sg_short", icon: "flag.fill", label: "SG Short Game", shortLabel: "SG Short", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sg_putt", icon: "circle.fill", label: "SG Putting", shortLabel: "SG Putt", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        // Traditional stats
-        PerformanceWidget(id: "putts", icon: "circle.inset.filled", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rounds", value: "0", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "gir", icon: "checkmark.circle", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "fir", icon: "arrow.up.right", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: false, size: .small)
+        // Original widgets (keep existing defaults)
+        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "--", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small),
+        // Strokes Gained widgets (new - align with Stats tab)
+        PerformanceWidget(id: "totalsg", icon: "chart.bar.fill", label: "Total Strokes Gained", shortLabel: "Total SG", value: "--", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "sg_ott", icon: "figure.golf", label: "SG Off the Tee", shortLabel: "SG OTT", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_app", icon: "scope", label: "SG Approach", shortLabel: "SG APP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_short", icon: "flag.2.crossed", label: "SG Short Game", shortLabel: "SG Short", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_putt", icon: "circle.dotted", label: "SG Putting", shortLabel: "SG Putt", value: "--", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
@@ -137,15 +142,22 @@ class WidgetPreferencesManager: ObservableObject {
 
         guard let summary = viewModel.currentSummary else {
             // No data - show empty state for all widgets
+            // Traditional stats
+            updateValue(for: "gir", value: "--")
+            updateValue(for: "fir", value: "--")
+            updateValue(for: "putts", value: "--")
+            updateValue(for: "avg", value: "--")
+            updateValue(for: "handicap", value: "--")
+            updateValue(for: "driving", value: "--")
+            updateValue(for: "scramble", value: "--")
+            updateValue(for: "sandsave", value: "--")
+            updateValue(for: "updown", value: "--")
+            // Strokes Gained
             updateValue(for: "totalsg", value: "--")
             updateValue(for: "sg_ott", value: "--")
             updateValue(for: "sg_app", value: "--")
             updateValue(for: "sg_short", value: "--")
             updateValue(for: "sg_putt", value: "--")
-            updateValue(for: "putts", value: "--")
-            updateValue(for: "avg", value: "--")
-            updateValue(for: "gir", value: "--")
-            updateValue(for: "fir", value: "--")
             return
         }
 
