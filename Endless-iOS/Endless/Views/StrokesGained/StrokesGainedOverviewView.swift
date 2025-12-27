@@ -97,7 +97,8 @@ struct StrokesGainedOverviewView: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
 
-                    if let summary = viewModel.currentSummary {
+                    if let summary = viewModel.currentSummary,
+                       !summary.sgByCategory.isEmpty {
                         Text(summary.formattedTotalSG)
                             .font(.system(size: 48, weight: .bold))
                             .foregroundColor(sgColor(for: summary.totalSG))
@@ -131,13 +132,15 @@ struct StrokesGainedOverviewView: View {
 
             // Biggest Strength/Leak
             HStack(spacing: 20) {
-                if let summary = viewModel.currentSummary {
+                if let summary = viewModel.currentSummary,
+                   !summary.sgByCategory.isEmpty {
                     // Biggest Strength
-                    if let strength = summary.biggestStrength {
+                    if let strength = summary.biggestStrength,
+                       let strengthValue = summary.sgByCategory[strength] {
                         strengthLeakItem(
                             title: "Biggest Strength",
                             category: strength,
-                            value: summary.sgByCategory[strength] ?? 0,
+                            value: strengthValue,
                             isStrength: true
                         )
                     }
@@ -145,11 +148,12 @@ struct StrokesGainedOverviewView: View {
                     Spacer()
 
                     // Biggest Leak
-                    if let leak = summary.biggestLeak {
+                    if let leak = summary.biggestLeak,
+                       let leakValue = summary.sgByCategory[leak] {
                         strengthLeakItem(
                             title: "Biggest Leak",
                             category: leak,
-                            value: summary.sgByCategory[leak] ?? 0,
+                            value: leakValue,
                             isStrength: false
                         )
                     }
@@ -240,8 +244,8 @@ struct StrokesGainedOverviewView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    if let summary = viewModel.currentSummary {
-                        let sg = summary.sgByCategory[category] ?? 0
+                    if let summary = viewModel.currentSummary,
+                       let sg = summary.sgByCategory[category] {
                         Text(formatSG(sg))
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(sgColor(for: sg))

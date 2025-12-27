@@ -8,6 +8,7 @@ struct VideoLibraryView: View {
     @ObservedObject private var swingVideoManager = SwingVideoManager.shared
     @ObservedObject private var highlightGenerator = HighlightReelGenerator.shared
     @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
+    @StateObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     @State private var showingMenu = false
     @State private var showingAIAnalysis = false
@@ -33,6 +34,9 @@ struct VideoLibraryView: View {
     @State private var videoToShare: Video?
     @State private var showingShareSuccess = false
     @State private var shareSuccessMessage = ""
+    @State private var selectedSGCategory: SGCategory?
+    @State private var isStrokesGainedExpanded = false
+    @State private var showingStrokesGainedOverview = false
     @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
@@ -176,6 +180,29 @@ struct VideoLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(shareSuccessMessage)
+        }
+        .sheet(item: $selectedSGCategory) { category in
+            CategoryDetailView(category: category)
+                .environmentObject(themeManager)
+        }
+        .sheet(isPresented: $showingStrokesGainedOverview) {
+            NavigationView {
+                StrokesGainedOverviewView()
+                    .environmentObject(themeManager)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: { showingStrokesGainedOverview = false }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                    .frame(width: 32, height: 32)
+                                    .background(themeManager.theme.cardBackground)
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+            }
         }
     }
 
@@ -635,6 +662,9 @@ struct VideoLibraryView: View {
             // Stats Overview Card
             statsOverviewCard
 
+            // Strokes Gained Section
+            strokesGainedSection
+
             // Recent Round Stats
             sectionView(label: "RECENT ROUND STATS", icon: "chart.bar.fill") {
                 VStack(spacing: 0) {
@@ -713,6 +743,245 @@ struct VideoLibraryView: View {
                 .foregroundColor(themeManager.theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Strokes Gained Section
+
+    private var strokesGainedSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Section header with expand button
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isStrokesGainedExpanded.toggle()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.primary)
+                    Text("STROKES GAINED")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    Spacer()
+
+                    Image(systemName: isStrokesGainedExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // Main card
+            VStack(spacing: 0) {
+                // Total SG Header - tappable to see full overview
+                Button(action: { showingStrokesGainedOverview = true }) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Total SG")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(themeManager.theme.textSecondary)
+
+                            if let summary = strokesGainedVM.currentSummary,
+                               !summary.sgByCategory.isEmpty {
+                                Text(formatSG(summary.totalSG))
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(sgColor(for: summary.totalSG))
+                            } else {
+                                Text("--")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                            }
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 4) {
+                            if strokesGainedVM.currentSummary == nil {
+                                Text("Complete a round to see data")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                            } else {
+                                Text("Tap for details")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                            }
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                    }
+                    .padding(20)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Expanded content
+                if isStrokesGainedExpanded {
+                    Divider()
+                        .background(themeManager.theme.border)
+                        .padding(.horizontal, 16)
+
+                    // Category breakdown - each tile is clickable
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        sgCategoryTile(.offTheTee)
+                        sgCategoryTile(.approach)
+                        sgCategoryTile(.shortGame)
+                        sgCategoryTile(.putting)
+                    }
+                    .padding(16)
+
+                    // Insights preview
+                    if let summary = strokesGainedVM.currentSummary,
+                       !summary.sgByCategory.isEmpty {
+                        Divider()
+                            .background(themeManager.theme.border)
+                            .padding(.horizontal, 16)
+
+                        VStack(spacing: 12) {
+                            // Strength and Weakness
+                            HStack(spacing: 16) {
+                                if let strength = summary.biggestStrength,
+                                   let strengthValue = summary.sgByCategory[strength] {
+                                    insightPill(
+                                        icon: "arrow.up.circle.fill",
+                                        label: "Strength",
+                                        category: strength.displayName,
+                                        value: strengthValue,
+                                        isPositive: true
+                                    )
+                                }
+
+                                if let leak = summary.biggestLeak,
+                                   let leakValue = summary.sgByCategory[leak] {
+                                    insightPill(
+                                        icon: "arrow.down.circle.fill",
+                                        label: "Focus Area",
+                                        category: leak.displayName,
+                                        value: leakValue,
+                                        isPositive: false
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                    }
+
+                    // Explore details button
+                    Button(action: { showingStrokesGainedOverview = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 14))
+                            Text("Explore Full Analysis")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(themeManager.theme.accentGreen.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                }
+            }
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(24)
+            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+        }
+    }
+
+    private func insightPill(icon: String, label: String, category: String, value: Double, isPositive: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundColor(isPositive ? themeManager.theme.accentGreen : themeManager.theme.error)
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.5)
+                    .foregroundColor(themeManager.theme.textMuted)
+            }
+
+            HStack(spacing: 6) {
+                Text(category)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text(formatSG(value))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(isPositive ? themeManager.theme.accentGreen : themeManager.theme.error)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(themeManager.theme.background.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func sgCategoryTile(_ category: SGCategory) -> some View {
+        Button(action: { selectedSGCategory = category }) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: category.icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .frame(width: 28, height: 28)
+                        .background(themeManager.theme.accentGreen.opacity(0.15))
+                        .clipShape(Circle())
+
+                    Text(category.displayName)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textMuted)
+                }
+
+                if let summary = strokesGainedVM.currentSummary,
+                   let sg = summary.sgByCategory[category] {
+                    Text(formatSG(sg))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(sgColor(for: sg))
+                } else {
+                    Text("--")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(themeManager.theme.textMuted)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(themeManager.theme.background.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func sgColor(for value: Double) -> Color {
+        if value > 0.5 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.5 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
+        }
     }
 
     // MARK: - Footer Branding

@@ -193,11 +193,32 @@ class WidgetPreferencesManager: ObservableObject {
         }
 
         // Strokes Gained widgets (primary - align with Stats tab)
-        updateValue(for: "totalsg", value: formatSG(summary.totalSG))
-        updateValue(for: "sg_ott", value: formatSG(summary.sgByCategory[.offTheTee] ?? 0))
-        updateValue(for: "sg_app", value: formatSG(summary.sgByCategory[.approach] ?? 0))
-        updateValue(for: "sg_short", value: formatSG(summary.sgByCategory[.shortGame] ?? 0))
-        updateValue(for: "sg_putt", value: formatSG(summary.sgByCategory[.putting] ?? 0))
+        // Only show SG values if there's actual data for the category
+        if summary.sgByCategory.isEmpty {
+            updateValue(for: "totalsg", value: "--")
+        } else {
+            updateValue(for: "totalsg", value: formatSG(summary.totalSG))
+        }
+        if let sg = summary.sgByCategory[.offTheTee] {
+            updateValue(for: "sg_ott", value: formatSG(sg))
+        } else {
+            updateValue(for: "sg_ott", value: "--")
+        }
+        if let sg = summary.sgByCategory[.approach] {
+            updateValue(for: "sg_app", value: formatSG(sg))
+        } else {
+            updateValue(for: "sg_app", value: "--")
+        }
+        if let sg = summary.sgByCategory[.shortGame] {
+            updateValue(for: "sg_short", value: formatSG(sg))
+        } else {
+            updateValue(for: "sg_short", value: "--")
+        }
+        if let sg = summary.sgByCategory[.putting] {
+            updateValue(for: "sg_putt", value: formatSG(sg))
+        } else {
+            updateValue(for: "sg_putt", value: "--")
+        }
 
         // Traditional stats
         let puttsCount = summary.shotsByCategory[.putting] ?? 0

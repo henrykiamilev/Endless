@@ -457,7 +457,8 @@ struct RecruitView: View {
     // MARK: - Computed Stats from StrokesGainedViewModel
 
     private var totalStrokesGained: String {
-        guard let summary = strokesGainedVM.currentSummary else {
+        guard let summary = strokesGainedVM.currentSummary,
+              !summary.sgByCategory.isEmpty else {
             return "--"
         }
         return summary.formattedTotalSG
@@ -469,31 +470,35 @@ struct RecruitView: View {
     }
 
     private var sgOffTheTee: String {
-        guard let summary = strokesGainedVM.currentSummary else {
+        guard let summary = strokesGainedVM.currentSummary,
+              let sg = summary.sgByCategory[.offTheTee] else {
             return "--"
         }
-        return formatSG(summary.sgByCategory[.offTheTee] ?? 0)
+        return formatSG(sg)
     }
 
     private var sgApproach: String {
-        guard let summary = strokesGainedVM.currentSummary else {
+        guard let summary = strokesGainedVM.currentSummary,
+              let sg = summary.sgByCategory[.approach] else {
             return "--"
         }
-        return formatSG(summary.sgByCategory[.approach] ?? 0)
+        return formatSG(sg)
     }
 
     private var sgShortGame: String {
-        guard let summary = strokesGainedVM.currentSummary else {
+        guard let summary = strokesGainedVM.currentSummary,
+              let sg = summary.sgByCategory[.shortGame] else {
             return "--"
         }
-        return formatSG(summary.sgByCategory[.shortGame] ?? 0)
+        return formatSG(sg)
     }
 
     private var sgPutting: String {
-        guard let summary = strokesGainedVM.currentSummary else {
+        guard let summary = strokesGainedVM.currentSummary,
+              let sg = summary.sgByCategory[.putting] else {
             return "--"
         }
-        return formatSG(summary.sgByCategory[.putting] ?? 0)
+        return formatSG(sg)
     }
 
     private func formatSG(_ value: Double) -> String {
