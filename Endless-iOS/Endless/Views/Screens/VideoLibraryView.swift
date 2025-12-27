@@ -373,9 +373,18 @@ struct VideoLibraryView: View {
                         .foregroundColor(themeManager.theme.textSecondary)
                         .lineLimit(3)
 
-                    TextEditor(text: $highlightPrompt)
-                        .font(.system(size: 14))
-                        .frame(height: 60)
+                    // Disabled text box - tapping shows Coming Soon
+                    Button(action: {
+                        comingSoonFeature = "Highlight Reel"
+                        showingComingSoon = true
+                    }) {
+                        HStack {
+                            Text("Enter your prompt here...")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                            Spacer()
+                        }
+                        .frame(height: 60, alignment: .topLeading)
                         .padding(10)
                         .background(themeManager.theme.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -383,17 +392,8 @@ struct VideoLibraryView: View {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .stroke(themeManager.theme.border, lineWidth: 1)
                         )
-                        .focused($isPromptFocused)
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                Spacer()
-                                Button("Done") {
-                                    isPromptFocused = false
-                                }
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(themeManager.theme.accentGreen)
-                            }
-                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
 
                     // Course filter tags
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -403,11 +403,8 @@ struct VideoLibraryView: View {
                                     name: course,
                                     isSelected: selectedCourses.contains(course)
                                 ) {
-                                    if selectedCourses.contains(course) {
-                                        selectedCourses.remove(course)
-                                    } else {
-                                        selectedCourses.insert(course)
-                                    }
+                                    comingSoonFeature = "Highlight Reel"
+                                    showingComingSoon = true
                                 }
                             }
                         }
