@@ -27,6 +27,8 @@ struct VideoLibraryView: View {
     @State private var selectedSwingVideo: ManagedSwingVideo?
     @State private var showingAddVideoOptions = false
     @State private var showingVideoPicker = false
+    @State private var showingComingSoon = false
+    @State private var comingSoonFeature = ""
     @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
@@ -86,6 +88,11 @@ struct VideoLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .alert("Coming Soon", isPresented: $showingComingSoon) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(comingSoonFeature) is still in development. Stay tuned for updates!")
         }
         .fullScreenCover(item: $selectedVideoForPlayback) { video in
             if let videoFileName = video.videoFileName {
@@ -408,18 +415,13 @@ struct VideoLibraryView: View {
 
                     // Generate button
                     Button(action: {
-                        generateHighlightReel()
+                        comingSoonFeature = "Highlight Reel"
+                        showingComingSoon = true
                     }) {
                         HStack(spacing: 8) {
-                            if isGeneratingHighlight {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 14))
-                            }
-                            Text(isGeneratingHighlight ? "Generating..." : "Generate Highlight Reel")
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14))
+                            Text("Generate Highlight Reel")
                                 .font(.system(size: 14, weight: .bold))
                         }
                         .foregroundColor(.white)
@@ -434,8 +436,6 @@ struct VideoLibraryView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    .disabled(highlightPrompt.isEmpty || isGeneratingHighlight)
-                    .opacity(highlightPrompt.isEmpty ? 0.6 : 1)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -552,8 +552,8 @@ struct VideoLibraryView: View {
                             hasAnalysis: video.analysisResult != nil,
                             score: video.analysisResult?.overallScore,
                             onAnalyze: {
-                                selectedSwingVideo = video
-                                showingSwingAnalysis = true
+                                comingSoonFeature = "Swing Analysis"
+                                showingComingSoon = true
                             },
                             onDelete: {
                                 swingVideoManager.deleteSwingVideo(video)
@@ -565,23 +565,24 @@ struct VideoLibraryView: View {
             }
 
             // Add more videos button
-            if swingVideoManager.canAddMoreVideos {
-                Button(action: { showingAddVideoOptions = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 14))
-                        Text("Add Swing Video")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(themeManager.theme.accentGreen.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Button(action: {
+                comingSoonFeature = "Swing Videos"
+                showingComingSoon = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 14))
+                    Text("Add Swing Video")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .foregroundColor(themeManager.theme.accentGreen)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(themeManager.theme.accentGreen.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
         }
         .background(themeManager.theme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
