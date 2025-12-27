@@ -229,14 +229,16 @@ struct CategoryDetailView: View {
 
             VStack(spacing: 12) {
                 // Best shots
-                if let bestShots = viewModel.bestShots(for: category).prefix(3), !bestShots.isEmpty {
+                let bestShots = viewModel.bestShots(for: category).prefix(3)
+                if !bestShots.isEmpty {
                     ForEach(Array(bestShots)) { shot in
                         shotRow(shot: shot, isBest: true)
                     }
                 }
 
                 // Worst shots
-                if let worstShots = viewModel.worstShots(for: category).prefix(3), !worstShots.isEmpty {
+                let worstShots = viewModel.worstShots(for: category).prefix(3)
+                if !worstShots.isEmpty {
                     Divider()
                         .background(themeManager.theme.border)
                         .padding(.vertical, 4)
