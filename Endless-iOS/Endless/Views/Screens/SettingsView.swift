@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var authManager = AuthenticationManager.shared
+    @ObservedObject private var settings = UserSettingsManager.shared
     @State private var showingMenu = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
@@ -279,7 +280,7 @@ struct SettingsView: View {
 
     private var preferencesSettingsGroup: some View {
         VStack(spacing: 0) {
-            settingsRowButton(icon: "figure.golf", title: "Golf Settings", subtitle: "Handicap: 4.2, Home: Oakmont CC") {
+            settingsRowButton(icon: "figure.golf", title: "Golf Settings", subtitle: golfSettingsSubtitle) {
                 showingGolfSettings = true
             }
             divider
@@ -294,6 +295,19 @@ struct SettingsView: View {
         .background(themeManager.theme.cardBackground)
         .cornerRadius(24)
         .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+    }
+
+    private var golfSettingsSubtitle: String {
+        var parts: [String] = []
+        if !settings.handicap.isEmpty && settings.handicap != "0.0" {
+            parts.append("Handicap: \(settings.handicap)")
+        }
+        if !settings.homeCourse.isEmpty {
+            // Extract just the course name (first part before comma if present)
+            let courseName = settings.homeCourse.components(separatedBy: ", ").last ?? settings.homeCourse
+            parts.append("Home: \(courseName)")
+        }
+        return parts.isEmpty ? "Set your golf preferences" : parts.joined(separator: ", ")
     }
 
     // MARK: - Support Settings
@@ -939,7 +953,10 @@ struct GolfSettingsSheet: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var settings = UserSettingsManager.shared
 
-    let courses = ["Oakmont Country Club", "Pebble Beach Golf Links", "Augusta National", "Torrey Pines", "Del Mar Country Club"]
+    @StateObject private var searchService = GolfCourseSearchService()
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
+
     let teeOptions = ["Championship", "Back", "Middle", "Forward"]
     let units = ["Yards", "Meters"]
     let hands = ["Right", "Left"]
@@ -957,13 +974,6 @@ struct GolfSettingsSheet: View {
                             .foregroundColor(themeManager.theme.primary)
                     }
 
-                    Picker("Home Course", selection: $settings.homeCourse) {
-                        Text("Select a course").tag("")
-                        ForEach(courses, id: \.self) { course in
-                            Text(course).tag(course)
-                        }
-                    }
-
                     Picker("Preferred Tees", selection: $settings.preferredTees) {
                         ForEach(teeOptions, id: \.self) { tee in
                             Text(tee).tag(tee)
@@ -971,6 +981,126 @@ struct GolfSettingsSheet: View {
                     }
                 } header: {
                     Text("Golf Profile")
+                }
+
+                Section {
+                    // Current home course display
+                    if !settings.homeCourse.isEmpty && searchText.isEmpty {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Current Home Course")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                                Text(settings.homeCourse)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                            }
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(themeManager.theme.accentGreen)
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    // Search text field
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16))
+                            .foregroundColor(themeManager.theme.textSecondary)
+
+                        TextField("Search golf courses...", text: $searchText)
+                            .font(.system(size: 15))
+                            .foregroundColor(themeManager.theme.textPrimary)
+                            .focused($isSearchFocused)
+                            .autocorrectionDisabled()
+                            .onChange(of: searchText) { _, newValue in
+                                searchService.search(query: newValue)
+                            }
+
+                        if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                                searchService.clearResults()
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(themeManager.theme.textSecondary)
+                            }
+                        }
+
+                        if searchService.isSearching {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    // Search results
+                    if !searchService.searchResults.isEmpty {
+                        ForEach(searchService.searchResults) { result in
+                            Button(action: {
+                                settings.homeCourse = result.displayName
+                                searchText = ""
+                                searchService.clearResults()
+                                isSearchFocused = false
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(result.name)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(themeManager.theme.textPrimary)
+
+                                        if !result.address.isEmpty {
+                                            Text(result.address)
+                                                .font(.system(size: 12))
+                                                .foregroundColor(themeManager.theme.textSecondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(themeManager.theme.primary)
+                                }
+                            }
+                        }
+                    }
+
+                    // Empty state when searching
+                    if searchText.count >= 2 && searchService.searchResults.isEmpty && !searchService.isSearching {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+
+                            Text("No golf courses found")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textSecondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    // Error state
+                    if let error = searchService.searchError {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.error)
+
+                            Text(error)
+                                .font(.system(size: 13))
+                                .foregroundColor(themeManager.theme.textSecondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Text("Home Course")
+                } footer: {
+                    Text("Search for golf courses worldwide")
+                        .font(.system(size: 11))
+                        .foregroundColor(themeManager.theme.textMuted)
                 }
 
                 Section {

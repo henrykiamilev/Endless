@@ -7,9 +7,9 @@ struct VideoLibraryView: View {
     @ObservedObject private var videoStorage = VideoStorageManager.shared
     @ObservedObject private var swingVideoManager = SwingVideoManager.shared
     @ObservedObject private var highlightGenerator = HighlightReelGenerator.shared
+    @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
 
     @State private var showingMenu = false
-    @State private var showingFilter = false
     @State private var showingAIAnalysis = false
     @State private var selectedVideoForAI: Video?
     @State private var showingHighlightGenerator = false
@@ -27,6 +27,12 @@ struct VideoLibraryView: View {
     @State private var selectedSwingVideo: ManagedSwingVideo?
     @State private var showingAddVideoOptions = false
     @State private var showingVideoPicker = false
+    @State private var showingComingSoon = false
+    @State private var comingSoonFeature = ""
+    @State private var showingShareOptions = false
+    @State private var videoToShare: Video?
+    @State private var showingShareSuccess = false
+    @State private var shareSuccessMessage = ""
     @FocusState private var isPromptFocused: Bool
 
     private let availableCourses = ["Oakmont CC", "Pebble Beach", "Del Mar", "Torrey Pines"]
@@ -87,6 +93,11 @@ struct VideoLibraryView: View {
         } message: {
             Text(errorMessage)
         }
+        .alert("Coming Soon", isPresented: $showingComingSoon) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(comingSoonFeature) is still in development. Stay tuned for updates!")
+        }
         .fullScreenCover(item: $selectedVideoForPlayback) { video in
             if let videoFileName = video.videoFileName {
                 VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
@@ -124,6 +135,48 @@ struct VideoLibraryView: View {
             }
         } message: {
             Text("Are you sure you want to delete this video? This action cannot be undone.")
+        }
+        .confirmationDialog("Share Video", isPresented: $showingShareOptions, titleVisibility: .visible) {
+            Button("Add to Film Highlights") {
+                if let video = videoToShare, let videoFileName = video.videoFileName {
+                    let videoURL = URL(fileURLWithPath: videoFileName)
+                    filmHighlights.saveHighlight(from: videoURL, title: video.title) { success in
+                        if success {
+                            shareSuccessMessage = "Video added to Film Highlights!"
+                            showingShareSuccess = true
+                        } else {
+                            errorMessage = "Failed to add video to Film Highlights"
+                            showingError = true
+                        }
+                        videoToShare = nil
+                    }
+                }
+            }
+            Button("Save to Camera Roll") {
+                if let video = videoToShare, let videoFileName = video.videoFileName {
+                    let videoURL = URL(fileURLWithPath: videoFileName)
+                    filmHighlights.saveToCameraRoll(from: videoURL) { success, error in
+                        if success {
+                            shareSuccessMessage = "Video saved to Camera Roll!"
+                            showingShareSuccess = true
+                        } else {
+                            errorMessage = error?.localizedDescription ?? "Failed to save video"
+                            showingError = true
+                        }
+                        videoToShare = nil
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                videoToShare = nil
+            }
+        } message: {
+            Text("Choose where to share your video")
+        }
+        .alert("Success", isPresented: $showingShareSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(shareSuccessMessage)
         }
     }
 
@@ -189,40 +242,6 @@ struct VideoLibraryView: View {
 
     private var videoTabContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Filter header with better styling
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.primary)
-                    Text("October 2025")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                }
-
-                Spacer()
-
-                Button(action: { showingFilter = true }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 14))
-                        Text("Filter")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(themeManager.theme.textSecondary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(themeManager.theme.cardBackground)
-                    .cornerRadius(20)
-                    .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
-                }
-                .sheet(isPresented: $showingFilter) {
-                    FilterSheetView()
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-
             // Section label with icon - MATCH VIDEOS AT TOP
             HStack(spacing: 8) {
                 Image(systemName: "play.rectangle.fill")
@@ -272,6 +291,10 @@ struct VideoLibraryView: View {
                             onDelete: isDeletable(video) ? {
                                 videoToDelete = video
                                 showingDeleteConfirmation = true
+                            } : nil,
+                            onShare: video.videoFileName != nil ? {
+                                videoToShare = video
+                                showingShareOptions = true
                             } : nil
                         )
                         .contextMenu {
@@ -279,6 +302,12 @@ struct VideoLibraryView: View {
                                 selectedVideoForPlayback = video
                             }) {
                                 Label("Play Video", systemImage: "play.fill")
+                            }
+                            Button(action: {
+                                videoToShare = video
+                                showingShareOptions = true
+                            }) {
+                                Label("Share Video", systemImage: "square.and.arrow.up")
                             }
                             Button(action: {
                                 selectedVideoForAI = video
@@ -366,9 +395,18 @@ struct VideoLibraryView: View {
                         .foregroundColor(themeManager.theme.textSecondary)
                         .lineLimit(3)
 
-                    TextEditor(text: $highlightPrompt)
-                        .font(.system(size: 14))
-                        .frame(height: 60)
+                    // Disabled text box - tapping shows Coming Soon
+                    Button(action: {
+                        comingSoonFeature = "Highlight Reel"
+                        showingComingSoon = true
+                    }) {
+                        HStack {
+                            Text("Enter your prompt here...")
+                                .font(.system(size: 14))
+                                .foregroundColor(themeManager.theme.textMuted)
+                            Spacer()
+                        }
+                        .frame(height: 60, alignment: .topLeading)
                         .padding(10)
                         .background(themeManager.theme.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -376,17 +414,8 @@ struct VideoLibraryView: View {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .stroke(themeManager.theme.border, lineWidth: 1)
                         )
-                        .focused($isPromptFocused)
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                Spacer()
-                                Button("Done") {
-                                    isPromptFocused = false
-                                }
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(themeManager.theme.accentGreen)
-                            }
-                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
 
                     // Course filter tags
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -396,11 +425,8 @@ struct VideoLibraryView: View {
                                     name: course,
                                     isSelected: selectedCourses.contains(course)
                                 ) {
-                                    if selectedCourses.contains(course) {
-                                        selectedCourses.remove(course)
-                                    } else {
-                                        selectedCourses.insert(course)
-                                    }
+                                    comingSoonFeature = "Highlight Reel"
+                                    showingComingSoon = true
                                 }
                             }
                         }
@@ -408,18 +434,13 @@ struct VideoLibraryView: View {
 
                     // Generate button
                     Button(action: {
-                        generateHighlightReel()
+                        comingSoonFeature = "Highlight Reel"
+                        showingComingSoon = true
                     }) {
                         HStack(spacing: 8) {
-                            if isGeneratingHighlight {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 14))
-                            }
-                            Text(isGeneratingHighlight ? "Generating..." : "Generate Highlight Reel")
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14))
+                            Text("Generate Highlight Reel")
                                 .font(.system(size: 14, weight: .bold))
                         }
                         .foregroundColor(.white)
@@ -434,8 +455,6 @@ struct VideoLibraryView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    .disabled(highlightPrompt.isEmpty || isGeneratingHighlight)
-                    .opacity(highlightPrompt.isEmpty ? 0.6 : 1)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -552,8 +571,8 @@ struct VideoLibraryView: View {
                             hasAnalysis: video.analysisResult != nil,
                             score: video.analysisResult?.overallScore,
                             onAnalyze: {
-                                selectedSwingVideo = video
-                                showingSwingAnalysis = true
+                                comingSoonFeature = "Swing Analysis"
+                                showingComingSoon = true
                             },
                             onDelete: {
                                 swingVideoManager.deleteSwingVideo(video)
@@ -565,23 +584,24 @@ struct VideoLibraryView: View {
             }
 
             // Add more videos button
-            if swingVideoManager.canAddMoreVideos {
-                Button(action: { showingAddVideoOptions = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 14))
-                        Text("Add Swing Video")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(themeManager.theme.accentGreen.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Button(action: {
+                comingSoonFeature = "Swing Videos"
+                showingComingSoon = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 14))
+                    Text("Add Swing Video")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .foregroundColor(themeManager.theme.accentGreen)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(themeManager.theme.accentGreen.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
         }
         .background(themeManager.theme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))

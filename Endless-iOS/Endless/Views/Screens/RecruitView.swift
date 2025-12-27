@@ -489,7 +489,7 @@ struct RecruitView: View {
     // MARK: - Sponsorships Section (Clickable)
 
     private var isSponsorshipsEmpty: Bool {
-        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil
+        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil && profileManager.profile.otherSponsor == nil
     }
 
     private var sponsorshipsSection: some View {
@@ -520,14 +520,16 @@ struct RecruitView: View {
                     VStack(spacing: 0) {
                         sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
                         dividerHorizontal
+                        sponsorRow(label: "Ball Sponsor", value: profileManager.profile.ballSponsor ?? "Add sponsor")
+                        dividerHorizontal
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Ball Sponsor")
+                                Text("Other")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(themeManager.theme.textSecondary)
-                                Text(profileManager.profile.ballSponsor ?? "Add sponsor")
+                                Text(profileManager.profile.otherSponsor ?? "Add sponsor")
                                     .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                                    .foregroundColor(profileManager.profile.otherSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -565,28 +567,13 @@ struct RecruitView: View {
                     Image(systemName: "film.stack")
                         .font(.system(size: 28))
                         .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
-                    Text("No highlight reels yet")
+                    Text("No highlights yet")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Create AI highlight reels from your videos to showcase your skills")
+                    Text("Share videos from your library to add them here")
                         .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
-
-                    Button(action: { navigationManager.navigateToVideo() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 12))
-                            Text("Create Highlight Reel")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(themeManager.theme.accentGreen)
-                        .clipShape(Capsule())
-                    }
-                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
@@ -800,10 +787,9 @@ struct RecruitView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Top row: Delete button and AI badge
+                // Delete button
                 VStack {
                     HStack {
-                        // Delete button
                         Button(action: {
                             highlightToDelete = highlight
                             showingDeleteConfirmation = true
@@ -818,19 +804,6 @@ struct RecruitView: View {
                         .buttonStyle(PlainButtonStyle())
 
                         Spacer()
-
-                        // AI badge
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8))
-                            Text("AI")
-                                .font(.system(size: 8, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
                     }
                     Spacer()
                 }
@@ -873,6 +846,7 @@ struct EditSectionSheet: View {
     @State private var email = ""
     @State private var clubSponsor = ""
     @State private var ballSponsor = ""
+    @State private var otherSponsor = ""
 
     var title: String {
         switch section {
@@ -909,6 +883,7 @@ struct EditSectionSheet: View {
                     case .sponsorship:
                         formField(label: "Club Sponsor", text: $clubSponsor)
                         formField(label: "Ball Sponsor", text: $ballSponsor)
+                        formField(label: "Other (e.g., Bank, Apparel)", text: $otherSponsor)
                     }
                 }
                 .padding(20)
@@ -962,6 +937,7 @@ struct EditSectionSheet: View {
         email = profile.email
         clubSponsor = profile.clubSponsor ?? ""
         ballSponsor = profile.ballSponsor ?? ""
+        otherSponsor = profile.otherSponsor ?? ""
     }
 
     private func saveChanges() {
@@ -987,6 +963,7 @@ struct EditSectionSheet: View {
         case .sponsorship:
             profile.clubSponsor = clubSponsor.isEmpty ? nil : clubSponsor
             profile.ballSponsor = ballSponsor.isEmpty ? nil : ballSponsor
+            profile.otherSponsor = otherSponsor.isEmpty ? nil : otherSponsor
         }
         dismiss()
     }
