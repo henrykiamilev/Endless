@@ -76,6 +76,7 @@ struct RecruitProfile: Codable {
     var email: String
     var clubSponsor: String?
     var ballSponsor: String?
+    var otherSponsor: String?
 
     var fullName: String {
         "\(firstName) \(lastName)"
@@ -95,7 +96,8 @@ struct RecruitProfile: Codable {
         phone: "",
         email: "",
         clubSponsor: nil,
-        ballSponsor: nil
+        ballSponsor: nil,
+        otherSponsor: nil
     )
 }
 
