@@ -6,7 +6,9 @@ struct StrokesGainedOverviewView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var viewModel = StrokesGainedViewModel.shared
     @State private var selectedCategory: SGCategory?
-    @State private var selectedTab: StatRowModel.StatCategory = .scoring
+    @State private var showingHoleDetail = false
+    @State private var selectedHoleNumber: Int?
+    @State private var showingTrends = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -20,11 +22,14 @@ struct StrokesGainedOverviewView: View {
                 // Category Tiles
                 categoryTilesSection
 
-                // Tab Bar for Stats Tables
-                statsTabBar
+                // Insights Section
+                insightsSection
 
-                // Current Stats Table
-                currentStatsTable
+                // Quick Actions
+                quickActionsSection
+
+                // Confidence Badge
+                confidenceBadge
 
                 Spacer(minLength: 40)
             }
@@ -35,45 +40,47 @@ struct StrokesGainedOverviewView: View {
             CategoryDetailView(category: category)
                 .environmentObject(themeManager)
         }
+        .sheet(isPresented: $showingTrends) {
+            TrendsView()
+                .environmentObject(themeManager)
+        }
     }
 
-    // MARK: - Header Section
+    // MARK: - Header
 
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Strokes Gained")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(themeManager.theme.textPrimary)
-
-                Text("Performance Analytics")
-                    .font(.system(size: 14))
+                Text("STROKES GAINED")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
                     .foregroundColor(themeManager.theme.textSecondary)
+
+                if let summary = viewModel.currentSummary {
+                    Text(summary.courseName ?? "Recent Round")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                } else {
+                    Text("No Round Data")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
             }
 
             Spacer()
 
-            // Timeframe selector
-            Menu {
-                ForEach(StatTimeframe.allCases, id: \.self) { timeframe in
-                    Button(action: {
-                        viewModel.setTimeframe(timeframe)
-                    }) {
-                        Text(timeframe.rawValue)
-                    }
+            Button(action: { showingTrends = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 14))
+                    Text("Trends")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(viewModel.selectedTimeframe.rawValue)
-                        .font(.system(size: 13, weight: .medium))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))
-                }
-                .foregroundColor(themeManager.theme.textSecondary)
-                .padding(.horizontal, 12)
+                .foregroundColor(themeManager.theme.accentGreen)
+                .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .background(themeManager.theme.accentGreen.opacity(0.15))
+                .clipShape(Capsule())
             }
         }
         .padding(.top, 16)
@@ -83,23 +90,75 @@ struct StrokesGainedOverviewView: View {
 
     private var totalSGCard: some View {
         VStack(spacing: 16) {
-            HStack {
-                Text("Total Strokes Gained")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary)
+            // Main SG Value
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Total Strokes Gained")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    if let summary = viewModel.currentSummary {
+                        Text(summary.formattedTotalSG)
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(sgColor(for: summary.totalSG))
+                    } else {
+                        Text("--")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(themeManager.theme.textMuted)
+                    }
+                }
 
                 Spacer()
 
-                if let summary = viewModel.currentSummary {
-                    Text(formatSG(summary.totalStrokesGained))
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundColor(sgColor(for: summary.totalStrokesGained))
+                // SG Equation
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("SG Formula")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(themeManager.theme.textMuted)
+
+                    Text("Expected(start) - Expected(end) - 1")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(themeManager.theme.backgroundSecondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
 
-            // SG Breakdown Bar
-            if let summary = viewModel.currentSummary {
-                sgBreakdownBar(summary: summary)
+            Divider()
+                .background(themeManager.theme.border)
+
+            // Biggest Strength/Leak
+            HStack(spacing: 20) {
+                if let summary = viewModel.currentSummary {
+                    // Biggest Strength
+                    if let strength = summary.biggestStrength {
+                        strengthLeakItem(
+                            title: "Biggest Strength",
+                            category: strength,
+                            value: summary.sgByCategory[strength] ?? 0,
+                            isStrength: true
+                        )
+                    }
+
+                    Spacer()
+
+                    // Biggest Leak
+                    if let leak = summary.biggestLeak {
+                        strengthLeakItem(
+                            title: "Biggest Leak",
+                            category: leak,
+                            value: summary.sgByCategory[leak] ?? 0,
+                            isStrength: false
+                        )
+                    }
+                } else {
+                    Text("Complete a round to see insights")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
         .padding(20)
@@ -108,199 +167,246 @@ struct StrokesGainedOverviewView: View {
         .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 16, x: 0, y: 8)
     }
 
-    private func sgBreakdownBar(summary: RoundSummary) -> some View {
-        VStack(spacing: 8) {
-            // Stacked bar
-            GeometryReader { geometry in
-                HStack(spacing: 2) {
-                    ForEach(SGCategory.allCases, id: \.self) { category in
-                        let sg = summary.sg(for: category)
-                        let width = barWidth(for: sg, total: totalAbsSG(summary), totalWidth: geometry.size.width)
+    private func strengthLeakItem(title: String, category: SGCategory, value: Double, isStrength: Bool) -> some View {
+        VStack(alignment: isStrength ? .leading : .trailing, spacing: 6) {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.5)
+                .foregroundColor(themeManager.theme.textMuted)
 
-                        Rectangle()
-                            .fill(categoryColor(for: category, sg: sg))
-                            .frame(width: max(width, 4))
-                    }
+            HStack(spacing: 8) {
+                if !isStrength {
+                    Text(formatSG(value))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(sgColor(for: value))
+                }
+
+                Image(systemName: category.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(isStrength ? themeManager.theme.accentGreen : themeManager.theme.error)
+                    .frame(width: 32, height: 32)
+                    .background((isStrength ? themeManager.theme.accentGreen : themeManager.theme.error).opacity(0.15))
+                    .clipShape(Circle())
+
+                if isStrength {
+                    Text(formatSG(value))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(sgColor(for: value))
                 }
             }
-            .frame(height: 8)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
 
-            // Legend
-            HStack(spacing: 16) {
-                ForEach(SGCategory.allCases, id: \.self) { category in
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(categoryBaseColor(for: category))
-                            .frame(width: 8, height: 8)
-
-                        Text(category.displayName)
-                            .font(.system(size: 10))
-                            .foregroundColor(themeManager.theme.textMuted)
-
-                        Text(formatSG(summary.sg(for: category)))
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(sgColor(for: summary.sg(for: category)))
-                    }
-                }
-            }
+            Text(category.displayName)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(themeManager.theme.textSecondary)
         }
     }
 
-    // MARK: - Category Tiles Section
+    // MARK: - Category Tiles
 
     private var categoryTilesSection: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ], spacing: 12) {
-            ForEach(SGCategory.allCases, id: \.self) { category in
-                categoryTile(category: category)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("BY CATEGORY")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(themeManager.theme.textSecondary)
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 12) {
+                ForEach(SGCategory.allCases, id: \.self) { category in
+                    categoryTile(category)
+                }
             }
         }
     }
 
-    private func categoryTile(category: SGCategory) -> some View {
+    private func categoryTile(_ category: SGCategory) -> some View {
         Button(action: { selectedCategory = category }) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: category.icon)
                         .font(.system(size: 18))
-                        .foregroundColor(categoryBaseColor(for: category))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .frame(width: 36, height: 36)
+                        .background(themeManager.theme.accentGreen.opacity(0.15))
+                        .clipShape(Circle())
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(themeManager.theme.textMuted)
                 }
 
-                Text(category.displayName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(themeManager.theme.textPrimary)
+                VStack(alignment: .leading, spacing: 4) {
+                    if let summary = viewModel.currentSummary {
+                        let sg = summary.sgByCategory[category] ?? 0
+                        Text(formatSG(sg))
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(sgColor(for: sg))
+                    } else {
+                        Text("--")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(themeManager.theme.textMuted)
+                    }
 
-                if let summary = viewModel.currentSummary {
-                    Text(formatSG(summary.sg(for: category)))
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(sgColor(for: summary.sg(for: category)))
+                    Text(category.displayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
                 }
             }
             .padding(16)
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(categoryBaseColor(for: category).opacity(0.3), lineWidth: 1)
-            )
         }
         .buttonStyle(PlainButtonStyle())
     }
 
-    // MARK: - Stats Tab Bar
+    // MARK: - Insights Section
 
-    private var statsTabBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(StatRowModel.StatCategory.allCases, id: \.self) { tab in
-                    Button(action: { selectedTab = tab }) {
-                        VStack(spacing: 8) {
-                            Text(tab.rawValue)
-                                .font(.system(size: 14, weight: selectedTab == tab ? .semibold : .regular))
-                                .foregroundColor(selectedTab == tab ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+    private var insightsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("FOCUS POINTS")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(themeManager.theme.textSecondary)
 
-                            Rectangle()
-                                .fill(selectedTab == tab ? themeManager.theme.accentGreen : Color.clear)
-                                .frame(height: 3)
-                        }
-                        .padding(.horizontal, 16)
+            if viewModel.focusPoints.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "lightbulb")
+                        .font(.system(size: 28))
+                        .foregroundColor(themeManager.theme.textMuted)
+
+                    Text("Complete a round to get personalized insights")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.focusPoints) { insight in
+                        insightRow(insight)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }
-        .background(themeManager.theme.cardBackground)
     }
 
-    // MARK: - Current Stats Table
+    private func insightRow(_ insight: InsightCard) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: insight.category?.icon ?? "lightbulb.fill")
+                .font(.system(size: 16))
+                .foregroundColor(themeManager.theme.accentGreen)
+                .frame(width: 40, height: 40)
+                .background(themeManager.theme.accentGreen.opacity(0.15))
+                .clipShape(Circle())
 
-    private var currentStatsTable: some View {
-        Group {
-            switch selectedTab {
-            case .scoring:
-                statsTableView(title: "Scoring", rows: viewModel.scoringRows)
-            case .tee:
-                statsTableView(title: "Tee", rows: viewModel.teeRows)
-            case .approach:
-                statsTableView(title: "Approach", rows: viewModel.approachRows)
-            case .shortGame:
-                statsTableView(title: "Short Game", rows: viewModel.shortGameRows)
-            case .putting:
-                statsTableView(title: "Putting", rows: viewModel.puttingRows)
-            }
-        }
-    }
-
-    private func statsTableView(title: String, rows: [StatRowModel]) -> some View {
-        VStack(spacing: 0) {
-            // Colored bar
-            Rectangle()
-                .fill(tabColor(for: selectedTab))
-                .frame(height: 4)
-
-            // Table Header
-            HStack(spacing: 0) {
-                Text(title)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(themeManager.theme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 16)
 
-                ForEach([StatTimeframe.lastRound, .last3, .last4, .last20, .season], id: \.self) { timeframe in
-                    Text(timeframe.rawValue)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary)
-                        .frame(width: timeframe == .lastRound ? 60 : 50, alignment: .trailing)
-                }
+                Text(insight.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .lineLimit(2)
             }
-            .padding(.vertical, 10)
-            .padding(.trailing, 12)
-            .background(themeManager.theme.cardBackground)
-            .overlay(
-                Rectangle()
-                    .fill(themeManager.theme.border)
-                    .frame(height: 1),
-                alignment: .bottom
-            )
 
-            // Rows
-            ForEach(Array(rows.enumerated()), id: \.element.id) { index, stat in
-                HStack(spacing: 0) {
-                    Text(stat.label)
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 20)
+            Spacer()
+        }
+        .padding(14)
+        .background(themeManager.theme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
 
-                    ForEach([StatTimeframe.lastRound, .last3, .last4, .last20, .season], id: \.self) { timeframe in
-                        VStack(spacing: 1) {
-                            Text(stat.displayValue(for: timeframe))
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(valueColor(for: stat, timeframe: timeframe))
+    // MARK: - Quick Actions
 
-                            Text("\(stat.sampleSize(for: timeframe))")
-                                .font(.system(size: 9))
-                                .foregroundColor(themeManager.theme.textMuted)
-                        }
-                        .frame(width: timeframe == .lastRound ? 60 : 50, alignment: .trailing)
-                    }
-                }
-                .padding(.vertical, 8)
-                .padding(.trailing, 12)
-                .background(index % 2 == 1 ? themeManager.theme.background.opacity(0.5) : themeManager.theme.cardBackground)
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("EXPLORE")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(themeManager.theme.textSecondary)
+
+            HStack(spacing: 12) {
+                quickActionButton(
+                    icon: "list.number",
+                    title: "Shot Table",
+                    action: { /* Navigate to hole detail */ }
+                )
+
+                quickActionButton(
+                    icon: "ruler",
+                    title: "Distance Bands",
+                    action: { selectedCategory = .approach }
+                )
+
+                quickActionButton(
+                    icon: "circle.fill",
+                    title: "Putting Bands",
+                    action: { selectedCategory = .putting }
+                )
             }
         }
+    }
+
+    private func quickActionButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(themeManager.theme.textPrimary)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    // MARK: - Confidence Badge
+
+    private var confidenceBadge: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 14))
+                .foregroundColor(themeManager.theme.accentGreen)
+
+            if let summary = viewModel.currentSummary {
+                Text(summary.confidenceStats.autoConfirmedPercent)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(themeManager.theme.textSecondary)
+            } else {
+                Text("No data yet")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(themeManager.theme.textMuted)
+            }
+
+            Spacer()
+
+            if let summary = viewModel.currentSummary, summary.confidenceStats.needsReviewShots > 0 {
+                Text("\(summary.confidenceStats.needsReviewShots) needs review")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(themeManager.theme.error)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(themeManager.theme.error.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(16)
         .background(themeManager.theme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: - Helpers
@@ -314,64 +420,18 @@ struct StrokesGainedOverviewView: View {
     }
 
     private func sgColor(for value: Double) -> Color {
-        if value > 0.1 {
+        if value > 0.5 {
             return themeManager.theme.accentGreen
-        } else if value < -0.1 {
+        } else if value < -0.5 {
             return themeManager.theme.error
-        }
-        return themeManager.theme.textPrimary
-    }
-
-    private func categoryBaseColor(for category: SGCategory) -> Color {
-        switch category {
-        case .offTheTee: return .green
-        case .approach: return .orange
-        case .shortGame: return .cyan
-        case .putting: return .blue
-        }
-    }
-
-    private func categoryColor(for category: SGCategory, sg: Double) -> Color {
-        let base = categoryBaseColor(for: category)
-        return sg >= 0 ? base : base.opacity(0.5)
-    }
-
-    private func totalAbsSG(_ summary: RoundSummary) -> Double {
-        abs(summary.sgOffTheTee) + abs(summary.sgApproach) + abs(summary.sgShortGame) + abs(summary.sgPutting)
-    }
-
-    private func barWidth(for sg: Double, total: Double, totalWidth: CGFloat) -> CGFloat {
-        guard total > 0 else { return totalWidth / 4 }
-        return (abs(sg) / total) * totalWidth
-    }
-
-    private func tabColor(for tab: StatRowModel.StatCategory) -> Color {
-        switch tab {
-        case .scoring: return .gray
-        case .tee: return .green
-        case .approach: return .red
-        case .shortGame: return .green
-        case .putting: return .blue
-        }
-    }
-
-    private func valueColor(for stat: StatRowModel, timeframe: StatTimeframe) -> Color {
-        guard stat.displayType == .strokesGained,
-              let value = stat.values[timeframe]?.value else {
+        } else {
             return themeManager.theme.textPrimary
         }
-
-        if value > 0.1 { return .green }
-        if value < -0.1 { return .red }
-        return themeManager.theme.textPrimary
     }
 }
 
-// MARK: - Preview
+// MARK: - SGCategory Identifiable Extension
 
-struct StrokesGainedOverviewView_Previews: PreviewProvider {
-    static var previews: some View {
-        StrokesGainedOverviewView()
-            .environmentObject(ThemeManager())
-    }
+extension SGCategory: Identifiable {
+    var id: String { rawValue }
 }

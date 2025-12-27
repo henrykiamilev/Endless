@@ -2,67 +2,67 @@ import Foundation
 import CoreLocation
 
 // MARK: - Strokes Gained Core Engine
-// Core module for computing strokes gained analytics
+// A dependency-free core module for computing strokes gained analytics
+// Uses only Foundation + CoreLocation
 
-// MARK: - Strokes Gained Category
+// MARK: - Provenance & Confidence
 
-enum SGCategory: String, Codable, CaseIterable, Identifiable {
-    case offTheTee = "OTT"
-    case approach = "APP"
-    case shortGame = "ARG"  // Around the Green
-    case putting = "PUTT"
+/// Represents a value with its source provenance and confidence level
+struct ProvenanceValue<T: Codable>: Codable where T: Equatable {
+    var autoValue: T?
+    var userOverride: T?
+    var confidence: Double  // 0.0 - 1.0
+    var source: ValueSource
+    var reasonCodes: [String]
 
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .offTheTee: return "Tee"
-        case .approach: return "Approach"
-        case .shortGame: return "Short Game"
-        case .putting: return "Putting"
-        }
+    var value: T? {
+        userOverride ?? autoValue
     }
 
-    var fullName: String {
-        switch self {
-        case .offTheTee: return "Off the Tee"
-        case .approach: return "Approach"
-        case .shortGame: return "Around the Green"
-        case .putting: return "Putting"
-        }
+    var isUserOverridden: Bool {
+        userOverride != nil
     }
 
-    var icon: String {
-        switch self {
-        case .offTheTee: return "figure.golf"
-        case .approach: return "arrow.up.right"
-        case .shortGame: return "flag.fill"
-        case .putting: return "circle.fill"
-        }
+    enum ValueSource: String, Codable {
+        case gps
+        case video
+        case derived
+        case userInput
+        case fallback
+        case unknown
     }
 
-    var color: String {
-        switch self {
-        case .offTheTee: return "teeColor"       // Green bar in screenshot
-        case .approach: return "approachColor"   // Red bar in screenshot
-        case .shortGame: return "shortGameColor" // Green bar in screenshot
-        case .putting: return "puttingColor"     // Blue bar in screenshot
-        }
-    }
-
-    // Distance thresholds for this category (in yards)
-    var distanceRange: ClosedRange<Double>? {
-        switch self {
-        case .offTheTee: return nil  // Determined by hole type, not distance
-        case .approach: return 50...300  // Approach shots 50+ yards
-        case .shortGame: return 0...50   // Short game is <50 yards
-        case .putting: return nil  // On the green (feet, not yards)
-        }
+    init(auto: T? = nil, override: T? = nil, confidence: Double = 0.0, source: ValueSource = .unknown, reasons: [String] = []) {
+        self.autoValue = auto
+        self.userOverride = override
+        self.confidence = confidence
+        self.source = source
+        self.reasonCodes = reasons
     }
 }
 
-// MARK: - Lie Types
+/// Audit event for tracking changes
+struct AuditEvent: Codable, Identifiable {
+    let id: String
+    let timestamp: Date
+    let field: String
+    let oldValue: String?
+    let newValue: String
+    let source: String
 
+    init(id: String = UUID().uuidString, field: String, oldValue: String?, newValue: String, source: String) {
+        self.id = id
+        self.timestamp = Date()
+        self.field = field
+        self.oldValue = oldValue
+        self.newValue = newValue
+        self.source = source
+    }
+}
+
+// MARK: - Shot Classification
+
+/// The lie/surface type of the ball
 enum Lie: String, Codable, CaseIterable {
     case tee
     case fairway
@@ -71,7 +71,7 @@ enum Lie: String, Codable, CaseIterable {
     case bunker
     case green
     case fringe
-    case recovery
+    case recovery  // Trees, hazard, etc.
     case unknown
 
     var displayName: String {
@@ -89,8 +89,7 @@ enum Lie: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - Shot Type
-
+/// Type of shot played
 enum ShotType: String, Codable, CaseIterable {
     case drive
     case approach
@@ -115,441 +114,336 @@ enum ShotType: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - Distance Bands (for Approach)
+/// Strokes Gained category for analysis
+enum SGCategory: String, Codable, CaseIterable {
+    case offTheTee = "OTT"
+    case approach = "APP"
+    case shortGame = "ARG"  // Around the Green
+    case putting = "PUTT"
 
-enum ApproachDistanceBand: String, Codable, CaseIterable {
-    case band50_75 = "50-75"
-    case band76_100 = "76-100"
-    case band101_150 = "101-150"
-    case band151_200 = "151-200"
-    case band201_230 = "201-230"
-    case band230Plus = "230+"
-
-    var range: ClosedRange<Double> {
+    var displayName: String {
         switch self {
-        case .band50_75: return 50...75
-        case .band76_100: return 76...100
-        case .band101_150: return 101...150
-        case .band151_200: return 151...200
-        case .band201_230: return 201...230
-        case .band230Plus: return 231...400
+        case .offTheTee: return "Off the Tee"
+        case .approach: return "Approach"
+        case .shortGame: return "Short Game"
+        case .putting: return "Putting"
         }
     }
 
-    static func band(for distance: Double) -> ApproachDistanceBand? {
+    var icon: String {
+        switch self {
+        case .offTheTee: return "figure.golf"
+        case .approach: return "arrow.up.right"
+        case .shortGame: return "flag.fill"
+        case .putting: return "circle.fill"
+        }
+    }
+}
+
+// MARK: - Distance Bands
+
+/// Distance band for approach/full shots (in yards)
+enum DistanceBand: String, Codable, CaseIterable {
+    case band0_30 = "0-30"
+    case band30_75 = "30-75"
+    case band75_125 = "75-125"
+    case band125_175 = "125-175"
+    case band175_225 = "175-225"
+    case band225Plus = "225+"
+
+    var range: ClosedRange<Double> {
+        switch self {
+        case .band0_30: return 0...30
+        case .band30_75: return 30...75
+        case .band75_125: return 75...125
+        case .band125_175: return 125...175
+        case .band175_225: return 175...225
+        case .band225Plus: return 225...1000
+        }
+    }
+
+    static func band(for distance: Double) -> DistanceBand {
         for band in allCases {
             if band.range.contains(distance) {
                 return band
             }
         }
-        return distance > 230 ? .band230Plus : nil
+        return .band225Plus
     }
 }
 
-// MARK: - Short Game Distance Bands
-
-enum ShortGameDistanceBand: String, Codable, CaseIterable {
-    case band0_10 = "0-10"
-    case band11_20 = "11-20"
-    case band21_30 = "21-30"
-    case band31_40 = "31-40"
-    case band41_50 = "41-50"
-
-    var range: ClosedRange<Double> {
-        switch self {
-        case .band0_10: return 0...10
-        case .band11_20: return 11...20
-        case .band21_30: return 21...30
-        case .band31_40: return 31...40
-        case .band41_50: return 41...50
-        }
-    }
-
-    static func band(for distance: Double) -> ShortGameDistanceBand? {
-        for band in allCases {
-            if band.range.contains(distance) {
-                return band
-            }
-        }
-        return nil
-    }
-}
-
-// MARK: - Putting Distance Bands
-
-enum PuttingDistanceBand: String, Codable, CaseIterable {
-    case band3_4 = "3-4'"
-    case band5_8 = "5-8'"
-    case band9_10 = "9-10'"
-    case band11_15 = "11-15'"
-    case band16_20 = "16-20'"
-    case band21_25 = "21-25'"
-    case band26Plus = "26'+"
+/// Putting distance band (in feet)
+enum PuttingBand: String, Codable, CaseIterable {
+    case band0_3 = "0-3 ft"
+    case band3_4 = "3-4 ft"
+    case band4_8 = "4-8 ft"
+    case band8_10 = "8-10 ft"
+    case band10_15 = "10-15 ft"
+    case band15_20 = "15-20 ft"
+    case band20_25 = "20-25 ft"
+    case band25Plus = "25+ ft"
 
     var range: ClosedRange<Double> {
         switch self {
+        case .band0_3: return 0...3
         case .band3_4: return 3...4
-        case .band5_8: return 5...8
-        case .band9_10: return 9...10
-        case .band11_15: return 11...15
-        case .band16_20: return 16...20
-        case .band21_25: return 21...25
-        case .band26Plus: return 26...200
+        case .band4_8: return 4...8
+        case .band8_10: return 8...10
+        case .band10_15: return 10...15
+        case .band15_20: return 15...20
+        case .band20_25: return 20...25
+        case .band25Plus: return 25...200
         }
     }
 
-    static func band(for distanceFeet: Double) -> PuttingDistanceBand? {
+    static func band(for distanceFeet: Double) -> PuttingBand {
         for band in allCases {
             if band.range.contains(distanceFeet) {
                 return band
             }
         }
-        return distanceFeet > 25 ? .band26Plus : nil
+        return .band25Plus
     }
 }
 
-// MARK: - Shot Data
+// MARK: - Shot Event (from Video)
 
-struct ShotData: Codable, Identifiable {
+/// A shot event captured from video analysis
+struct ShotEvent: Codable, Identifiable {
     let id: String
     var roundId: String?
-    var holeNumber: Int
+
+    // Video timing
+    var clipStartSeconds: Double?
+    var impactSeconds: Double?
+    var clipEndSeconds: Double?
+    var secondsFromVideoStart: Double?
+    var recordedAt: Date?
+
+    // Derived absolute time
+    var eventDate: Date?
+
+    // Device pose (optional interface for x/y/z)
+    var devicePosition: DevicePosition?
+    var motionStability: Double?  // 0-1, variance in translation/rotation
+
+    init(id: String = UUID().uuidString) {
+        self.id = id
+    }
+}
+
+/// Device position/orientation at impact
+struct DevicePosition: Codable {
+    var x: Double
+    var y: Double
+    var z: Double
+    var pitch: Double?
+    var yaw: Double?
+    var roll: Double?
+}
+
+// MARK: - Video Session Timebase
+
+/// Converts video-relative times to absolute dates
+struct VideoSessionTimebase {
+    let sessionStartDate: Date
+    let videoStartOffset: Double  // Seconds from session start to video start
+
+    /// Convert seconds from video start to absolute Date
+    func absoluteDate(secondsFromVideoStart: Double) -> Date {
+        sessionStartDate.addingTimeInterval(videoStartOffset + secondsFromVideoStart)
+    }
+
+    /// Standardize a ShotEvent's eventDate using available timing info
+    func standardizeEventDate(for event: inout ShotEvent) {
+        // Prefer recordedAt if available
+        if let recordedAt = event.recordedAt {
+            event.eventDate = recordedAt
+            return
+        }
+
+        // Otherwise derive from secondsFromVideoStart
+        if let seconds = event.secondsFromVideoStart {
+            event.eventDate = absoluteDate(secondsFromVideoStart: seconds)
+            return
+        }
+
+        // Fallback: use impactSeconds relative to session
+        if let impact = event.impactSeconds {
+            event.eventDate = absoluteDate(secondsFromVideoStart: impact)
+        }
+    }
+}
+
+// MARK: - GPS Location Sample
+
+/// A GPS sample with accuracy metadata
+struct LocationSample: Codable, Identifiable {
+    let id: String
+    let timestamp: Date
+    let latitude: Double
+    let longitude: Double
+    let altitude: Double?
+    let horizontalAccuracy: Double
+    let verticalAccuracy: Double?
+    let speed: Double?
+    let course: Double?
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var clLocation: CLLocation {
+        CLLocation(
+            coordinate: coordinate,
+            altitude: altitude ?? 0,
+            horizontalAccuracy: horizontalAccuracy,
+            verticalAccuracy: verticalAccuracy ?? -1,
+            timestamp: timestamp
+        )
+    }
+
+    init(from location: CLLocation) {
+        self.id = UUID().uuidString
+        self.timestamp = location.timestamp
+        self.latitude = location.coordinate.latitude
+        self.longitude = location.coordinate.longitude
+        self.altitude = location.altitude
+        self.horizontalAccuracy = location.horizontalAccuracy
+        self.verticalAccuracy = location.verticalAccuracy
+        self.speed = location.speed >= 0 ? location.speed : nil
+        self.course = location.course >= 0 ? location.course : nil
+    }
+
+    init(id: String = UUID().uuidString, timestamp: Date, latitude: Double, longitude: Double,
+         horizontalAccuracy: Double, altitude: Double? = nil, verticalAccuracy: Double? = nil) {
+        self.id = id
+        self.timestamp = timestamp
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitude = altitude
+        self.horizontalAccuracy = horizontalAccuracy
+        self.verticalAccuracy = verticalAccuracy
+        self.speed = nil
+        self.course = nil
+    }
+}
+
+// MARK: - Smoothed Location Result
+
+/// Result of GPS smoothing with confidence
+struct SmoothedLocation {
+    let coordinate: CLLocationCoordinate2D
+    let altitude: Double?
+    let confidence: Double  // 0-1
+    let sampleCount: Int
+    let avgAccuracy: Double
+    let flags: [String]
+
+    var isHighConfidence: Bool {
+        confidence >= 0.7 && avgAccuracy <= 10.0
+    }
+}
+
+// MARK: - End State Source
+
+/// How the end state of a shot was determined
+enum EndStateSource: String, Codable {
+    case nextShotStartUsed
+    case clipEndUsed
+    case fallbackUsed
+    case userProvided
+    case unknown
+}
+
+// MARK: - Shot State
+
+/// The state (position/lie) at start or end of a shot
+struct ShotState: Codable {
+    var location: ProvenanceValue<LocationSample>
+    var lie: ProvenanceValue<Lie>
+    var distanceToPin: ProvenanceValue<Double>  // In yards for full shots, feet for putts
+    var expectedStrokes: Double?
+    var endStateSource: EndStateSource?
+
+    init() {
+        self.location = ProvenanceValue()
+        self.lie = ProvenanceValue()
+        self.distanceToPin = ProvenanceValue()
+    }
+}
+
+// MARK: - Derived Shot
+
+/// A fully derived shot with SG calculation
+struct DerivedShot: Codable, Identifiable {
+    let id: String
+    var roundId: String?
+    var holeNumber: ProvenanceValue<Int>
     var shotNumber: Int
 
-    // Location
-    var startLie: Lie
-    var endLie: Lie
-    var startDistanceYards: Double  // Distance to pin in yards
-    var endDistanceYards: Double    // For putts, this is in feet
-    var startDistanceFeet: Double?  // For putts
-    var endDistanceFeet: Double?
+    // Event reference
+    var eventId: String?
+    var event: ShotEvent?
+
+    // States
+    var startState: ShotState
+    var endState: ShotState
 
     // Classification
-    var shotType: ShotType
-    var category: SGCategory
+    var shotType: ProvenanceValue<ShotType>
+    var category: SGCategory?
 
-    // Results
+    // Strokes Gained
     var strokesGained: Double?
+    var penaltyStrokes: Int
+    var isPenaltyLikely: Bool
+
+    // Putting specific
     var isHoled: Bool
-    var isPenalty: Bool
+    var holedConfidence: Double  // 0-1
 
-    // Video reference
-    var videoTimestamp: Double?
+    // Confidence breakdown
+    var confidence: ShotConfidence
 
-    init(
-        id: String = UUID().uuidString,
-        holeNumber: Int,
-        shotNumber: Int,
-        startLie: Lie,
-        endLie: Lie,
-        startDistanceYards: Double,
-        endDistanceYards: Double,
-        shotType: ShotType,
-        category: SGCategory
-    ) {
+    // Video deep link
+    var clipStartSeconds: Double?
+    var impactSeconds: Double?
+    var clipEndSeconds: Double?
+
+    // Audit trail
+    var auditEvents: [AuditEvent]
+
+    init(id: String = UUID().uuidString, shotNumber: Int = 1) {
         self.id = id
-        self.holeNumber = holeNumber
         self.shotNumber = shotNumber
-        self.startLie = startLie
-        self.endLie = endLie
-        self.startDistanceYards = startDistanceYards
-        self.endDistanceYards = endDistanceYards
-        self.shotType = shotType
-        self.category = category
+        self.holeNumber = ProvenanceValue()
+        self.startState = ShotState()
+        self.endState = ShotState()
+        self.shotType = ProvenanceValue()
+        self.penaltyStrokes = 0
+        self.isPenaltyLikely = false
         self.isHoled = false
-        self.isPenalty = false
-    }
-}
-
-// MARK: - Round Summary
-
-struct RoundSummary: Codable, Identifiable {
-    let id: String
-    var roundDate: Date
-    var courseName: String?
-    var totalScore: Int?
-    var par: Int?
-
-    // Total Strokes Gained
-    var totalStrokesGained: Double
-
-    // Strokes Gained by Category
-    var sgOffTheTee: Double
-    var sgApproach: Double
-    var sgShortGame: Double
-    var sgPutting: Double
-
-    // Shot counts
-    var totalShots: Int
-    var shotsByCategory: [SGCategory: Int]
-
-    // Detailed statistics
-    var scoringStats: ScoringStatistics
-    var teeStats: TeeStatistics
-    var approachStats: ApproachStatistics
-    var shortGameStats: ShortGameStatistics
-    var puttingStats: PuttingStatistics
-
-    // Confidence
-    var overallConfidence: Double
-
-    init(id: String = UUID().uuidString, courseName: String? = nil) {
-        self.id = id
-        self.roundDate = Date()
-        self.courseName = courseName
-        self.totalStrokesGained = 0
-        self.sgOffTheTee = 0
-        self.sgApproach = 0
-        self.sgShortGame = 0
-        self.sgPutting = 0
-        self.totalShots = 0
-        self.shotsByCategory = [:]
-        self.scoringStats = ScoringStatistics()
-        self.teeStats = TeeStatistics()
-        self.approachStats = ApproachStatistics()
-        self.shortGameStats = ShortGameStatistics()
-        self.puttingStats = PuttingStatistics()
-        self.overallConfidence = 0
-    }
-
-    func sg(for category: SGCategory) -> Double {
-        switch category {
-        case .offTheTee: return sgOffTheTee
-        case .approach: return sgApproach
-        case .shortGame: return sgShortGame
-        case .putting: return sgPutting
-        }
-    }
-}
-
-// MARK: - Expected Strokes Table
-
-struct ExpectedStrokesTable {
-
-    // Expected strokes from various lies and distances
-    // Based on PGA Tour averages
-
-    static func expectedStrokes(lie: Lie, distanceYards: Double) -> Double {
-        switch lie {
-        case .tee:
-            return expectedStrokesFromTee(distance: distanceYards)
-        case .fairway:
-            return expectedStrokesFromFairway(distance: distanceYards)
-        case .rough:
-            return expectedStrokesFromRough(distance: distanceYards)
-        case .bunker:
-            return expectedStrokesFromBunker(distance: distanceYards)
-        case .green:
-            // Distance is in feet for green
-            return expectedStrokesOnGreen(distanceFeet: distanceYards)
-        case .fringe:
-            return expectedStrokesFromFringe(distance: distanceYards)
-        default:
-            return expectedStrokesFromRough(distance: distanceYards) + 0.3
-        }
-    }
-
-    static func expectedStrokesFromTee(distance: Double) -> Double {
-        // Approximation based on hole yardage
-        if distance < 200 { return 2.9 }        // Par 3
-        if distance < 400 { return 3.8 }        // Short Par 4
-        if distance < 475 { return 4.0 }        // Par 4
-        if distance < 550 { return 4.7 }        // Par 5
-        return 5.0
-    }
-
-    static func expectedStrokesFromFairway(distance: Double) -> Double {
-        // Expected strokes from fairway by distance
-        if distance < 50 { return 2.40 }
-        if distance < 75 { return 2.60 }
-        if distance < 100 { return 2.75 }
-        if distance < 125 { return 2.85 }
-        if distance < 150 { return 2.95 }
-        if distance < 175 { return 3.05 }
-        if distance < 200 { return 3.15 }
-        if distance < 225 { return 3.30 }
-        return 3.45
-    }
-
-    static func expectedStrokesFromRough(distance: Double) -> Double {
-        // Add ~0.1-0.2 strokes penalty from rough
-        return expectedStrokesFromFairway(distance: distance) + 0.15
-    }
-
-    static func expectedStrokesFromBunker(distance: Double) -> Double {
-        // Greenside bunker
-        if distance < 30 {
-            return 2.45
-        }
-        // Fairway bunker
-        return expectedStrokesFromFairway(distance: distance) + 0.25
-    }
-
-    static func expectedStrokesFromFringe(distance: Double) -> Double {
-        // Just off the green
-        return 2.15 + (distance * 0.02)
-    }
-
-    static func expectedStrokesOnGreen(distanceFeet: Double) -> Double {
-        // PGA Tour putting averages
-        if distanceFeet < 3 { return 1.00 }
-        if distanceFeet < 4 { return 1.05 }
-        if distanceFeet < 5 { return 1.10 }
-        if distanceFeet < 6 { return 1.15 }
-        if distanceFeet < 8 { return 1.25 }
-        if distanceFeet < 10 { return 1.35 }
-        if distanceFeet < 15 { return 1.50 }
-        if distanceFeet < 20 { return 1.65 }
-        if distanceFeet < 25 { return 1.75 }
-        if distanceFeet < 30 { return 1.85 }
-        if distanceFeet < 40 { return 1.95 }
-        return 2.05
-    }
-}
-
-// MARK: - Strokes Gained Calculator
-
-struct StrokesGainedCalculator {
-
-    /// Calculate strokes gained for a single shot
-    func calculate(shot: ShotData) -> Double {
-        let startExpected: Double
-        let endExpected: Double
-
-        if shot.category == .putting {
-            // For putts, use feet
-            let startFeet = shot.startDistanceFeet ?? shot.startDistanceYards
-            let endFeet = shot.endDistanceFeet ?? shot.endDistanceYards
-
-            startExpected = ExpectedStrokesTable.expectedStrokesOnGreen(distanceFeet: startFeet)
-
-            if shot.isHoled {
-                endExpected = 0
-            } else {
-                endExpected = ExpectedStrokesTable.expectedStrokesOnGreen(distanceFeet: endFeet)
-            }
-        } else {
-            startExpected = ExpectedStrokesTable.expectedStrokes(lie: shot.startLie, distanceYards: shot.startDistanceYards)
-
-            if shot.isHoled {
-                endExpected = 0
-            } else if shot.endLie == .green {
-                // Convert to feet for green
-                let endFeet = shot.endDistanceYards * 3  // Approximate yards to feet on green
-                endExpected = ExpectedStrokesTable.expectedStrokesOnGreen(distanceFeet: endFeet)
-            } else {
-                endExpected = ExpectedStrokesTable.expectedStrokes(lie: shot.endLie, distanceYards: shot.endDistanceYards)
-            }
-        }
-
-        // SG = Expected at start - (1 + Expected at end)
-        let strokesGained = startExpected - (1.0 + endExpected)
-
-        // Penalty adjustment
-        if shot.isPenalty {
-            return strokesGained - 1.0
-        }
-
-        return strokesGained
-    }
-
-    /// Calculate total strokes gained for a round
-    func calculateRound(shots: [ShotData]) -> RoundSummary {
-        var summary = RoundSummary()
-
-        var sgByCategory: [SGCategory: Double] = [:]
-        var shotsByCategory: [SGCategory: Int] = [:]
-
-        for category in SGCategory.allCases {
-            sgByCategory[category] = 0
-            shotsByCategory[category] = 0
-        }
-
-        for shot in shots {
-            var mutableShot = shot
-            let sg = calculate(shot: shot)
-            mutableShot.strokesGained = sg
-
-            sgByCategory[shot.category, default: 0] += sg
-            shotsByCategory[shot.category, default: 0] += 1
-        }
-
-        summary.sgOffTheTee = sgByCategory[.offTheTee] ?? 0
-        summary.sgApproach = sgByCategory[.approach] ?? 0
-        summary.sgShortGame = sgByCategory[.shortGame] ?? 0
-        summary.sgPutting = sgByCategory[.putting] ?? 0
-
-        summary.totalStrokesGained = summary.sgOffTheTee + summary.sgApproach + summary.sgShortGame + summary.sgPutting
-        summary.totalShots = shots.count
-        summary.shotsByCategory = shotsByCategory
-
-        return summary
-    }
-}
-
-// MARK: - Shot Row Display Model
-
-struct ShotRowModel: Identifiable {
-    let id: String
-    let holeNumber: Int
-    let shotIndex: Int
-    let startLie: Lie
-    let endLie: Lie
-    let startDistDisplay: String
-    let endDistDisplay: String
-    let strokesGained: Double?
-    let category: SGCategory
-    let isHoled: Bool
-    let needsReview: Bool
-    let confidence: ShotConfidence
-
-    var sgFormatted: String {
-        guard let sg = strokesGained else { return "--" }
-        if sg >= 0 {
-            return String(format: "+%.2f", sg)
-        } else {
-            return String(format: "%.2f", sg)
-        }
-    }
-
-    init(from shot: ShotData) {
-        self.id = shot.id
-        self.holeNumber = shot.holeNumber
-        self.shotIndex = shot.shotNumber
-        self.startLie = shot.startLie
-        self.endLie = shot.endLie
-        self.strokesGained = shot.strokesGained
-        self.category = shot.category
-        self.isHoled = shot.isHoled
-        self.needsReview = false
+        self.holedConfidence = 0
         self.confidence = ShotConfidence()
-
-        // Format distances
-        if shot.category == .putting {
-            let startFt = shot.startDistanceFeet ?? shot.startDistanceYards
-            let endFt = shot.endDistanceFeet ?? shot.endDistanceYards
-            self.startDistDisplay = String(format: "%.0f ft", startFt)
-            self.endDistDisplay = shot.isHoled ? "Holed" : String(format: "%.0f ft", endFt)
-        } else {
-            self.startDistDisplay = String(format: "%.0f yds", shot.startDistanceYards)
-            self.endDistDisplay = shot.isHoled ? "Holed" : String(format: "%.0f yds", shot.endDistanceYards)
-        }
+        self.auditEvents = []
     }
 }
 
-// MARK: - Shot Confidence
-
+/// Confidence breakdown for a shot
 struct ShotConfidence: Codable {
-    var holeConfidence: Double = 0.8
-    var startLocationConfidence: Double = 0.8
-    var endLocationConfidence: Double = 0.8
-    var distanceConfidence: Double = 0.8
-    var lieConfidence: Double = 0.8
-    var shotTypeConfidence: Double = 0.8
+    var holeConfidence: Double = 0
+    var startLocationConfidence: Double = 0
+    var endLocationConfidence: Double = 0
+    var distanceConfidence: Double = 0
+    var lieConfidence: Double = 0
+    var shotTypeConfidence: Double = 0
 
     var overall: Double {
-        (holeConfidence + startLocationConfidence + endLocationConfidence +
-         distanceConfidence + lieConfidence + shotTypeConfidence) / 6.0
+        let weights = [0.1, 0.2, 0.2, 0.2, 0.15, 0.15]
+        let values = [holeConfidence, startLocationConfidence, endLocationConfidence,
+                      distanceConfidence, lieConfidence, shotTypeConfidence]
+        return zip(weights, values).reduce(0) { $0 + $1.0 * $1.1 }
     }
 
     var isHighConfidence: Bool {
@@ -559,4 +453,61 @@ struct ShotConfidence: Codable {
     var needsReview: Bool {
         overall < 0.5
     }
+}
+
+// MARK: - Hole Data
+
+/// Pin/hole location data
+struct HoleLocation: Codable {
+    let holeNumber: Int
+    let par: Int
+    let teeLocation: CLLocationCoordinate2D
+    let greenCenter: CLLocationCoordinate2D
+    let pinLocation: CLLocationCoordinate2D?
+    let yardage: Double
+
+    // Green boundaries (simplified as radius for now)
+    let greenRadius: Double  // yards
+
+    func distanceToPin(from coordinate: CLLocationCoordinate2D) -> Double {
+        let pin = pinLocation ?? greenCenter
+        let from = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let to = CLLocation(latitude: pin.latitude, longitude: pin.longitude)
+        return from.distance(from: to) * 1.09361  // meters to yards
+    }
+
+    func isOnGreen(coordinate: CLLocationCoordinate2D) -> Bool {
+        let from = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let center = CLLocation(latitude: greenCenter.latitude, longitude: greenCenter.longitude)
+        let distanceYards = from.distance(from: center) * 1.09361
+        return distanceYards <= greenRadius
+    }
+}
+
+/// Course layout data
+struct CourseLayout: Codable {
+    let courseId: String
+    let courseName: String
+    let holes: [HoleLocation]
+
+    func hole(number: Int) -> HoleLocation? {
+        holes.first { $0.holeNumber == number }
+    }
+}
+
+// MARK: - Pose Provider Protocol
+
+/// Protocol for providing device pose data from video
+protocol PoseProvider {
+    /// Get device position near impact time
+    func position(at timestamp: Date) -> DevicePosition?
+
+    /// Get motion stability metric (0-1, lower = more stable)
+    func motionStability(from startTime: Date, to endTime: Date) -> Double?
+}
+
+/// Default implementation when no pose data available
+struct NullPoseProvider: PoseProvider {
+    func position(at timestamp: Date) -> DevicePosition? { nil }
+    func motionStability(from startTime: Date, to endTime: Date) -> Double? { nil }
 }

@@ -129,6 +129,7 @@ struct RecruitView: View {
     @State private var selectedHighlight: FilmHighlight?
     @State private var highlightToDelete: FilmHighlight?
     @State private var showingDeleteConfirmation = false
+    @State private var showingStrokesGainedFullView = false
 
     enum EditSection: Identifiable {
         case academic, physical, contact, sponsorship
@@ -417,71 +418,127 @@ struct RecruitView: View {
     // MARK: - Performance Stats Section
 
     private var performanceStatsSection: some View {
-        let sgViewModel = StrokesGainedViewModel.shared
-
-        return VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
             sectionHeader(icon: "chart.bar.fill", title: "Performance Stats")
 
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    statBox(
-                        label: "Scoring Avg",
-                        value: sgViewModel.currentSummary?.scoringStats.scoringAverage?.displayValue ?? "--",
-                        highlight: true
-                    )
+                    statBox(label: "Scoring Avg", value: "--", highlight: true)
                     dividerVertical
-                    statBox(
-                        label: "SG Driving",
-                        value: formatSG(sgViewModel.currentSummary?.sgOffTheTee),
-                        highlight: true
-                    )
+                    statBox(label: "Driving Distance", value: "--", highlight: true)
                 }
 
                 dividerHorizontal
 
                 HStack(spacing: 0) {
-                    statBox(
-                        label: "GIR %",
-                        value: sgViewModel.currentSummary?.approachStats.totalGIR?.displayPercentage ?? "--",
-                        highlight: true
-                    )
+                    statBox(label: "GIR %", value: "--", highlight: true)
                     dividerVertical
-                    statBox(
-                        label: "SG Putting",
-                        value: formatSG(sgViewModel.currentSummary?.sgPutting),
-                        highlight: true
-                    )
-                }
-
-                dividerHorizontal
-
-                HStack(spacing: 0) {
-                    statBox(
-                        label: "SG Approach",
-                        value: formatSG(sgViewModel.currentSummary?.sgApproach),
-                        highlight: true
-                    )
-                    dividerVertical
-                    statBox(
-                        label: "SG Short Game",
-                        value: formatSG(sgViewModel.currentSummary?.sgShortGame),
-                        highlight: true
-                    )
+                    statBox(label: "Putts/Round", value: "--", highlight: true)
                 }
             }
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            // Strokes Gained Section
+            strokesGainedStatsSection
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
     }
 
-    private func formatSG(_ value: Double?) -> String {
-        guard let value = value else { return "--" }
+    // MARK: - Strokes Gained Stats for Recruit Profile
+
+    private var strokesGainedStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                    Text("Strokes Gained")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
+
+                Spacer()
+
+                Button(action: { showingStrokesGainedFullView = true }) {
+                    Text("View Details")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
+            }
+
+            VStack(spacing: 0) {
+                // Total SG row
+                HStack {
+                    Text("Total Strokes Gained")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    Spacer()
+
+                    let totalSG = StrokesGainedViewModel.shared.currentSummary?.totalSG ?? 0
+                    Text(formatRecruitSG(totalSG))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(recruitSGColor(for: totalSG))
+                }
+                .padding(14)
+
+                Divider()
+                    .background(themeManager.theme.border)
+
+                // Category breakdown
+                HStack(spacing: 0) {
+                    recruitSGCategory(label: "OTT", category: .offTheTee)
+                    recruitSGCategory(label: "APP", category: .approach)
+                    recruitSGCategory(label: "ARG", category: .shortGame)
+                    recruitSGCategory(label: "PUTT", category: .putting)
+                }
+            }
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .sheet(isPresented: $showingStrokesGainedFullView) {
+            NavigationView {
+                StrokesGainedOverviewView()
+                    .environmentObject(themeManager)
+            }
+        }
+    }
+
+    private func recruitSGCategory(label: String, category: SGCategory) -> some View {
+        let sg = StrokesGainedViewModel.shared.currentSummary?.sgByCategory[category] ?? 0
+
+        return VStack(spacing: 4) {
+            Text(formatRecruitSG(sg))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(recruitSGColor(for: sg))
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(themeManager.theme.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private func formatRecruitSG(_ value: Double) -> String {
+        if value == 0 { return "--" }
         if value >= 0 {
-            return String(format: "+%.2f", value)
+            return String(format: "+%.1f", value)
         } else {
-            return String(format: "%.2f", value)
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func recruitSGColor(for value: Double) -> Color {
+        if value > 0.3 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.3 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
         }
     }
 

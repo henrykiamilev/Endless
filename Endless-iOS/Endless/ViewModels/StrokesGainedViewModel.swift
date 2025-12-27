@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-import SwiftUI
+import CoreLocation
 
 // MARK: - Strokes Gained View Model
 
@@ -10,202 +10,358 @@ final class StrokesGainedViewModel: ObservableObject {
 
     // MARK: - Published Properties
 
-    @Published private(set) var currentSummary: RoundSummary?
-    @Published private(set) var allSummaries: [RoundSummary] = []
-    @Published private(set) var selectedTimeframe: StatTimeframe = .season
+    @Published private(set) var currentSession: RoundSession?
+    @Published private(set) var currentSummary: RoundSummaryV2?
+    @Published private(set) var allSummaries: [RoundSummaryV2] = []
+    @Published private(set) var shotRows: [ShotRowModel] = []
+    @Published private(set) var focusPoints: [InsightCard] = []
+    @Published private(set) var trends: [TrendsCalculator.TrendData] = []
 
     @Published private(set) var isLoading = false
     @Published private(set) var error: String?
 
-    // Category-specific stat rows
-    @Published private(set) var scoringRows: [StatRowModel] = []
-    @Published private(set) var teeRows: [StatRowModel] = []
-    @Published private(set) var approachRows: [StatRowModel] = []
-    @Published private(set) var shortGameRows: [StatRowModel] = []
-    @Published private(set) var puttingRows: [StatRowModel] = []
+    // MARK: - Core Components
+
+    private let stateDeriver: StateDeriver
+    private let summaryBuilder: RoundSummaryBuilder
+    private let insightGenerator: InsightGenerator
+    private let trendsCalculator: TrendsCalculator
+    private let persistenceManager: RoundPersistenceManager
 
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
 
     private init() {
-        loadDemoData()
+        self.stateDeriver = StateDeriver()
+        self.summaryBuilder = RoundSummaryBuilder()
+        self.insightGenerator = InsightGenerator()
+        self.trendsCalculator = TrendsCalculator()
+        self.persistenceManager = RoundPersistenceManager.shared
+
+        loadSavedData()
     }
 
     // MARK: - Public Methods
 
-    func setTimeframe(_ timeframe: StatTimeframe) {
-        selectedTimeframe = timeframe
-        // In a real app, this would reload stats for the selected timeframe
-    }
+    /// Load all saved round data
+    func loadSavedData() {
+        allSummaries = persistenceManager.loadAllSummaries()
+        trends = trendsCalculator.calculateTrends(from: allSummaries)
 
-    func stats(for category: SGCategory) -> [StatRowModel] {
-        switch category {
-        case .offTheTee: return teeRows
-        case .approach: return approachRows
-        case .shortGame: return shortGameRows
-        case .putting: return puttingRows
+        // Load most recent round if available
+        if let latestSession = persistenceManager.loadAllRounds().first {
+            currentSession = latestSession
+            currentSummary = latestSession.summary
+            updateShotRows()
+            updateFocusPoints()
+        } else {
+            // Load demo data for preview
+            loadDemoData()
         }
     }
 
-    func sgValue(for category: SGCategory) -> Double {
-        currentSummary?.sg(for: category) ?? 0
+    /// Start a new round session
+    func startNewRound(courseName: String?, courseLayout: CourseLayout? = nil) {
+        let session = RoundSession(courseName: courseName)
+        currentSession = session
+
+        if let layout = courseLayout {
+            stateDeriver.setCourse(layout)
+        }
+
+        // Start location recording
+        LocationRecorder.shared.startRecording()
+    }
+
+    /// Add a shot event from video
+    func addShotEvent(_ event: ShotEvent) {
+        guard var session = currentSession else { return }
+        session.events.append(event)
+        currentSession = session
+    }
+
+    /// Process all events and compute strokes gained
+    func processRound(timebase: VideoSessionTimebase? = nil) {
+        guard let session = currentSession else { return }
+
+        isLoading = true
+
+        // Derive shots from events
+        let derivedShots = stateDeriver.deriveShots(from: session.events, timebase: timebase)
+
+        // Build summary
+        let summary = summaryBuilder.build(from: derivedShots, roundId: session.id, courseName: session.courseName)
+
+        // Update session
+        var updatedSession = session
+        updatedSession.shots = derivedShots
+        updatedSession.summary = summary
+
+        currentSession = updatedSession
+        currentSummary = summary
+
+        // Update UI data
+        updateShotRows()
+        updateFocusPoints()
+
+        // Persist
+        try? persistenceManager.save(round: updatedSession)
+
+        // Reload all data for trends
+        allSummaries = persistenceManager.loadAllSummaries()
+        trends = trendsCalculator.calculateTrends(from: allSummaries)
+
+        isLoading = false
+    }
+
+    /// End current round
+    func endRound() {
+        LocationRecorder.shared.stopRecording()
+        processRound()
+    }
+
+    // MARK: - Shot Queries
+
+    /// Get shots for a specific category
+    func shots(for category: SGCategory) -> [ShotRowModel] {
+        shotRows.filter { row in
+            self.category(for: row) == category
+        }
+    }
+
+    /// Get shots for a specific hole
+    func shots(for holeNumber: Int) -> [ShotRowModel] {
+        shotRows.filter { $0.holeNumber == holeNumber }
+    }
+
+    /// Determine category for a shot row
+    func category(for shot: ShotRowModel) -> SGCategory {
+        if shot.startLie == .green {
+            return .putting
+        }
+        if shot.startLie == .tee && shot.shotIndex == 1 {
+            // Check if it's a par 3 tee shot (approach) or par 4/5 (OTT)
+            if let startDist = Double(shot.startDistDisplay.replacingOccurrences(of: " yds", with: "").replacingOccurrences(of: " ft", with: "")),
+               startDist > 200 {
+                return .offTheTee
+            }
+            return .approach
+        }
+        if shot.startLie == .fringe || shot.startLie == .bunker {
+            return .shortGame
+        }
+        if let dist = Double(shot.startDistDisplay.replacingOccurrences(of: " yds", with: "").replacingOccurrences(of: " ft", with: "")),
+           dist <= 30 {
+            return .shortGame
+        }
+        return .approach
+    }
+
+    /// Get best shots for a category
+    func bestShots(for category: SGCategory) -> [ShotRowModel] {
+        shots(for: category)
+            .filter { $0.strokesGained != nil }
+            .sorted { ($0.strokesGained ?? 0) > ($1.strokesGained ?? 0) }
+    }
+
+    /// Get worst shots for a category
+    func worstShots(for category: SGCategory) -> [ShotRowModel] {
+        shots(for: category)
+            .filter { $0.strokesGained != nil }
+            .sorted { ($0.strokesGained ?? 0) < ($1.strokesGained ?? 0) }
+    }
+
+    // MARK: - Private Methods
+
+    private func updateShotRows() {
+        guard let session = currentSession else {
+            shotRows = []
+            return
+        }
+
+        shotRows = session.shots.map { ShotRowModel(from: $0) }
+    }
+
+    private func updateFocusPoints() {
+        guard let summary = currentSummary else {
+            focusPoints = []
+            return
+        }
+
+        focusPoints = insightGenerator.generateFocusPoints(from: summary)
     }
 
     // MARK: - Demo Data
 
     func loadDemoData() {
-        // Generate demo statistics matching the screenshot format
+        // Generate mock demo round
+        let demoSession = MockDataGenerator.generateDemoRound()
+        currentSession = demoSession
+        currentSummary = demoSession.summary
 
-        // SCORING Stats - Complete set matching the Scoring screenshot
-        var scoring = ScoringStatistics()
-        // Core Scoring
-        scoring.scoringAverage = StatValue(value: 74.18, sampleSize: 11, timeframe: .season)
-        scoring.strokesGainedPutting = StatValue(value: -1.81, sampleSize: 207, timeframe: .season)
+        if let summary = currentSummary {
+            allSummaries = [summary]
+            trends = trendsCalculator.calculateTrends(from: allSummaries)
+        }
 
-        // Par Scoring
-        scoring.par3Scoring = StatValue(value: 3.17, sampleSize: 46, timeframe: .season)
-        scoring.par4Scoring = StatValue(value: 4.21, sampleSize: 115, timeframe: .season)
-        scoring.par5Scoring = StatValue(value: 4.85, sampleSize: 46, timeframe: .season)
+        updateShotRows()
+        updateFocusPoints()
+    }
+}
 
-        // GIR by Par
-        scoring.par3GIR = StatValue(value: 0.6087, sampleSize: 46, timeframe: .season)
-        scoring.par4GIR = StatValue(value: 0.6522, sampleSize: 115, timeframe: .season)
-        scoring.par5GIR = StatValue(value: 0.7826, sampleSize: 46, timeframe: .season)
+// MARK: - Mock Data Generator
 
-        // Scoring Events
-        scoring.eaglesPerRound = StatValue(value: 0.09, sampleSize: 11, timeframe: .season)
-        scoring.birdiesPerRound = StatValue(value: 2.26, sampleSize: 11, timeframe: .season)
-        scoring.bogeysPerRound = StatValue(value: 3.74, sampleSize: 11, timeframe: .season)
-        scoring.doubleBogeyPlusPerRound = StatValue(value: 0.44, sampleSize: 11, timeframe: .season)
-        scoring.doubleBogeysPerRound = StatValue(value: 0.44, sampleSize: 11, timeframe: .season)
+struct MockDataGenerator {
 
-        // Ratios
-        scoring.bogeysPerRoundPar5 = StatValue(value: 0.54, sampleSize: 11, timeframe: .season)
-        scoring.birdiesToBogeys = StatValue(value: 0.56, sampleSize: 207, timeframe: .season)
+    static func generateDemoRound() -> RoundSession {
+        var session = RoundSession(id: "demo-round", courseName: "Pebble Beach Golf Links")
 
-        // Lie-based Scoring Averages
-        scoring.rightRoughScoringAverage = StatValue(value: 3.24, sampleSize: 52, timeframe: .season)
-        scoring.leftRoughScoringAverage = StatValue(value: 3.42, sampleSize: 25, timeframe: .season)
+        // Generate 18 holes worth of shots
+        var allShots: [DerivedShot] = []
+        var shotNumber = 0
 
-        scoringRows = CategoryStatsBuilder.buildScoringRows(from: scoring)
+        for holeNum in 1...18 {
+            let holePar = [3, 4, 4, 4, 3, 5, 3, 4, 4, 4, 4, 3, 4, 5, 4, 3, 4, 5][holeNum - 1]
+            let shotsThisHole = holePar + Int.random(in: -1...2)  // Score ±2 from par
 
-        // TEE Stats
-        var tee = TeeStatistics()
-        tee.fairwayHitPercentage = StatValue(value: 0.5217, sampleSize: 161, timeframe: .season)
-        tee.driverSelectionPercentage = StatValue(value: 0.4286, sampleSize: 161, timeframe: .season)
-        tee.driverFairwaysHitPercentage = StatValue(value: 0.4493, sampleSize: 69, timeframe: .season)
-        tee.teeShotLeftPercentage = StatValue(value: 0.1553, sampleSize: 161, timeframe: .season)
-        tee.teeShotRightPercentage = StatValue(value: 0.323, sampleSize: 161, timeframe: .season)
-        tee.teeShotInTreesPercentage = StatValue(value: 0.0683, sampleSize: 161, timeframe: .season)
-        tee.teeShotInSandPercentage = StatValue(value: 0.0559, sampleSize: 161, timeframe: .season)
-        tee.holesWithPenaltiesPercentage = StatValue(value: 0.0062, sampleSize: 161, timeframe: .season)
-        tee.strokesGainedDrivingPerRound = StatValue(value: -2.39, sampleSize: 11, timeframe: .season)
-        tee.penaltyRateOffTee = StatValue(value: 0.0062, sampleSize: 161, timeframe: .season)
+            for shotIndex in 1...max(1, shotsThisHole) {
+                shotNumber += 1
+                var shot = DerivedShot(id: "demo-\(holeNum)-\(shotIndex)", shotNumber: shotIndex)
 
-        teeRows = CategoryStatsBuilder.buildTeeRows(from: tee)
+                shot.holeNumber = ProvenanceValue(auto: holeNum, confidence: 0.95, source: .derived)
 
-        // APPROACH Stats
-        var approach = ApproachStatistics()
-        approach.totalGIR = StatValue(value: 0.6715, sampleSize: 207, timeframe: .season)
-        approach.gir75_100Fairway = StatValue(value: 0.9474, sampleSize: 19, timeframe: .season)
-        approach.gir101_150Fairway = StatValue(value: 0.7667, sampleSize: 30, timeframe: .season)
-        approach.gir151_200Fairway = StatValue(value: 0.6042, sampleSize: 48, timeframe: .season)
-        approach.gir201_230Fairway = StatValue(value: 0.4667, sampleSize: 15, timeframe: .season)
-        approach.girFairwayBunker = StatValue(value: 0.3333, sampleSize: 9, timeframe: .season)
-        approach.girOtherThanFairway = StatValue(value: 0.5584, sampleSize: 77, timeframe: .season)
-        approach.leftRoughGIR = StatValue(value: 0.60, sampleSize: 25, timeframe: .season)
-        approach.rightRoughGIR = StatValue(value: 0.5385, sampleSize: 52, timeframe: .season)
-        approach.proximity25_75Fairway = StatValue(value: 13.67, sampleSize: 6, timeframe: .season)
-        approach.proximity75_100Fairway = StatValue(value: 20.31, sampleSize: 16, timeframe: .season)
-        approach.proximity100_150Fairway = StatValue(value: 22.0, sampleSize: 19, timeframe: .season)
-        approach.scoringAvg75_100Fairway = StatValue(value: 3.0, sampleSize: 19, timeframe: .season)
-        approach.scoringAvg101_150Fairway = StatValue(value: 3.04, sampleSize: 25, timeframe: .season)
-        approach.scoringAvg151_200Fairway = StatValue(value: 3.27, sampleSize: 15, timeframe: .season)
-        approach.scoringAvg201_250Fairway = StatValue(value: 3.6, sampleSize: 15, timeframe: .season)
-        approach.strokesGainedApproachPerRound = StatValue(value: -0.97, sampleSize: 11, timeframe: .season)
-        approach.strokesGained50_75yds = StatValue(value: 0.01, sampleSize: 16, timeframe: .season)
-        approach.strokesGained76_100yds = StatValue(value: 0.04, sampleSize: 26, timeframe: .season)
-        approach.strokesGained101_150yds = StatValue(value: -0.08, sampleSize: 44, timeframe: .season)
-        approach.strokesGained151_200yds = StatValue(value: -0.02, sampleSize: 55, timeframe: .season)
-        approach.strokesGained201_230yds = StatValue(value: -0.23, sampleSize: 18, timeframe: .season)
+                // Determine lie and distances based on shot index
+                if shotIndex == 1 {
+                    // Tee shot
+                    shot.startState.lie = ProvenanceValue(auto: .tee, confidence: 0.95, source: .derived)
+                    let holeYardage = Double([380, 502, 388, 327, 188, 513, 106, 428, 466, 495, 380, 202, 445, 573, 397, 403, 178, 543][holeNum - 1])
+                    shot.startState.distanceToPin = ProvenanceValue(auto: holeYardage, confidence: 0.9, source: .gps)
 
-        approachRows = CategoryStatsBuilder.buildApproachRows(from: approach)
+                    // End state depends on shot quality
+                    let quality = Double.random(in: 0...1)
+                    if holePar == 3 {
+                        // Par 3 tee shot
+                        shot.category = .approach
+                        let endDist = holeYardage * (1 - quality * 0.95)  // Better shot = closer
+                        shot.endState.distanceToPin = ProvenanceValue(auto: endDist < 30 ? endDist * 3 : endDist, confidence: 0.85, source: .derived)
+                        shot.endState.lie = ProvenanceValue(auto: endDist < 10 ? .green : (quality > 0.5 ? .fairway : .rough), confidence: 0.7, source: .derived)
+                    } else {
+                        // Par 4/5 tee shot
+                        shot.category = .offTheTee
+                        let driveDistance = 200 + quality * 100
+                        let endDist = holeYardage - driveDistance
+                        shot.endState.distanceToPin = ProvenanceValue(auto: max(50, endDist), confidence: 0.85, source: .derived)
+                        shot.endState.lie = ProvenanceValue(auto: quality > 0.4 ? .fairway : .rough, confidence: 0.7, source: .derived)
+                    }
+                } else if shotIndex == shotsThisHole {
+                    // Final putt
+                    shot.startState.lie = ProvenanceValue(auto: .green, confidence: 0.95, source: .derived)
+                    shot.startState.distanceToPin = ProvenanceValue(auto: Double.random(in: 2...8), confidence: 0.85, source: .derived)
+                    shot.endState.distanceToPin = ProvenanceValue(auto: 0, confidence: 1.0, source: .derived)
+                    shot.endState.lie = ProvenanceValue(auto: .green, confidence: 1.0, source: .derived)
+                    shot.isHoled = true
+                    shot.holedConfidence = 1.0
+                    shot.category = .putting
+                } else if shotIndex == shotsThisHole - 1 {
+                    // Likely a putt or chip
+                    let isOnGreen = Double.random(in: 0...1) > 0.3
+                    if isOnGreen {
+                        shot.startState.lie = ProvenanceValue(auto: .green, confidence: 0.9, source: .derived)
+                        let puttLength = Double.random(in: 5...25)
+                        shot.startState.distanceToPin = ProvenanceValue(auto: puttLength, confidence: 0.8, source: .gps)
+                        shot.endState.distanceToPin = ProvenanceValue(auto: Double.random(in: 2...6), confidence: 0.8, source: .derived)
+                        shot.endState.lie = ProvenanceValue(auto: .green, confidence: 0.9, source: .derived)
+                        shot.category = .putting
+                    } else {
+                        shot.startState.lie = ProvenanceValue(auto: Bool.random() ? .fringe : .rough, confidence: 0.7, source: .derived)
+                        shot.startState.distanceToPin = ProvenanceValue(auto: Double.random(in: 10...30), confidence: 0.75, source: .gps)
+                        shot.endState.distanceToPin = ProvenanceValue(auto: Double.random(in: 3...12), confidence: 0.7, source: .derived)
+                        shot.endState.lie = ProvenanceValue(auto: .green, confidence: 0.85, source: .derived)
+                        shot.category = .shortGame
+                    }
+                } else {
+                    // Approach or intermediate shot
+                    let prevDist = allShots.last?.endState.distanceToPin.value ?? 150
+                    shot.startState.lie = ProvenanceValue(auto: Bool.random() ? .fairway : .rough, confidence: 0.7, source: .derived)
+                    shot.startState.distanceToPin = ProvenanceValue(auto: prevDist, confidence: 0.8, source: .gps)
 
-        // SHORT GAME Stats
-        var shortGame = ShortGameStatistics()
-        shortGame.savePercentage = StatValue(value: 0.4568, sampleSize: 81, timeframe: .season)
-        shortGame.roughSavePercentage = StatValue(value: 0.4651, sampleSize: 43, timeframe: .season)
-        shortGame.sandSavePercentage = StatValue(value: 0.50, sampleSize: 16, timeframe: .season)
-        shortGame.fairwaySavePercentage = StatValue(value: 0.4444, sampleSize: 18, timeframe: .season)
-        shortGame.saveLessThan10yds = StatValue(value: 1.0, sampleSize: 3, timeframe: .season)
-        shortGame.save10_20yds = StatValue(value: 0.6774, sampleSize: 31, timeframe: .season)
-        shortGame.save20_30yds = StatValue(value: 0.3235, sampleSize: 34, timeframe: .season)
-        shortGame.sandSave10_20yds = StatValue(value: 0.7143, sampleSize: 7, timeframe: .season)
-        shortGame.sandSave20_30yds = StatValue(value: 0.3333, sampleSize: 9, timeframe: .season)
-        shortGame.proximityToHoleFromSand = StatValue(value: 13.62, sampleSize: 16, timeframe: .season)
-        shortGame.proximityToHoleFromRough = StatValue(value: 11.49, sampleSize: 43, timeframe: .season)
-        shortGame.strokesGainedPuttingOnSaves = StatValue(value: 0.07, sampleSize: 81, timeframe: .season)
-        shortGame.twoChipsPerRound = StatValue(value: 0.61, sampleSize: 11, timeframe: .season)
-        shortGame.strokesGainedShortGamePerRound = StatValue(value: 0.14, sampleSize: 11, timeframe: .season)
-        shortGame.strokesGained0_10yds = StatValue(value: 0.2, sampleSize: 7, timeframe: .season)
-        shortGame.strokesGained11_20yds = StatValue(value: 0.1, sampleSize: 34, timeframe: .season)
-        shortGame.strokesGained21_30yds = StatValue(value: -0.16, sampleSize: 26, timeframe: .season)
-        shortGame.strokesGained31_40yds = StatValue(value: 0.25, sampleSize: 3, timeframe: .season)
-        shortGame.strokesGained41_50yds = StatValue(value: 0.04, sampleSize: 6, timeframe: .season)
-        shortGame.nonGIRParOrBetterRate = StatValue(value: 0.4706, sampleSize: 68, timeframe: .season)
+                    let quality = Double.random(in: 0...1)
+                    let shotDistance = min(prevDist * 0.7, 100 + quality * 50)
+                    let endDist = max(5, prevDist - shotDistance)
 
-        shortGameRows = CategoryStatsBuilder.buildShortGameRows(from: shortGame)
+                    if endDist < 30 {
+                        shot.endState.lie = ProvenanceValue(auto: quality > 0.5 ? .green : .fringe, confidence: 0.7, source: .derived)
+                        shot.endState.distanceToPin = ProvenanceValue(auto: endDist * (shot.endState.lie.value == .green ? 3 : 1), confidence: 0.75, source: .derived)
+                        shot.category = prevDist > 30 ? .approach : .shortGame
+                    } else {
+                        shot.endState.lie = ProvenanceValue(auto: quality > 0.5 ? .fairway : .rough, confidence: 0.7, source: .derived)
+                        shot.endState.distanceToPin = ProvenanceValue(auto: endDist, confidence: 0.75, source: .derived)
+                        shot.category = .approach
+                    }
+                }
 
-        // PUTTING Stats
-        var putting = PuttingStatistics()
-        putting.strokesGainedPutting = StatValue(value: -1.81, sampleSize: 207, timeframe: .season)
-        putting.total3PuttAvoidance = StatValue(value: 0.0637, sampleSize: 204, timeframe: .season)
-        putting.puttingSpeedRatio = StatValue(value: 2.15, sampleSize: 118, timeframe: .season)
-        putting.makeRate3_4ft = StatValue(value: 0.83, sampleSize: 30, timeframe: .season)
-        putting.makeRate5_8ft = StatValue(value: 0.56, sampleSize: 41, timeframe: .season)
-        putting.makeRate9_10ft = StatValue(value: 0.28, sampleSize: 14, timeframe: .season)
-        putting.makeRate11_15ft = StatValue(value: 0.11, sampleSize: 35, timeframe: .season)
-        putting.makeRate16_20ft = StatValue(value: 0.17, sampleSize: 42, timeframe: .season)
-        putting.makeRate21_25ft = StatValue(value: 0.12, sampleSize: 17, timeframe: .season)
-        putting.makeRate26Plus = StatValue(value: 0.04, sampleSize: 49, timeframe: .season)
-        putting.leaveShort5_10ft = StatValue(value: 0.29, sampleSize: 28, timeframe: .season)
-        putting.leaveShort11_15ft = StatValue(value: 0.71, sampleSize: 31, timeframe: .season)
-        putting.leaveShort16_20ft = StatValue(value: 0.63, sampleSize: 35, timeframe: .season)
-        putting.leaveShort21_30ft = StatValue(value: 0.70, sampleSize: 33, timeframe: .season)
-        putting.leaveShort31Plus = StatValue(value: 0.79, sampleSize: 29, timeframe: .season)
-        putting.threePuttAvoidance5_10ft = StatValue(value: 0.0294, sampleSize: 34, timeframe: .season)
-        putting.threePuttAvoidance11_20ft = StatValue(value: 0.0, sampleSize: 73, timeframe: .season)
-        putting.threePuttAvoidance21_30ft = StatValue(value: 0.1389, sampleSize: 36, timeframe: .season)
-        putting.threePuttAvoidance31Plus = StatValue(value: 0.2333, sampleSize: 30, timeframe: .season)
-        putting.puttsPerGIR = StatValue(value: 1.94, sampleSize: 139, timeframe: .season)
-        putting.strokesGained3_4ft = StatValue(value: -0.09, sampleSize: 30, timeframe: .season)
-        putting.strokesGained4_8ft = StatValue(value: -0.09, sampleSize: 53, timeframe: .season)
-        putting.strokesGained8_10ft = StatValue(value: -0.10, sampleSize: 22, timeframe: .season)
-        putting.strokesGained10_15ft = StatValue(value: -0.15, sampleSize: 41, timeframe: .season)
-        putting.strokesGained15_20ft = StatValue(value: -0.07, sampleSize: 58, timeframe: .season)
-        putting.strokesGained20_25ft = StatValue(value: -0.07, sampleSize: 36, timeframe: .season)
-        putting.strokesGained25Plus = StatValue(value: -0.10, sampleSize: 60, timeframe: .season)
-        putting.strokesGained1stPuttOver20ft = StatValue(value: -0.08, sampleSize: 85, timeframe: .season)
-        putting.strokesGained1stPuttOver20ftPerRound = StatValue(value: -0.63, sampleSize: 11, timeframe: .season)
-        putting.firstPuttPerformance = StatValue(value: 0.50, sampleSize: 30, timeframe: .season)
+                // Set shot type based on category
+                switch shot.category {
+                case .offTheTee:
+                    shot.shotType = ProvenanceValue(auto: .drive, confidence: 0.9, source: .derived)
+                case .approach:
+                    shot.shotType = ProvenanceValue(auto: .approach, confidence: 0.8, source: .derived)
+                case .shortGame:
+                    shot.shotType = ProvenanceValue(auto: shot.startState.lie.value == .bunker ? .bunkerShot : .chip, confidence: 0.7, source: .derived)
+                case .putting:
+                    shot.shotType = ProvenanceValue(auto: .putt, confidence: 0.95, source: .derived)
+                case .none:
+                    shot.shotType = ProvenanceValue(auto: .unknown, confidence: 0.5, source: .derived)
+                }
 
-        puttingRows = CategoryStatsBuilder.buildPuttingRows(from: putting)
+                // Calculate expected strokes and SG
+                shot.updateExpectedStrokes()
+                let calculator = StrokesGainedCalculator()
+                shot.strokesGained = calculator.calculate(shot: shot)
 
-        // Create round summary
-        var summary = RoundSummary(courseName: "Demo Course")
-        summary.sgOffTheTee = -2.39
-        summary.sgApproach = -0.97
-        summary.sgShortGame = 0.14
-        summary.sgPutting = -1.81
-        summary.totalStrokesGained = summary.sgOffTheTee + summary.sgApproach + summary.sgShortGame + summary.sgPutting
-        summary.scoringStats = scoring
-        summary.teeStats = tee
-        summary.approachStats = approach
-        summary.shortGameStats = shortGame
-        summary.puttingStats = putting
+                // Set confidence
+                shot.confidence = ShotConfidence(
+                    holeConfidence: 0.9,
+                    startLocationConfidence: Double.random(in: 0.7...0.95),
+                    endLocationConfidence: Double.random(in: 0.65...0.9),
+                    distanceConfidence: Double.random(in: 0.7...0.9),
+                    lieConfidence: Double.random(in: 0.6...0.85),
+                    shotTypeConfidence: Double.random(in: 0.75...0.95)
+                )
 
-        currentSummary = summary
-        allSummaries = [summary]
+                // Randomly flag some shots
+                shot.isPenaltyLikely = Double.random(in: 0...1) < 0.05
+
+                allShots.append(shot)
+            }
+        }
+
+        session.shots = allShots
+
+        // Build summary
+        let builder = RoundSummaryBuilder()
+        session.summary = builder.build(from: allShots, roundId: session.id, courseName: session.courseName)
+
+        return session
+    }
+
+    /// Generate a sample course layout (Pebble Beach approximation)
+    static func generateDemoCourse() -> CourseLayout {
+        let holes: [HoleLocation] = [
+            // Hole 1 - Par 4, 380 yards
+            HoleLocation(
+                holeNumber: 1,
+                par: 4,
+                teeLocation: CLLocationCoordinate2D(latitude: 36.5689, longitude: -121.9497),
+                greenCenter: CLLocationCoordinate2D(latitude: 36.5673, longitude: -121.9485),
+                pinLocation: nil,
+                yardage: 380,
+                greenRadius: 15
+            ),
+            // Simplified - add more holes as needed
+        ]
+
+        return CourseLayout(courseId: "pebble-beach", courseName: "Pebble Beach Golf Links", holes: holes)
     }
 }
