@@ -64,8 +64,21 @@ class WidgetPreferencesManager: ObservableObject {
     }
 
     private init() {
-        // Initialize with defaults - data will be loaded when user is set
-        self.widgets = PerformanceWidget.allWidgets
+        // Load widgets and merge any new ones that have been added
+        if let data = UserDefaults.standard.data(forKey: "performanceWidgets"),
+           let decoded = try? JSONDecoder().decode([PerformanceWidget].self, from: data) {
+            // Merge saved preferences with new widgets
+            var merged = decoded
+            let savedIds = Set(decoded.map { $0.id })
+            for widget in PerformanceWidget.allWidgets {
+                if !savedIds.contains(widget.id) {
+                    merged.append(widget)
+                }
+            }
+            self.widgets = merged
+        } else {
+            self.widgets = PerformanceWidget.allWidgets
+        }
     }
 
     // MARK: - User Context Management
@@ -118,9 +131,27 @@ class WidgetPreferencesManager: ObservableObject {
     private func loadWidgets() -> [PerformanceWidget] {
         if let data = UserDefaults.standard.data(forKey: widgetsKey),
            let decoded = try? JSONDecoder().decode([PerformanceWidget].self, from: data) {
-            return decoded
+            // Merge: keep user's saved preferences but add any new widgets
+            return mergeWidgets(saved: decoded, available: PerformanceWidget.allWidgets)
         }
         return PerformanceWidget.allWidgets
+    }
+
+    /// Merge saved widget preferences with available widgets
+    /// - Keeps user's saved preferences (enabled state, values, sizes)
+    /// - Adds any new widgets that don't exist in saved preferences
+    private func mergeWidgets(saved: [PerformanceWidget], available: [PerformanceWidget]) -> [PerformanceWidget] {
+        var merged = saved
+        let savedIds = Set(saved.map { $0.id })
+
+        // Add any new widgets that aren't in the saved list
+        for widget in available {
+            if !savedIds.contains(widget.id) {
+                merged.append(widget)
+            }
+        }
+
+        return merged
     }
 
     /// Permanently deletes the user's widget preferences
