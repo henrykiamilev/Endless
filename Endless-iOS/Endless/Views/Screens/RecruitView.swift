@@ -129,7 +129,6 @@ struct RecruitView: View {
     @State private var selectedHighlight: FilmHighlight?
     @State private var highlightToDelete: FilmHighlight?
     @State private var showingDeleteConfirmation = false
-    @State private var showingStrokesGainedFullView = false
 
     enum EditSection: Identifiable {
         case academic, physical, contact, sponsorship
@@ -438,108 +437,9 @@ struct RecruitView: View {
             }
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-            // Strokes Gained Section
-            strokesGainedStatsSection
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
-    }
-
-    // MARK: - Strokes Gained Stats for Recruit Profile
-
-    private var strokesGainedStatsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.accentGreen)
-                    Text("Strokes Gained")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                }
-
-                Spacer()
-
-                Button(action: { showingStrokesGainedFullView = true }) {
-                    Text("View Details")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(themeManager.theme.accentGreen)
-                }
-            }
-
-            VStack(spacing: 0) {
-                // Total SG row
-                HStack {
-                    Text("Total Strokes Gained")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary)
-
-                    Spacer()
-
-                    let totalSG = StrokesGainedViewModel.shared.currentSummary?.totalSG ?? 0
-                    Text(formatRecruitSG(totalSG))
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(recruitSGColor(for: totalSG))
-                }
-                .padding(14)
-
-                Divider()
-                    .background(themeManager.theme.border)
-
-                // Category breakdown
-                HStack(spacing: 0) {
-                    recruitSGCategory(label: "OTT", category: .offTheTee)
-                    recruitSGCategory(label: "APP", category: .approach)
-                    recruitSGCategory(label: "ARG", category: .shortGame)
-                    recruitSGCategory(label: "PUTT", category: .putting)
-                }
-            }
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .sheet(isPresented: $showingStrokesGainedFullView) {
-            NavigationView {
-                StrokesGainedOverviewView()
-                    .environmentObject(themeManager)
-            }
-        }
-    }
-
-    private func recruitSGCategory(label: String, category: SGCategory) -> some View {
-        let sg = StrokesGainedViewModel.shared.currentSummary?.sgByCategory[category] ?? 0
-
-        return VStack(spacing: 4) {
-            Text(formatRecruitSG(sg))
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(recruitSGColor(for: sg))
-
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(themeManager.theme.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-    }
-
-    private func formatRecruitSG(_ value: Double) -> String {
-        if value == 0 { return "--" }
-        if value >= 0 {
-            return String(format: "+%.1f", value)
-        } else {
-            return String(format: "%.1f", value)
-        }
-    }
-
-    private func recruitSGColor(for value: Double) -> Color {
-        if value > 0.3 {
-            return themeManager.theme.accentGreen
-        } else if value < -0.3 {
-            return themeManager.theme.error
-        } else {
-            return themeManager.theme.textPrimary
-        }
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)
@@ -589,7 +489,7 @@ struct RecruitView: View {
     // MARK: - Sponsorships Section (Clickable)
 
     private var isSponsorshipsEmpty: Bool {
-        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil
+        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil && profileManager.profile.otherSponsor == nil
     }
 
     private var sponsorshipsSection: some View {
@@ -620,14 +520,16 @@ struct RecruitView: View {
                     VStack(spacing: 0) {
                         sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
                         dividerHorizontal
+                        sponsorRow(label: "Ball Sponsor", value: profileManager.profile.ballSponsor ?? "Add sponsor")
+                        dividerHorizontal
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Ball Sponsor")
+                                Text("Other")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(themeManager.theme.textSecondary)
-                                Text(profileManager.profile.ballSponsor ?? "Add sponsor")
+                                Text(profileManager.profile.otherSponsor ?? "Add sponsor")
                                     .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                                    .foregroundColor(profileManager.profile.otherSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -665,28 +567,13 @@ struct RecruitView: View {
                     Image(systemName: "film.stack")
                         .font(.system(size: 28))
                         .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
-                    Text("No highlight reels yet")
+                    Text("No highlights yet")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Create AI highlight reels from your videos to showcase your skills")
+                    Text("Share videos from your library to add them here")
                         .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
-
-                    Button(action: { navigationManager.navigateToVideo() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 12))
-                            Text("Create Highlight Reel")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(themeManager.theme.accentGreen)
-                        .clipShape(Capsule())
-                    }
-                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
@@ -900,10 +787,9 @@ struct RecruitView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Top row: Delete button and AI badge
+                // Delete button
                 VStack {
                     HStack {
-                        // Delete button
                         Button(action: {
                             highlightToDelete = highlight
                             showingDeleteConfirmation = true
@@ -918,19 +804,6 @@ struct RecruitView: View {
                         .buttonStyle(PlainButtonStyle())
 
                         Spacer()
-
-                        // AI badge
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8))
-                            Text("AI")
-                                .font(.system(size: 8, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
                     }
                     Spacer()
                 }
@@ -973,6 +846,7 @@ struct EditSectionSheet: View {
     @State private var email = ""
     @State private var clubSponsor = ""
     @State private var ballSponsor = ""
+    @State private var otherSponsor = ""
 
     var title: String {
         switch section {
@@ -1009,6 +883,7 @@ struct EditSectionSheet: View {
                     case .sponsorship:
                         formField(label: "Club Sponsor", text: $clubSponsor)
                         formField(label: "Ball Sponsor", text: $ballSponsor)
+                        formField(label: "Other (e.g., Bank, Apparel)", text: $otherSponsor)
                     }
                 }
                 .padding(20)
@@ -1062,6 +937,7 @@ struct EditSectionSheet: View {
         email = profile.email
         clubSponsor = profile.clubSponsor ?? ""
         ballSponsor = profile.ballSponsor ?? ""
+        otherSponsor = profile.otherSponsor ?? ""
     }
 
     private func saveChanges() {
@@ -1087,6 +963,7 @@ struct EditSectionSheet: View {
         case .sponsorship:
             profile.clubSponsor = clubSponsor.isEmpty ? nil : clubSponsor
             profile.ballSponsor = ballSponsor.isEmpty ? nil : ballSponsor
+            profile.otherSponsor = otherSponsor.isEmpty ? nil : otherSponsor
         }
         dismiss()
     }
