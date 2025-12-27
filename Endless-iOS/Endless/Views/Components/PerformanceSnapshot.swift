@@ -19,16 +19,11 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     }
 
     static let allWidgets: [PerformanceWidget] = [
-        PerformanceWidget(id: "sg_total", icon: "chart.line.uptrend.xyaxis", label: "Strokes Gained", shortLabel: "SG", value: "--", color: "22C55E", isEnabled: true, size: .medium),
         PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
         PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
         PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: false, size: .medium),
-        PerformanceWidget(id: "sg_ott", icon: "figure.golf", label: "SG: Off the Tee", shortLabel: "OTT", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sg_app", icon: "arrow.up.right", label: "SG: Approach", shortLabel: "APP", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sg_arg", icon: "flag.fill", label: "SG: Short Game", shortLabel: "ARG", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sg_putt", icon: "circle.fill", label: "SG: Putting", shortLabel: "PUTT", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "handicap", icon: "chart.bar.fill", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
         PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "--", color: "22C55E", isEnabled: false, size: .medium),
         PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
         PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
@@ -126,30 +121,6 @@ class WidgetPreferencesManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
     }
-
-    /// Syncs widget values with StrokesGainedViewModel data
-    func syncWithStrokesGained() {
-        let sgViewModel = StrokesGainedViewModel.shared
-
-        // Format SG value
-        func formatSG(_ value: Double) -> String {
-            if value == 0 { return "--" }
-            if value >= 0 {
-                return String(format: "+%.1f", value)
-            } else {
-                return String(format: "%.1f", value)
-            }
-        }
-
-        // Update SG widgets with actual data
-        if let summary = sgViewModel.currentSummary {
-            updateValue(for: "sg_total", value: formatSG(summary.totalSG))
-            updateValue(for: "sg_ott", value: formatSG(summary.sgByCategory[.offTheTee] ?? 0))
-            updateValue(for: "sg_app", value: formatSG(summary.sgByCategory[.approach] ?? 0))
-            updateValue(for: "sg_arg", value: formatSG(summary.sgByCategory[.shortGame] ?? 0))
-            updateValue(for: "sg_putt", value: formatSG(summary.sgByCategory[.putting] ?? 0))
-        }
-    }
 }
 
 // MARK: - iOS Style Performance Widgets View
@@ -185,9 +156,6 @@ struct PerformanceSnapshot: View {
 
             // iOS-style widget grid
             widgetGrid
-        }
-        .onAppear {
-            widgetManager.syncWithStrokesGained()
         }
     }
 
