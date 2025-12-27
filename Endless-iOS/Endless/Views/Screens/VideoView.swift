@@ -75,4 +75,3 @@ struct VideoView: View {
 #Preview {
     VideoView()
 }
-
