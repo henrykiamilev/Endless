@@ -121,6 +121,7 @@ struct RecruitView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
+    @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
     @State private var showingEditProfile = false
     @State private var showingEditContact = false
     @State private var showingMessages = false
@@ -422,17 +423,17 @@ struct RecruitView: View {
 
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    statBox(label: "Scoring Avg", value: "--", highlight: true)
+                    statBox(label: "Scoring Avg", value: scoringAverage, highlight: true)
                     dividerVertical
-                    statBox(label: "Driving Distance", value: "--", highlight: true)
+                    statBox(label: "Total SG", value: totalStrokesGained, highlight: true)
                 }
 
                 dividerHorizontal
 
                 HStack(spacing: 0) {
-                    statBox(label: "GIR %", value: "--", highlight: true)
+                    statBox(label: "GIR %", value: girPercentage, highlight: true)
                     dividerVertical
-                    statBox(label: "Putts/Round", value: "--", highlight: true)
+                    statBox(label: "Putts/Round", value: puttsPerRound, highlight: true)
                 }
             }
             .background(themeManager.theme.cardBackground)
@@ -440,6 +441,55 @@ struct RecruitView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+
+    // MARK: - Computed Stats from StrokesGainedViewModel
+
+    private var scoringAverage: String {
+        guard let summary = strokesGainedVM.currentSummary, summary.totalStrokes > 0 else {
+            return "--"
+        }
+        return "\(summary.totalStrokes)"
+    }
+
+    private var totalStrokesGained: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return summary.formattedTotalSG
+    }
+
+    private var girPercentage: String {
+        guard let session = strokesGainedVM.currentSession, !session.shots.isEmpty else {
+            return "--"
+        }
+
+        var girCount = 0
+        let shotsByHole = Dictionary(grouping: session.shots) { $0.holeNumber.value ?? 0 }
+
+        for (_, holeShots) in shotsByHole {
+            let sortedShots = holeShots.sorted { $0.shotNumber < $1.shotNumber }
+            for (index, shot) in sortedShots.enumerated() {
+                if shot.endState.lie.value == .green && index < 2 {
+                    girCount += 1
+                    break
+                }
+            }
+        }
+
+        let holesPlayed = shotsByHole.keys.filter { $0 > 0 }.count
+        guard holesPlayed > 0 else { return "--" }
+
+        let percent = Int((Double(girCount) / Double(holesPlayed)) * 100)
+        return "\(percent)%"
+    }
+
+    private var puttsPerRound: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        let puttsCount = summary.shotsByCategory[.putting] ?? 0
+        return "\(puttsCount)"
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)

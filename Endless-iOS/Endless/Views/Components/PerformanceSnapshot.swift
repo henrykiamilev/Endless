@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+
 // MARK: - Performance Widget Model
 
 struct PerformanceWidget: Identifiable, Codable, Equatable {
@@ -121,6 +122,105 @@ class WidgetPreferencesManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
     }
+
+    // MARK: - Stats Integration
+
+    /// Sync widget values from StrokesGainedViewModel
+    /// Call this after round data is loaded or updated
+    func syncFromStrokesGained() {
+        let viewModel = StrokesGainedViewModel.shared
+
+        // Update rounds count
+        updateValue(for: "rounds", value: "\(viewModel.allSummaries.count)")
+
+        guard let summary = viewModel.currentSummary else {
+            // No data - show empty state
+            updateValue(for: "putts", value: "--")
+            updateValue(for: "avg", value: "--")
+            updateValue(for: "gir", value: "--")
+            updateValue(for: "fir", value: "--")
+            updateValue(for: "handicap", value: "--")
+            updateValue(for: "driving", value: "--")
+            updateValue(for: "scramble", value: "--")
+            updateValue(for: "sandsave", value: "--")
+            updateValue(for: "updown", value: "--")
+            return
+        }
+
+        // Putts per round
+        let puttsCount = summary.shotsByCategory[.putting] ?? 0
+        updateValue(for: "putts", value: "\(puttsCount)")
+
+        // Scoring average (if we have total strokes)
+        if summary.totalStrokes > 0 {
+            updateValue(for: "avg", value: "\(summary.totalStrokes)")
+        }
+
+        // Calculate GIR % from approach shots that ended on green
+        // GIR = shots that reached green in regulation (approach shots that made it)
+        if let session = viewModel.currentSession {
+            let girCount = calculateGIR(from: session.shots)
+            let holesPlayed = Set(session.shots.compactMap { $0.holeNumber.value }).count
+            if holesPlayed > 0 {
+                let girPercent = Int((Double(girCount) / Double(holesPlayed)) * 100)
+                updateValue(for: "gir", value: "\(girPercent)%")
+            }
+
+            // Calculate FIR % from tee shots on par 4/5 that hit fairway
+            let firResult = calculateFIR(from: session.shots)
+            if firResult.attempts > 0 {
+                let firPercent = Int((Double(firResult.hits) / Double(firResult.attempts)) * 100)
+                updateValue(for: "fir", value: "\(firPercent)%")
+            }
+        }
+    }
+
+    /// Calculate Greens in Regulation from shot data
+    private func calculateGIR(from shots: [DerivedShot]) -> Int {
+        var girCount = 0
+
+        // Group shots by hole
+        let shotsByHole = Dictionary(grouping: shots) { $0.holeNumber.value ?? 0 }
+
+        for (_, holeShots) in shotsByHole {
+            guard !holeShots.isEmpty else { continue }
+
+            // Find the first shot that ends on green
+            // GIR = reached green in (par - 2) strokes or fewer
+            // For simplicity, check if any approach/tee shot ended on green within regulation
+            let sortedShots = holeShots.sorted { $0.shotNumber < $1.shotNumber }
+
+            for (index, shot) in sortedShots.enumerated() {
+                if shot.endState.lie.value == .green {
+                    // Check if this is within regulation (simplified: shot index <= 2 for par 4, etc.)
+                    if index < 2 {
+                        girCount += 1
+                    }
+                    break
+                }
+            }
+        }
+
+        return girCount
+    }
+
+    /// Calculate Fairways in Regulation (hits/attempts) from shot data
+    private func calculateFIR(from shots: [DerivedShot]) -> (hits: Int, attempts: Int) {
+        var hits = 0
+        var attempts = 0
+
+        for shot in shots {
+            // Only count tee shots on par 4/5 (OTT category)
+            if shot.category == .offTheTee && shot.startState.lie.value == .tee {
+                attempts += 1
+                if shot.endState.lie.value == .fairway {
+                    hits += 1
+                }
+            }
+        }
+
+        return (hits, attempts)
+    }
 }
 
 // MARK: - iOS Style Performance Widgets View
@@ -130,6 +230,7 @@ struct PerformanceSnapshot: View {
     var onCustomize: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject private var widgetManager = WidgetPreferencesManager.shared
+    @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     var body: some View {
         VStack(spacing: 16) {
@@ -156,6 +257,12 @@ struct PerformanceSnapshot: View {
 
             // iOS-style widget grid
             widgetGrid
+        }
+        .onAppear {
+            widgetManager.syncFromStrokesGained()
+        }
+        .onChange(of: strokesGainedVM.currentSummary?.id) { _, _ in
+            widgetManager.syncFromStrokesGained()
         }
     }
 

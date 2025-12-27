@@ -55,10 +55,8 @@ final class StrokesGainedViewModel: ObservableObject {
             currentSummary = latestSession.summary
             updateShotRows()
             updateFocusPoints()
-        } else {
-            // Load demo data for preview
-            loadDemoData()
         }
+        // New user experience: show empty state instead of demo data
     }
 
     /// Start a new round session

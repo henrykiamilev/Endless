@@ -9,11 +9,13 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
     @Binding var isSessionActive: Bool  //function elems
     var onExported: (URL) -> Void
     var onShotCaptured: () -> Void
+    var onSessionComplete: (([ShotEvent]) -> Void)?  // New: callback with shot events
 
     func makeUIViewController(context: Context) -> PoseSessionController {  //ini function
         let vc = PoseSessionController()
         vc.onExported = onExported
         vc.onShotCaptured = onShotCaptured
+        vc.onSessionComplete = onSessionComplete
         return vc
     }
 
@@ -57,6 +59,12 @@ final class PoseSessionController: UIViewController,
     // Session callbacks
     var onExported: ((URL) -> Void)?
     var onShotCaptured: (() -> Void)?
+    var onSessionComplete: (([ShotEvent]) -> Void)?
+
+    // Shot event tracking
+    private var shotEvents: [ShotEvent] = []
+    private var sessionStartTime: Date?
+    private var currentClipStartTime: Date?
 
     // Trigger state
     enum Phase { case idle, waitingReady, recordingSwing, postEndSwing }
@@ -114,6 +122,8 @@ final class PoseSessionController: UIViewController,
             // User explicitly started a session
             sessionWasStarted = true
             isEndingSession = false
+            sessionStartTime = Date()  // Track when session started
+            shotEvents.removeAll()     // Clear any previous events
             if phase == .idle { enter(.waitingReady) }
         } else {
             // Only end session if one was explicitly started by the user
@@ -149,8 +159,9 @@ final class PoseSessionController: UIViewController,
         let displayScale = view.traitCollection.displayScale
         let logoImage = UIImage(named: "AppLogoCircle")?.cgImage
 
-        // Copy clipURLs to avoid race conditions
+        // Copy clipURLs and shotEvents to avoid race conditions
         let clipsToStitch = self.clipURLs
+        let eventsToExport = self.shotEvents
 
         Task {
             await stitchAllClips(clips: clipsToStitch, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
@@ -159,8 +170,13 @@ final class PoseSessionController: UIViewController,
                     if let url = url {
                         self.onExported?(url)
                     }
+                    // Pass shot events to callback
+                    self.onSessionComplete?(eventsToExport)
+
                     // Reset for next session
                     self.clipURLs.removeAll()
+                    self.shotEvents.removeAll()
+                    self.sessionStartTime = nil
                     self.isEndingSession = false
                     self.enter(.idle)
                 }
@@ -343,6 +359,7 @@ final class PoseSessionController: UIViewController,
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("swing-\(UUID().uuidString).mov")
         currentClipURL = url
+        currentClipStartTime = Date()  // Track when this clip started
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
 
@@ -359,11 +376,29 @@ final class PoseSessionController: UIViewController,
                     error: Error?) {
         if error == nil {
             clipURLs.append(outputFileURL)  //appending clip to highlight reel
+
+            // Create ShotEvent for this clip
+            let clipEndTime = Date()
+            var shotEvent = ShotEvent(id: UUID().uuidString)
+            shotEvent.recordedAt = currentClipStartTime ?? clipEndTime
+            shotEvent.clipStartSeconds = currentClipStartTime?.timeIntervalSince(sessionStartTime ?? clipEndTime) ?? 0
+            shotEvent.clipEndSeconds = clipEndTime.timeIntervalSince(sessionStartTime ?? clipEndTime)
+
+            // Estimate impact time (midpoint of clip for now - can be refined with pose analysis)
+            if let startTime = currentClipStartTime {
+                let clipDuration = clipEndTime.timeIntervalSince(startTime)
+                // Impact typically occurs in first 1/3 of swing clip
+                shotEvent.impactSeconds = shotEvent.clipStartSeconds! + (clipDuration * 0.3)
+            }
+
+            shotEvents.append(shotEvent)
+
             DispatchQueue.main.async { self.onShotCaptured?() } //incrementing shot counter
         } else {
             try? FileManager.default.removeItem(at: outputFileURL)
         }
         currentClipURL = nil
+        currentClipStartTime = nil
 
         // Handle what happens after recording finishes
         DispatchQueue.main.async {

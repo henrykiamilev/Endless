@@ -4,6 +4,7 @@ import AVFoundation
 struct RecordView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
     @State private var isRecording = false
     @State private var isFrontCamera = false
     @State private var hasPermission = false
@@ -95,6 +96,16 @@ struct RecordView: View {
                 },
                 onShotCaptured: {
                     shotCount += 1
+                },
+                onSessionComplete: { shotEvents in
+                    // Add all shot events to the strokes gained system
+                    for event in shotEvents {
+                        strokesGainedVM.addShotEvent(event)
+                    }
+                    // Process the round to calculate strokes gained
+                    strokesGainedVM.processRound()
+                    // Sync performance widgets with new data
+                    WidgetPreferencesManager.shared.syncFromStrokesGained()
                 }
             )
             .ignoresSafeArea()
@@ -178,9 +189,13 @@ struct RecordView: View {
                             if isAISessionActive {
                                 // Stop session - this triggers video export
                                 isAISessionActive = false
+                                // End the round in strokes gained system
+                                strokesGainedVM.endRound()
                             } else {
                                 // Start new session
                                 shotCount = 0
+                                // Start a new round in strokes gained system
+                                strokesGainedVM.startNewRound(courseName: nil)
                                 isAISessionActive = true
                             }
                         }) {
