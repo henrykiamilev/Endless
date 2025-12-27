@@ -50,17 +50,13 @@ final class StrokesGainedViewModel: ObservableObject {
         trends = trendsCalculator.calculateTrends(from: allSummaries)
 
         // Load most recent round if available
-        if let latestSession = persistenceManager.loadAllRounds().first,
-           latestSession.summary != nil,
-           !(latestSession.summary?.sgByCategory.isEmpty ?? true) {
+        if let latestSession = persistenceManager.loadAllRounds().first {
             currentSession = latestSession
             currentSummary = latestSession.summary
             updateShotRows()
             updateFocusPoints()
-        } else {
-            // Load demo data to showcase strokes gained feature
-            loadDemoData()
         }
+        // New user experience: show empty state instead of demo data
     }
 
     /// Start a new round session
