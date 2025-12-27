@@ -8,6 +8,7 @@ struct VideoLibraryView: View {
     @ObservedObject private var swingVideoManager = SwingVideoManager.shared
     @ObservedObject private var highlightGenerator = HighlightReelGenerator.shared
     @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
+    @StateObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     @State private var showingMenu = false
     @State private var showingAIAnalysis = false
@@ -635,6 +636,9 @@ struct VideoLibraryView: View {
             // Stats Overview Card
             statsOverviewCard
 
+            // Strokes Gained Section
+            strokesGainedSection
+
             // Recent Round Stats
             sectionView(label: "RECENT ROUND STATS", icon: "chart.bar.fill") {
                 VStack(spacing: 0) {
@@ -713,6 +717,109 @@ struct VideoLibraryView: View {
                 .foregroundColor(themeManager.theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Strokes Gained Section
+
+    private var strokesGainedSection: some View {
+        sectionView(label: "STROKES GAINED", icon: "chart.line.uptrend.xyaxis") {
+            VStack(spacing: 16) {
+                // Total SG Card
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Total SG")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
+
+                        if let summary = strokesGainedVM.currentSummary,
+                           !summary.sgByCategory.isEmpty {
+                            Text(formatSG(summary.totalSG))
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(sgColor(for: summary.totalSG))
+                        } else {
+                            Text("--")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(themeManager.theme.textMuted)
+                        }
+                    }
+
+                    Spacer()
+
+                    if strokesGainedVM.currentSummary == nil {
+                        Text("Complete a round to see data")
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.theme.textMuted)
+                    }
+                }
+                .padding(.bottom, 8)
+
+                // Category breakdown
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12)
+                ], spacing: 12) {
+                    sgCategoryTile(.offTheTee)
+                    sgCategoryTile(.approach)
+                    sgCategoryTile(.shortGame)
+                    sgCategoryTile(.putting)
+                }
+            }
+            .padding(20)
+            .background(themeManager.theme.cardBackground)
+            .cornerRadius(24)
+            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+        }
+    }
+
+    private func sgCategoryTile(_ category: SGCategory) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: category.icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .frame(width: 28, height: 28)
+                    .background(themeManager.theme.accentGreen.opacity(0.15))
+                    .clipShape(Circle())
+
+                Text(category.displayName)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            if let summary = strokesGainedVM.currentSummary,
+               let sg = summary.sgByCategory[category] {
+                Text(formatSG(sg))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(sgColor(for: sg))
+            } else {
+                Text("--")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(themeManager.theme.textMuted)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(themeManager.theme.background.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func sgColor(for value: Double) -> Color {
+        if value > 0.5 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.5 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
+        }
     }
 
     // MARK: - Footer Branding
