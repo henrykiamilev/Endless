@@ -48,30 +48,32 @@ struct VideoLibraryView: View {
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Branded Header
-                brandedHeader
+        VStack(spacing: 0) {
+            // Branded Header - outside ScrollView
+            brandedHeader
 
-                // Toggle with shadow
-                ToggleButton(options: ["Video", "Stats"], selectedIndex: $navigationManager.videoLibrarySubTab)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+            // Toggle - outside ScrollView for reliable tapping
+            ToggleButton(options: ["Video", "Stats"], selectedIndex: $navigationManager.videoLibrarySubTab)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
 
-                // Content
-                if navigationManager.videoLibrarySubTab == 0 {
-                    videoTabContent
-                } else {
-                    statsTabContent
+            // Scrollable content
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Content
+                    if navigationManager.videoLibrarySubTab == 0 {
+                        videoTabContent
+                    } else {
+                        statsTabContent
+                    }
+
+                    // Footer branding
+                    footerBranding
+
+                    Spacer(minLength: 120)
                 }
-
-                // Footer branding
-                footerBranding
-
-                Spacer(minLength: 120)
             }
         }
-        .scrollDismissesKeyboard(.interactively)
         .background(themeManager.theme.background)
         .sheet(isPresented: $showingAIAnalysis) {
             AIAnalysisView(video: selectedVideoForAI)
