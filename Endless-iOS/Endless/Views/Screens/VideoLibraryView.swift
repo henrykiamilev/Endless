@@ -326,6 +326,10 @@ struct VideoLibraryView: View {
                             onDelete: isDeletable(video) ? {
                                 videoToDelete = video
                                 showingDeleteConfirmation = true
+                            } : nil,
+                            onShare: video.videoFileName != nil ? {
+                                videoToShare = video
+                                showingShareOptions = true
                             } : nil
                         )
                         .contextMenu {
