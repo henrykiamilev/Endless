@@ -7,6 +7,7 @@ struct HomeView: View {
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var sessionManager = SessionManager.shared
     @ObservedObject private var drillsManager = DrillsManager.shared
+    @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var showingMenu = false
     @State private var showingSessionEditor = false
     @State private var showingWidgetCustomization = false
@@ -53,7 +54,10 @@ struct HomeView: View {
                 }
 
                 // Recent Sessions
-                sectionView(label: "RECENT SESSIONS", showViewAll: true) {
+                sectionView(label: "RECENT SESSIONS", showViewAll: true, viewAllAction: {
+                    navigationManager.videoLibrarySubTab = 0
+                    navigationManager.navigateToVideo()
+                }) {
                     sessionsScroll
                 }
 
@@ -437,17 +441,21 @@ struct HomeView: View {
 
     // MARK: - Sessions
 
+    private var recentVideos: [Video] {
+        Array(videoStorage.allVideos.prefix(4))
+    }
+
     private var sessionsScroll: some View {
         Group {
-            if MockData.sessions.isEmpty {
+            if recentVideos.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "calendar")
+                    Image(systemName: "video")
                         .font(.system(size: 32))
                         .foregroundColor(themeManager.theme.textSecondary.opacity(0.5))
-                    Text("No sessions yet")
+                    Text("No videos yet")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(themeManager.theme.textSecondary)
-                    Text("Start a practice session to track your progress")
+                    Text("Record a swing to see your recent sessions")
                         .font(.system(size: 13))
                         .foregroundColor(themeManager.theme.textMuted)
                         .multilineTextAlignment(.center)
@@ -459,11 +467,13 @@ struct HomeView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        ForEach(MockData.sessions) { session in
-                            SessionCard(session: session) {
-                                navigationManager.selectedSessionId = session.id
+                        ForEach(recentVideos) { video in
+                            VideoCard(video: video) {
+                                navigationManager.selectedVideoId = video.id
+                                navigationManager.videoLibrarySubTab = 0
                                 navigationManager.navigateToVideo()
                             }
+                            .frame(width: 160)
                         }
                     }
                     .padding(.horizontal, 20)
