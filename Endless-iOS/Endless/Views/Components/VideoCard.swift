@@ -4,6 +4,7 @@ struct VideoCard: View {
     let video: Video
     var action: (() -> Void)?
     var onDelete: (() -> Void)?
+    var onShare: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showingPlayer = false
 
@@ -89,24 +90,47 @@ struct VideoCard: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            // Delete button (separate from main button to avoid tap conflicts)
-            if onDelete != nil {
-                Button(action: {
-                    onDelete?()
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.black.opacity(0.6))
-                            .frame(width: 28, height: 28)
+            // Top buttons row
+            HStack {
+                // Share button (top-left)
+                if onShare != nil {
+                    Button(action: {
+                        onShare?()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black.opacity(0.6))
+                                .frame(width: 28, height: 28)
 
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
-                .padding(6)
+
+                Spacer()
+
+                // Delete button (top-right)
+                if onDelete != nil {
+                    Button(action: {
+                        onDelete?()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black.opacity(0.6))
+                                .frame(width: 28, height: 28)
+
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
+            .padding(6)
         }
         .fullScreenCover(isPresented: $showingPlayer) {
             if let videoFileName = video.videoFileName {
