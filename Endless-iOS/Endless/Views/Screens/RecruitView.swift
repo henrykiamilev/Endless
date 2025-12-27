@@ -489,7 +489,7 @@ struct RecruitView: View {
     // MARK: - Sponsorships Section (Clickable)
 
     private var isSponsorshipsEmpty: Bool {
-        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil
+        profileManager.profile.clubSponsor == nil && profileManager.profile.ballSponsor == nil && profileManager.profile.otherSponsor == nil
     }
 
     private var sponsorshipsSection: some View {
@@ -520,14 +520,16 @@ struct RecruitView: View {
                     VStack(spacing: 0) {
                         sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
                         dividerHorizontal
+                        sponsorRow(label: "Ball Sponsor", value: profileManager.profile.ballSponsor ?? "Add sponsor")
+                        dividerHorizontal
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Ball Sponsor")
+                                Text("Other")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(themeManager.theme.textSecondary)
-                                Text(profileManager.profile.ballSponsor ?? "Add sponsor")
+                                Text(profileManager.profile.otherSponsor ?? "Add sponsor")
                                     .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(profileManager.profile.ballSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
+                                    .foregroundColor(profileManager.profile.otherSponsor != nil ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -873,6 +875,7 @@ struct EditSectionSheet: View {
     @State private var email = ""
     @State private var clubSponsor = ""
     @State private var ballSponsor = ""
+    @State private var otherSponsor = ""
 
     var title: String {
         switch section {
@@ -909,6 +912,7 @@ struct EditSectionSheet: View {
                     case .sponsorship:
                         formField(label: "Club Sponsor", text: $clubSponsor)
                         formField(label: "Ball Sponsor", text: $ballSponsor)
+                        formField(label: "Other (e.g., Bank, Apparel)", text: $otherSponsor)
                     }
                 }
                 .padding(20)
@@ -962,6 +966,7 @@ struct EditSectionSheet: View {
         email = profile.email
         clubSponsor = profile.clubSponsor ?? ""
         ballSponsor = profile.ballSponsor ?? ""
+        otherSponsor = profile.otherSponsor ?? ""
     }
 
     private func saveChanges() {
@@ -987,6 +992,7 @@ struct EditSectionSheet: View {
         case .sponsorship:
             profile.clubSponsor = clubSponsor.isEmpty ? nil : clubSponsor
             profile.ballSponsor = ballSponsor.isEmpty ? nil : ballSponsor
+            profile.otherSponsor = otherSponsor.isEmpty ? nil : otherSponsor
         }
         dismiss()
     }
