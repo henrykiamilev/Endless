@@ -20,16 +20,18 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     }
 
     static let allWidgets: [PerformanceWidget] = [
-        PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "--", color: "22C55E", isEnabled: false, size: .medium),
-        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small)
+        // Strokes Gained widgets (align with Stats tab)
+        PerformanceWidget(id: "totalsg", icon: "chart.bar.fill", label: "Total Strokes Gained", shortLabel: "Total SG", value: "--", color: "22C55E", isEnabled: true, size: .medium),
+        PerformanceWidget(id: "sg_ott", icon: "figure.golf", label: "SG Off the Tee", shortLabel: "SG OTT", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "sg_app", icon: "scope", label: "SG Approach", shortLabel: "SG APP", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "sg_short", icon: "flag.fill", label: "SG Short Game", shortLabel: "SG Short", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_putt", icon: "circle.fill", label: "SG Putting", shortLabel: "SG Putt", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        // Traditional stats
+        PerformanceWidget(id: "putts", icon: "circle.inset.filled", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rounds", value: "0", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "gir", icon: "checkmark.circle", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "fir", icon: "arrow.up.right", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
@@ -134,30 +136,35 @@ class WidgetPreferencesManager: ObservableObject {
         updateValue(for: "rounds", value: "\(viewModel.allSummaries.count)")
 
         guard let summary = viewModel.currentSummary else {
-            // No data - show empty state
+            // No data - show empty state for all widgets
+            updateValue(for: "totalsg", value: "--")
+            updateValue(for: "sg_ott", value: "--")
+            updateValue(for: "sg_app", value: "--")
+            updateValue(for: "sg_short", value: "--")
+            updateValue(for: "sg_putt", value: "--")
             updateValue(for: "putts", value: "--")
             updateValue(for: "avg", value: "--")
             updateValue(for: "gir", value: "--")
             updateValue(for: "fir", value: "--")
-            updateValue(for: "handicap", value: "--")
-            updateValue(for: "driving", value: "--")
-            updateValue(for: "scramble", value: "--")
-            updateValue(for: "sandsave", value: "--")
-            updateValue(for: "updown", value: "--")
             return
         }
 
-        // Putts per round
+        // Strokes Gained widgets (primary - align with Stats tab)
+        updateValue(for: "totalsg", value: formatSG(summary.totalSG))
+        updateValue(for: "sg_ott", value: formatSG(summary.sgByCategory[.offTheTee] ?? 0))
+        updateValue(for: "sg_app", value: formatSG(summary.sgByCategory[.approach] ?? 0))
+        updateValue(for: "sg_short", value: formatSG(summary.sgByCategory[.shortGame] ?? 0))
+        updateValue(for: "sg_putt", value: formatSG(summary.sgByCategory[.putting] ?? 0))
+
+        // Traditional stats
         let puttsCount = summary.shotsByCategory[.putting] ?? 0
         updateValue(for: "putts", value: "\(puttsCount)")
 
-        // Scoring average (if we have total strokes)
         if summary.totalStrokes > 0 {
             updateValue(for: "avg", value: "\(summary.totalStrokes)")
         }
 
-        // Calculate GIR % from approach shots that ended on green
-        // GIR = shots that reached green in regulation (approach shots that made it)
+        // Calculate GIR % and FIR % from shot data
         if let session = viewModel.currentSession {
             let girCount = calculateGIR(from: session.shots)
             let holesPlayed = Set(session.shots.compactMap { $0.holeNumber.value }).count
@@ -166,12 +173,20 @@ class WidgetPreferencesManager: ObservableObject {
                 updateValue(for: "gir", value: "\(girPercent)%")
             }
 
-            // Calculate FIR % from tee shots on par 4/5 that hit fairway
             let firResult = calculateFIR(from: session.shots)
             if firResult.attempts > 0 {
                 let firPercent = Int((Double(firResult.hits) / Double(firResult.attempts)) * 100)
                 updateValue(for: "fir", value: "\(firPercent)%")
             }
+        }
+    }
+
+    /// Format strokes gained value with +/- sign
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
         }
     }
 

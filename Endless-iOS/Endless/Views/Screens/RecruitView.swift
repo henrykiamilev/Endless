@@ -419,21 +419,32 @@ struct RecruitView: View {
 
     private var performanceStatsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(icon: "chart.bar.fill", title: "Performance Stats")
+            sectionHeader(icon: "chart.bar.fill", title: "Strokes Gained")
 
             VStack(spacing: 0) {
+                // Total SG row
                 HStack(spacing: 0) {
-                    statBox(label: "Scoring Avg", value: scoringAverage, highlight: true)
-                    dividerVertical
                     statBox(label: "Total SG", value: totalStrokesGained, highlight: true)
+                    dividerVertical
+                    statBox(label: "Rounds", value: roundsPlayed, highlight: false)
                 }
 
                 dividerHorizontal
 
+                // SG by category - top row
                 HStack(spacing: 0) {
-                    statBox(label: "GIR %", value: girPercentage, highlight: true)
+                    statBox(label: "SG Off Tee", value: sgOffTheTee, highlight: true)
                     dividerVertical
-                    statBox(label: "Putts/Round", value: puttsPerRound, highlight: true)
+                    statBox(label: "SG Approach", value: sgApproach, highlight: true)
+                }
+
+                dividerHorizontal
+
+                // SG by category - bottom row
+                HStack(spacing: 0) {
+                    statBox(label: "SG Short", value: sgShortGame, highlight: true)
+                    dividerVertical
+                    statBox(label: "SG Putting", value: sgPutting, highlight: true)
                 }
             }
             .background(themeManager.theme.cardBackground)
@@ -445,13 +456,6 @@ struct RecruitView: View {
 
     // MARK: - Computed Stats from StrokesGainedViewModel
 
-    private var scoringAverage: String {
-        guard let summary = strokesGainedVM.currentSummary, summary.totalStrokes > 0 else {
-            return "--"
-        }
-        return "\(summary.totalStrokes)"
-    }
-
     private var totalStrokesGained: String {
         guard let summary = strokesGainedVM.currentSummary else {
             return "--"
@@ -459,37 +463,45 @@ struct RecruitView: View {
         return summary.formattedTotalSG
     }
 
-    private var girPercentage: String {
-        guard let session = strokesGainedVM.currentSession, !session.shots.isEmpty else {
-            return "--"
-        }
-
-        var girCount = 0
-        let shotsByHole = Dictionary(grouping: session.shots) { $0.holeNumber.value ?? 0 }
-
-        for (_, holeShots) in shotsByHole {
-            let sortedShots = holeShots.sorted { $0.shotNumber < $1.shotNumber }
-            for (index, shot) in sortedShots.enumerated() {
-                if shot.endState.lie.value == .green && index < 2 {
-                    girCount += 1
-                    break
-                }
-            }
-        }
-
-        let holesPlayed = shotsByHole.keys.filter { $0 > 0 }.count
-        guard holesPlayed > 0 else { return "--" }
-
-        let percent = Int((Double(girCount) / Double(holesPlayed)) * 100)
-        return "\(percent)%"
+    private var roundsPlayed: String {
+        let count = strokesGainedVM.allSummaries.count
+        return "\(count)"
     }
 
-    private var puttsPerRound: String {
+    private var sgOffTheTee: String {
         guard let summary = strokesGainedVM.currentSummary else {
             return "--"
         }
-        let puttsCount = summary.shotsByCategory[.putting] ?? 0
-        return "\(puttsCount)"
+        return formatSG(summary.sgByCategory[.offTheTee] ?? 0)
+    }
+
+    private var sgApproach: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.approach] ?? 0)
+    }
+
+    private var sgShortGame: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.shortGame] ?? 0)
+    }
+
+    private var sgPutting: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.putting] ?? 0)
+    }
+
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)
