@@ -278,7 +278,7 @@ struct VideoSessionTimebase {
 // MARK: - GPS Location Sample
 
 /// A GPS sample with accuracy metadata
-struct LocationSample: Codable, Identifiable {
+struct LocationSample: Codable, Identifiable, Equatable {
     let id: String
     let timestamp: Date
     let latitude: Double
@@ -481,6 +481,67 @@ struct HoleLocation: Codable {
         let center = CLLocation(latitude: greenCenter.latitude, longitude: greenCenter.longitude)
         let distanceYards = from.distance(from: center) * 1.09361
         return distanceYards <= greenRadius
+    }
+
+    // MARK: - Codable Implementation
+
+    enum CodingKeys: String, CodingKey {
+        case holeNumber, par, yardage, greenRadius
+        case teeLatitude, teeLongitude
+        case greenCenterLatitude, greenCenterLongitude
+        case pinLatitude, pinLongitude
+    }
+
+    init(holeNumber: Int, par: Int, teeLocation: CLLocationCoordinate2D, greenCenter: CLLocationCoordinate2D, pinLocation: CLLocationCoordinate2D?, yardage: Double, greenRadius: Double) {
+        self.holeNumber = holeNumber
+        self.par = par
+        self.teeLocation = teeLocation
+        self.greenCenter = greenCenter
+        self.pinLocation = pinLocation
+        self.yardage = yardage
+        self.greenRadius = greenRadius
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        holeNumber = try container.decode(Int.self, forKey: .holeNumber)
+        par = try container.decode(Int.self, forKey: .par)
+        yardage = try container.decode(Double.self, forKey: .yardage)
+        greenRadius = try container.decode(Double.self, forKey: .greenRadius)
+
+        let teeLat = try container.decode(Double.self, forKey: .teeLatitude)
+        let teeLon = try container.decode(Double.self, forKey: .teeLongitude)
+        teeLocation = CLLocationCoordinate2D(latitude: teeLat, longitude: teeLon)
+
+        let greenLat = try container.decode(Double.self, forKey: .greenCenterLatitude)
+        let greenLon = try container.decode(Double.self, forKey: .greenCenterLongitude)
+        greenCenter = CLLocationCoordinate2D(latitude: greenLat, longitude: greenLon)
+
+        if let pinLat = try container.decodeIfPresent(Double.self, forKey: .pinLatitude),
+           let pinLon = try container.decodeIfPresent(Double.self, forKey: .pinLongitude) {
+            pinLocation = CLLocationCoordinate2D(latitude: pinLat, longitude: pinLon)
+        } else {
+            pinLocation = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(holeNumber, forKey: .holeNumber)
+        try container.encode(par, forKey: .par)
+        try container.encode(yardage, forKey: .yardage)
+        try container.encode(greenRadius, forKey: .greenRadius)
+
+        try container.encode(teeLocation.latitude, forKey: .teeLatitude)
+        try container.encode(teeLocation.longitude, forKey: .teeLongitude)
+
+        try container.encode(greenCenter.latitude, forKey: .greenCenterLatitude)
+        try container.encode(greenCenter.longitude, forKey: .greenCenterLongitude)
+
+        if let pin = pinLocation {
+            try container.encode(pin.latitude, forKey: .pinLatitude)
+            try container.encode(pin.longitude, forKey: .pinLongitude)
+        }
     }
 }
 
