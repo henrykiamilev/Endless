@@ -24,6 +24,7 @@ struct VideoLibraryView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var showingSwingAnalysis = false
+    @State private var showingStrokesGainedFullView = false
     @State private var selectedSwingVideo: ManagedSwingVideo?
     @State private var showingAddVideoOptions = false
     @State private var showingVideoPicker = false
@@ -616,6 +617,9 @@ struct VideoLibraryView: View {
             // Stats Overview Card
             statsOverviewCard
 
+            // Strokes Gained Section
+            strokesGainedStatsSection
+
             // Recent Round Stats
             sectionView(label: "RECENT ROUND STATS", icon: "chart.bar.fill") {
                 VStack(spacing: 0) {
@@ -713,6 +717,102 @@ struct VideoLibraryView: View {
         .background(themeManager.theme.cardBackground)
         .cornerRadius(24)
         .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+    }
+
+    // MARK: - Strokes Gained Stats Section
+
+    private var strokesGainedStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                    Text("Strokes Gained")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
+
+                Spacer()
+
+                Button(action: { showingStrokesGainedFullView = true }) {
+                    Text("View Details")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
+            }
+
+            VStack(spacing: 0) {
+                // Total SG row
+                HStack {
+                    Text("Total Strokes Gained")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+
+                    Spacer()
+
+                    let totalSG = StrokesGainedViewModel.shared.currentSummary?.totalSG ?? 0
+                    Text(formatStatsSG(totalSG))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(statsSGColor(for: totalSG))
+                }
+                .padding(14)
+
+                Divider()
+                    .background(themeManager.theme.border)
+
+                // Category breakdown
+                HStack(spacing: 0) {
+                    statsSGCategory(label: "OTT", category: .offTheTee)
+                    statsSGCategory(label: "APP", category: .approach)
+                    statsSGCategory(label: "ARG", category: .shortGame)
+                    statsSGCategory(label: "PUTT", category: .putting)
+                }
+            }
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .sheet(isPresented: $showingStrokesGainedFullView) {
+            NavigationView {
+                StrokesGainedOverviewView()
+                    .environmentObject(themeManager)
+            }
+        }
+    }
+
+    private func statsSGCategory(label: String, category: SGCategory) -> some View {
+        let sg = StrokesGainedViewModel.shared.currentSummary?.sgByCategory[category] ?? 0
+
+        return VStack(spacing: 4) {
+            Text(formatStatsSG(sg))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(statsSGColor(for: sg))
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(themeManager.theme.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private func formatStatsSG(_ value: Double) -> String {
+        if value == 0 { return "--" }
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func statsSGColor(for value: Double) -> Color {
+        if value > 0.3 {
+            return themeManager.theme.accentGreen
+        } else if value < -0.3 {
+            return themeManager.theme.error
+        } else {
+            return themeManager.theme.textPrimary
+        }
     }
 
     private func statItem(value: String, label: String, icon: String) -> some View {

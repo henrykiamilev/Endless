@@ -126,6 +126,30 @@ class WidgetPreferencesManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
     }
+
+    /// Syncs widget values with StrokesGainedViewModel data
+    func syncWithStrokesGained() {
+        let sgViewModel = StrokesGainedViewModel.shared
+
+        // Format SG value
+        func formatSG(_ value: Double) -> String {
+            if value == 0 { return "--" }
+            if value >= 0 {
+                return String(format: "+%.1f", value)
+            } else {
+                return String(format: "%.1f", value)
+            }
+        }
+
+        // Update SG widgets with actual data
+        if let summary = sgViewModel.currentSummary {
+            updateValue(for: "sg_total", value: formatSG(summary.totalSG))
+            updateValue(for: "sg_ott", value: formatSG(summary.sgByCategory[.offTheTee] ?? 0))
+            updateValue(for: "sg_app", value: formatSG(summary.sgByCategory[.approach] ?? 0))
+            updateValue(for: "sg_arg", value: formatSG(summary.sgByCategory[.shortGame] ?? 0))
+            updateValue(for: "sg_putt", value: formatSG(summary.sgByCategory[.putting] ?? 0))
+        }
+    }
 }
 
 // MARK: - iOS Style Performance Widgets View
@@ -161,6 +185,9 @@ struct PerformanceSnapshot: View {
 
             // iOS-style widget grid
             widgetGrid
+        }
+        .onAppear {
+            widgetManager.syncWithStrokesGained()
         }
     }
 
