@@ -649,43 +649,6 @@ struct VideoLibraryView: View {
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
             }
 
-            // Launch Monitor
-            sectionView(label: "LAUNCH MONITOR DATA", icon: "cpu") {
-                VStack(spacing: 20) {
-                    ZStack {
-                        Circle()
-                            .fill(themeManager.theme.primary.opacity(0.1))
-                            .frame(width: 80, height: 80)
-
-                        Circle()
-                            .fill(themeManager.theme.primary.opacity(0.2))
-                            .frame(width: 60, height: 60)
-
-                        Image(systemName: "cpu")
-                            .font(.system(size: 28))
-                            .foregroundColor(themeManager.theme.primary)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("Connect Launch Monitor")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(themeManager.theme.textPrimary)
-
-                        Text("Track club data and improve your swing")
-                            .font(.system(size: 13))
-                            .foregroundColor(themeManager.theme.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    BrandedButton(title: "CONNECT GCQUAD", icon: "link", action: {})
-                }
-                .frame(maxWidth: .infinity)
-                .padding(28)
-                .background(themeManager.theme.cardBackground)
-                .cornerRadius(24)
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
-            }
-
             // Round History
             sectionView(label: "ROUND HISTORY", icon: "clock.fill") {
                 VStack(spacing: 0) {

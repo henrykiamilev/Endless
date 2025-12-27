@@ -14,7 +14,6 @@ struct SettingsView: View {
     @State private var showingPrivacySecurity = false
     @State private var showingNotifications = false
     @State private var showingGolfSettings = false
-    @State private var showingConnectedDevices = false
     @State private var showingDataStorage = false
     @State private var showingHelpCenter = false
     @State private var showingContactSupport = false
@@ -78,9 +77,6 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingGolfSettings) {
             GolfSettingsSheet()
-        }
-        .sheet(isPresented: $showingConnectedDevices) {
-            ConnectedDevicesSheet()
         }
         .sheet(isPresented: $showingDataStorage) {
             DataStorageSheet()
@@ -282,10 +278,6 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             settingsRowButton(icon: "figure.golf", title: "Golf Settings", subtitle: golfSettingsSubtitle) {
                 showingGolfSettings = true
-            }
-            divider
-            settingsRowButton(icon: "cpu", title: "Connected Devices", subtitle: "GCQuad, Apple Watch") {
-                showingConnectedDevices = true
             }
             divider
             settingsRowButton(icon: "cloud", title: "Data & Storage", subtitle: "2.3 GB used") {
@@ -1130,86 +1122,6 @@ struct GolfSettingsSheet: View {
             }
         }
     }
-}
-
-// MARK: - Connected Devices Sheet
-
-struct ConnectedDevicesSheet: View {
-    @EnvironmentObject var themeManager: ThemeManager
-    @Environment(\.dismiss) var dismiss
-    @State private var devices: [ConnectedDevice] = [
-        ConnectedDevice(name: "GCQuad Launch Monitor", type: "Launch Monitor", isConnected: true, icon: "scope"),
-        ConnectedDevice(name: "Apple Watch Series 9", type: "Wearable", isConnected: true, icon: "applewatch"),
-        ConnectedDevice(name: "Arccos Sensors", type: "Shot Tracking", isConnected: false, icon: "sensor.tag.radiowaves.forward")
-    ]
-
-    var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    ForEach(devices) { device in
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(device.isConnected ? themeManager.theme.accentGreen.opacity(0.15) : themeManager.theme.textMuted.opacity(0.15))
-                                    .frame(width: 44, height: 44)
-
-                                Image(systemName: device.icon)
-                                    .font(.system(size: 18))
-                                    .foregroundColor(device.isConnected ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(device.name)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(themeManager.theme.textPrimary)
-                                Text(device.type)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(themeManager.theme.textSecondary)
-                            }
-
-                            Spacer()
-
-                            Text(device.isConnected ? "Connected" : "Disconnected")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(device.isConnected ? themeManager.theme.accentGreen : themeManager.theme.textMuted)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background((device.isConnected ? themeManager.theme.accentGreen : themeManager.theme.textMuted).opacity(0.15))
-                                .cornerRadius(8)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                } header: {
-                    Text("My Devices")
-                }
-
-                Section {
-                    Button(action: {}) {
-                        Label("Add New Device", systemImage: "plus.circle.fill")
-                    }
-                    .foregroundColor(themeManager.theme.primary)
-                }
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Connected Devices")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(themeManager.theme.primary)
-                }
-            }
-        }
-    }
-}
-
-struct ConnectedDevice: Identifiable {
-    let id = UUID()
-    let name: String
-    let type: String
-    let isConnected: Bool
-    let icon: String
 }
 
 // MARK: - Data & Storage Sheet
