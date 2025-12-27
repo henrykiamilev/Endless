@@ -1,275 +1,462 @@
 import SwiftUI
-import AVFoundation
+import AVKit
+import Combine
 
-// MARK: - Video Thumbnail Generator
-actor VideoThumbnailGenerator {
-    static let shared = VideoThumbnailGenerator()
-    private var cache: [String: UIImage] = [:]
-    private let maxCacheSize = 50
+struct VideoPlayerView: View {
+    let videoFileName: String
+    let videoTitle: String
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var playerManager = VideoPlayerManager()
+    @State private var showControls = true
 
-    private init() {}
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Background
+                Color.black.ignoresSafeArea()
 
-    func generateThumbnail(for videoFileName: String, at time: CMTime = CMTime(seconds: 1, preferredTimescale: 600)) async -> UIImage? {
-        // Check cache first
-        let cacheKey = "\(videoFileName)-\(time.seconds)"
-        if let cachedImage = cache[cacheKey] {
-            return cachedImage
-        }
+                // Video Player
+                if let player = playerManager.player {
+                    VideoPlayer(player: player)
+                        .ignoresSafeArea()
+                } else if let error = playerManager.loadError {
+                    // Error state
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.orange)
 
-        // Try to find the video file
-        let url = findVideoURL(for: videoFileName)
+                        Text("Unable to Load Video")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white)
 
-        guard let videoURL = url else {
-            print("VideoThumbnailGenerator: Could not find video: \(videoFileName)")
-            return nil
-        }
+                        Text(error)
+                            .font(.system(size: 14))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
 
-        let asset = AVURLAsset(url: videoURL)
-        let imageGenerator = AVAssetImageGenerator(asset: asset)
-        imageGenerator.appliesPreferredTrackTransform = true
-        imageGenerator.maximumSize = CGSize(width: 400, height: 400)
+                        Text("Make sure the video files are added to your Xcode project's target and included in 'Copy Bundle Resources'.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.5))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
 
-        do {
-            // Use modern async API for thumbnail generation (iOS 16+)
-            let (cgImage, _) = try await imageGenerator.image(at: time)
-            let image = UIImage(cgImage: cgImage)
+                        Button(action: { dismiss() }) {
+                            Text("Close")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 12)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                        }
+                        .padding(.top, 10)
+                    }
+                } else if playerManager.isLoading {
+                    // Loading state
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .controlSize(.large)
+                            .tint(.white)
+                        Text("Loading video...")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                }
 
-            // Manage cache size
-            if cache.count >= maxCacheSize {
-                // Remove oldest entry (simple FIFO)
-                if let firstKey = cache.keys.first {
-                    cache.removeValue(forKey: firstKey)
+                // Custom overlay controls (only show when video is loaded)
+                if playerManager.player != nil {
+                    VStack {
+                        // Top bar
+                        HStack {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
+
+                            Spacer()
+
+                            Text(videoTitle)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+
+                            Spacer()
+
+                            // Share button
+                            Button(action: shareVideo) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 60)
+
+                        Spacer()
+
+                        // Bottom controls
+                        VStack(spacing: 16) {
+                            // Progress bar
+                            HStack(spacing: 12) {
+                                Text(formatTime(playerManager.currentTime))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 50)
+
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        // Background track
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.white.opacity(0.3))
+                                            .frame(height: 4)
+
+                                        // Progress
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.green)
+                                            .frame(width: playerManager.duration > 0 ? CGFloat(playerManager.currentTime / playerManager.duration) * geo.size.width : 0, height: 4)
+                                    }
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                let percentage = value.location.x / geo.size.width
+                                                let clampedPercentage = min(max(percentage, 0), 1)
+                                                let newTime = Double(clampedPercentage) * playerManager.duration
+                                                playerManager.seek(to: newTime)
+                                            }
+                                    )
+                                }
+                                .frame(height: 20)
+
+                                Text(formatTime(playerManager.duration))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 50)
+                            }
+                            .padding(.horizontal, 20)
+
+                            // Playback controls
+                            HStack(spacing: 40) {
+                                // Rewind 10s
+                                Button(action: {
+                                    playerManager.skip(by: -10)
+                                }) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.white)
+                                }
+
+                                // Play/Pause
+                                Button(action: { playerManager.togglePlayPause() }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 64, height: 64)
+
+                                        Image(systemName: playerManager.isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 24, weight: .semibold))
+                                            .foregroundStyle(.white)
+                                            .offset(x: playerManager.isPlaying ? 0 : 2)
+                                    }
+                                }
+
+                                // Forward 10s
+                                Button(action: {
+                                    playerManager.skip(by: 10)
+                                }) {
+                                    Image(systemName: "goforward.10")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                        }
+                        .padding(.bottom, 50)
+                        .background(
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(0.7)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    }
+                    .opacity(showControls ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.2), value: showControls)
                 }
             }
-            cache[cacheKey] = image
-
-            return image
-        } catch {
-            print("VideoThumbnailGenerator: Error generating thumbnail: \(error)")
-            return nil
+            .onTapGesture {
+                withAnimation {
+                    showControls.toggle()
+                }
+            }
+        }
+        .onAppear {
+            playerManager.loadVideo(fileName: videoFileName)
+        }
+        .onDisappear {
+            playerManager.cleanup()
         }
     }
 
-    func getVideoDuration(for videoFileName: String) async -> Double? {
-        let url = findVideoURL(for: videoFileName)
-        guard let videoURL = url else { return nil }
-
-        let asset = AVURLAsset(url: videoURL)
-        do {
-            let duration = try await asset.load(.duration)
-            return CMTimeGetSeconds(duration)
-        } catch {
-            print("VideoThumbnailGenerator: Error loading duration: \(error)")
-            return nil
-        }
+    private func formatTime(_ time: Double) -> String {
+        guard !time.isNaN && !time.isInfinite else { return "0:00" }
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
-    func clearCache() {
-        cache.removeAll()
+    private func shareVideo() {
+        // Share functionality would go here
     }
+}
 
-    // MARK: - Private Helpers
+// MARK: - Video Player Manager (ObservableObject for proper state management)
+final class VideoPlayerManager: ObservableObject {
+    @Published var player: AVPlayer?
+    @Published var isPlaying = false
+    @Published var currentTime: Double = 0
+    @Published var duration: Double = 0
+    @Published var isLoading = true
+    @Published var loadError: String?
 
-    private nonisolated func findVideoURL(for videoFileName: String) -> URL? {
-        // First, check if it's already a full file path (user-recorded videos)
-        if videoFileName.hasPrefix("/") {
-            if FileManager.default.fileExists(atPath: videoFileName) {
-                return URL(fileURLWithPath: videoFileName)
+    private var timeObserver: Any?
+    private var endObserver: NSObjectProtocol?
+    private var statusObserver: NSKeyValueObservation?
+
+    func loadVideo(fileName: String) {
+        isLoading = true
+        loadError = nil
+
+        // Check if it's a remote URL first
+        if fileName.hasPrefix("http://") || fileName.hasPrefix("https://") {
+            if let remoteURL = URL(string: fileName) {
+                print("Loading remote video from: \(fileName)")
+                loadFromURL(remoteURL)
+                return
+            } else {
+                isLoading = false
+                loadError = "Invalid video URL: \(fileName)"
+                return
             }
         }
 
-        let baseName = videoFileName.replacingOccurrences(of: ".mp4", with: "")
+        // Check if it's a local file path (user-recorded videos)
+        if fileName.hasPrefix("/") && FileManager.default.fileExists(atPath: fileName) {
+            print("Loading local video from: \(fileName)")
+            loadFromURL(URL(fileURLWithPath: fileName))
+            return
+        }
 
-        // Try bundle root
-        if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: "mp4") {
-            return bundleURL
+        // Get the base name without extension
+        let baseName = fileName.replacingOccurrences(of: ".mp4", with: "")
+
+        // Try multiple paths to find the video
+        var videoURL: URL?
+
+        // Method 1: Direct bundle lookup (most common)
+        if let url = Bundle.main.url(forResource: baseName, withExtension: "mp4") {
+            videoURL = url
+            print("Found video at: \(url.path)")
         }
-        // Try Videos subdirectory
-        if let videosURL = Bundle.main.url(forResource: baseName, withExtension: "mp4", subdirectory: "Videos") {
-            return videosURL
+        // Method 2: Look in Videos subdirectory
+        else if let url = Bundle.main.url(forResource: baseName, withExtension: "mp4", subdirectory: "Videos") {
+            videoURL = url
+            print("Found video in Videos folder: \(url.path)")
         }
-        // Try without extension manipulation
-        if let directURL = Bundle.main.url(forResource: videoFileName, withExtension: nil, subdirectory: "Videos") {
-            return directURL
+        // Method 3: Try with full filename in Videos folder
+        else if let url = Bundle.main.url(forResource: fileName, withExtension: nil, subdirectory: "Videos") {
+            videoURL = url
+            print("Found video with full name: \(url.path)")
         }
-        // Search in bundle's resource path
-        if let resourcePath = Bundle.main.resourcePath {
+        // Method 4: Search in bundle's resource path
+        else if let resourcePath = Bundle.main.resourcePath {
             let possiblePaths = [
-                "\(resourcePath)/\(videoFileName)",
-                "\(resourcePath)/Videos/\(videoFileName)",
+                "\(resourcePath)/\(fileName)",
+                "\(resourcePath)/Videos/\(fileName)",
                 "\(resourcePath)/\(baseName).mp4",
                 "\(resourcePath)/Videos/\(baseName).mp4"
             ]
 
             for path in possiblePaths {
                 if FileManager.default.fileExists(atPath: path) {
-                    return URL(fileURLWithPath: path)
+                    videoURL = URL(fileURLWithPath: path)
+                    print("Found video at path: \(path)")
+                    break
                 }
             }
         }
 
-        return nil
-    }
-}
+        // If we found the video, create the player
+        guard let url = videoURL else {
+            // List available resources for debugging
+            print("Could not find video: \(fileName)")
+            print("Bundle path: \(Bundle.main.bundlePath)")
 
-// MARK: - Video Thumbnail View (SwiftUI)
-struct VideoThumbnailView: View {
-    let videoFileName: String
-    @State private var thumbnail: UIImage?
-    @State private var isLoading = true
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        ZStack {
-            if let thumbnail = thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else if isLoading {
-                // Loading placeholder
-                ZStack {
-                    thumbnailPlaceholder
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(themeManager.theme.textSecondary)
+            if let resourcePath = Bundle.main.resourcePath {
+                do {
+                    let contents = try FileManager.default.contentsOfDirectory(atPath: resourcePath)
+                    let mp4Files = contents.filter { $0.hasSuffix(".mp4") }
+                    print("MP4 files in bundle: \(mp4Files)")
+                } catch {
+                    print("Error listing bundle contents: \(error)")
                 }
-            } else {
-                // Failed to load - show placeholder
-                thumbnailPlaceholder
-            }
-        }
-        .task {
-            await loadThumbnail()
-        }
-    }
-
-    private func loadThumbnail() async {
-        isLoading = true
-        thumbnail = await VideoThumbnailGenerator.shared.generateThumbnail(for: videoFileName)
-        isLoading = false
-    }
-
-    private var thumbnailPlaceholder: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: themeManager.isDark ?
-                    [Color(hex: "1A1A1A"), Color(hex: "0F0F0F")] :
-                    [Color(hex: "F0F0F0"), Color(hex: "E0E0E0")]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            // Subtle grid pattern
-            GeometryReader { geo in
-                Path { path in
-                    let spacing: CGFloat = 16
-                    for i in stride(from: 0, to: geo.size.width, by: spacing) {
-                        path.move(to: CGPoint(x: i, y: 0))
-                        path.addLine(to: CGPoint(x: i, y: geo.size.height))
-                    }
-                    for i in stride(from: 0, to: geo.size.height, by: spacing) {
-                        path.move(to: CGPoint(x: 0, y: i))
-                        path.addLine(to: CGPoint(x: geo.size.width, y: i))
-                    }
-                }
-                .stroke(themeManager.theme.textSecondary.opacity(0.05), lineWidth: 1)
             }
 
-            // Video icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(themeManager.theme.textSecondary.opacity(0.08))
-                    .frame(width: 40, height: 40)
-
-                Image(systemName: "video.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(themeManager.theme.textSecondary.opacity(0.4))
-            }
-        }
-    }
-}
-
-// MARK: - Session Thumbnail View
-struct SessionThumbnailView: View {
-    let session: Session
-    @State private var thumbnail: UIImage?
-    @State private var isLoading = true
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        ZStack {
-            if let thumbnail = thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else if isLoading {
-                ZStack {
-                    placeholderBackground
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(themeManager.theme.textSecondary)
-                }
-            } else {
-                placeholderBackground
-            }
-        }
-        .task {
-            await loadThumbnail()
-        }
-    }
-
-    private func loadThumbnail() async {
-        guard let videoFileName = session.thumbnail else {
             isLoading = false
+            loadError = "Video file '\(fileName)' not found in app bundle."
             return
         }
-        isLoading = true
-        thumbnail = await VideoThumbnailGenerator.shared.generateThumbnail(for: videoFileName)
-        isLoading = false
+
+        loadFromURL(url)
     }
 
-    private var placeholderBackground: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: themeManager.isDark ?
-                    [Color(hex: "1A1A1A"), Color(hex: "0D0D0D")] :
-                    [Color(hex: "F5F5F5"), Color(hex: "E8E8E8")]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+    private func loadFromURL(_ url: URL) {
+        // Create player item and player
+        let playerItem = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: playerItem)
 
-            GeometryReader { geo in
-                Path { path in
-                    let spacing: CGFloat = 20
-                    for i in stride(from: 0, to: geo.size.width + geo.size.height, by: spacing) {
-                        path.move(to: CGPoint(x: i, y: 0))
-                        path.addLine(to: CGPoint(x: 0, y: i))
-                    }
+        // Observe the player item status for errors
+        statusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                switch item.status {
+                case .readyToPlay:
+                    self.isLoading = false
+                    self.player = newPlayer
+                    self.setupObservers()
+                    newPlayer.play()
+                    self.isPlaying = true
+                case .failed:
+                    self.isLoading = false
+                    self.loadError = item.error?.localizedDescription ?? "Failed to load video"
+                case .unknown:
+                    // Still loading
+                    break
+                @unknown default:
+                    break
                 }
-                .stroke(themeManager.theme.textSecondary.opacity(0.05), lineWidth: 1)
             }
+        }
 
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(themeManager.theme.textSecondary.opacity(0.08))
-                        .frame(width: 44, height: 44)
+        // Set a timeout for loading
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+            guard let self = self else { return }
+            if self.isLoading && self.player == nil {
+                self.isLoading = false
+                self.loadError = "Video loading timed out. Please check your connection."
+            }
+        }
+    }
 
-                    Image(systemName: "figure.golf")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(themeManager.theme.textSecondary.opacity(0.4))
+    private func setupObservers() {
+        guard let player = player else { return }
+
+        // Add time observer with weak self to prevent retain cycle
+        let interval = CMTime(seconds: 0.1, preferredTimescale: 600)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            guard let self = self else { return }
+            self.currentTime = CMTimeGetSeconds(time)
+            if let item = player.currentItem {
+                let dur = item.duration
+                if dur.isValid && !dur.isIndefinite && self.duration == 0 {
+                    self.duration = CMTimeGetSeconds(dur)
                 }
+            }
+        }
+
+        // Loop video when it ends
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.player?.seek(to: .zero)
+            self.player?.play()
+            self.isPlaying = true
+        }
+    }
+
+    func togglePlayPause() {
+        guard let player = player else { return }
+
+        if isPlaying {
+            player.pause()
+        } else {
+            player.play()
+        }
+        isPlaying.toggle()
+    }
+
+    func seek(to time: Double) {
+        player?.seek(to: CMTime(seconds: time, preferredTimescale: 600))
+    }
+
+    func skip(by seconds: Double) {
+        let newTime = currentTime + seconds
+        let clampedTime = min(max(newTime, 0), duration)
+        seek(to: clampedTime)
+    }
+
+    func cleanup() {
+        // Remove time observer
+        if let observer = timeObserver, let player = player {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+
+        // Remove end observer
+        if let endObserver = endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+
+        // Remove status observer
+        statusObserver?.invalidate()
+        statusObserver = nil
+
+        player?.pause()
+        player = nil
+    }
+
+    deinit {
+        cleanup()
+    }
+}
+
+// MARK: - Fullscreen Video Player Sheet
+struct FullscreenVideoPlayer: View {
+    let video: Video
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        if let fileName = video.videoFileName {
+            VideoPlayerView(videoFileName: fileName, videoTitle: video.title)
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "video.slash")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.gray)
+                Text("Video not available")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.gray)
+                Button("Close") {
+                    dismiss()
+                }
+                .foregroundStyle(.blue)
             }
         }
     }
 }
 
 #Preview {
-    VStack {
-        VideoThumbnailView(videoFileName: "swing-1.mp4")
-            .frame(width: 200, height: 150)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-    .environmentObject(ThemeManager())
-    .padding()
+    VideoPlayerView(videoFileName: "swing-1.mp4", videoTitle: "Oakmont CC")
+        .environmentObject(ThemeManager())
 }
