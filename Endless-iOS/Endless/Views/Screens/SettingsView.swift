@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var authManager = AuthenticationManager.shared
+    @ObservedObject private var settings = UserSettingsManager.shared
     @State private var showingMenu = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
@@ -279,7 +280,7 @@ struct SettingsView: View {
 
     private var preferencesSettingsGroup: some View {
         VStack(spacing: 0) {
-            settingsRowButton(icon: "figure.golf", title: "Golf Settings", subtitle: "Handicap: 4.2, Home: Oakmont CC") {
+            settingsRowButton(icon: "figure.golf", title: "Golf Settings", subtitle: golfSettingsSubtitle) {
                 showingGolfSettings = true
             }
             divider
@@ -294,6 +295,19 @@ struct SettingsView: View {
         .background(themeManager.theme.cardBackground)
         .cornerRadius(24)
         .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+    }
+
+    private var golfSettingsSubtitle: String {
+        var parts: [String] = []
+        if !settings.handicap.isEmpty && settings.handicap != "0.0" {
+            parts.append("Handicap: \(settings.handicap)")
+        }
+        if !settings.homeCourse.isEmpty {
+            // Extract just the course name (first part before comma if present)
+            let courseName = settings.homeCourse.components(separatedBy: ", ").last ?? settings.homeCourse
+            parts.append("Home: \(courseName)")
+        }
+        return parts.isEmpty ? "Set your golf preferences" : parts.joined(separator: ", ")
     }
 
     // MARK: - Support Settings
