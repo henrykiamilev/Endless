@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+
 // MARK: - Performance Widget Model
 
 struct PerformanceWidget: Identifiable, Codable, Equatable {
@@ -19,6 +20,7 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
     }
 
     static let allWidgets: [PerformanceWidget] = [
+        // Original widgets (keep existing defaults)
         PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
         PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
         PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
@@ -28,7 +30,13 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
         PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
         PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
         PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small)
+        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small),
+        // Strokes Gained widgets (new - align with Stats tab)
+        PerformanceWidget(id: "totalsg", icon: "chart.bar.fill", label: "Total Strokes Gained", shortLabel: "Total SG", value: "--", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "sg_ott", icon: "figure.golf", label: "SG Off the Tee", shortLabel: "SG OTT", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_app", icon: "scope", label: "SG Approach", shortLabel: "SG APP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_short", icon: "flag.2.crossed", label: "SG Short Game", shortLabel: "SG Short", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_putt", icon: "circle.dotted", label: "SG Putting", shortLabel: "SG Putt", value: "--", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
@@ -56,8 +64,21 @@ class WidgetPreferencesManager: ObservableObject {
     }
 
     private init() {
-        // Initialize with defaults - data will be loaded when user is set
-        self.widgets = PerformanceWidget.allWidgets
+        // Load widgets and merge any new ones that have been added
+        if let data = UserDefaults.standard.data(forKey: "performanceWidgets"),
+           let decoded = try? JSONDecoder().decode([PerformanceWidget].self, from: data) {
+            // Merge saved preferences with new widgets
+            var merged = decoded
+            let savedIds = Set(decoded.map { $0.id })
+            for widget in PerformanceWidget.allWidgets {
+                if !savedIds.contains(widget.id) {
+                    merged.append(widget)
+                }
+            }
+            self.widgets = merged
+        } else {
+            self.widgets = PerformanceWidget.allWidgets
+        }
     }
 
     // MARK: - User Context Management
@@ -110,9 +131,27 @@ class WidgetPreferencesManager: ObservableObject {
     private func loadWidgets() -> [PerformanceWidget] {
         if let data = UserDefaults.standard.data(forKey: widgetsKey),
            let decoded = try? JSONDecoder().decode([PerformanceWidget].self, from: data) {
-            return decoded
+            // Merge: keep user's saved preferences but add any new widgets
+            return mergeWidgets(saved: decoded, available: PerformanceWidget.allWidgets)
         }
         return PerformanceWidget.allWidgets
+    }
+
+    /// Merge saved widget preferences with available widgets
+    /// - Keeps user's saved preferences (enabled state, values, sizes)
+    /// - Adds any new widgets that don't exist in saved preferences
+    private func mergeWidgets(saved: [PerformanceWidget], available: [PerformanceWidget]) -> [PerformanceWidget] {
+        var merged = saved
+        let savedIds = Set(saved.map { $0.id })
+
+        // Add any new widgets that aren't in the saved list
+        for widget in available {
+            if !savedIds.contains(widget.id) {
+                merged.append(widget)
+            }
+        }
+
+        return merged
     }
 
     /// Permanently deletes the user's widget preferences
@@ -120,6 +159,125 @@ class WidgetPreferencesManager: ObservableObject {
     func resetToDefaults() {
         UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
+    }
+
+    // MARK: - Stats Integration
+
+    /// Sync widget values from StrokesGainedViewModel
+    /// Call this after round data is loaded or updated
+    func syncFromStrokesGained() {
+        let viewModel = StrokesGainedViewModel.shared
+
+        // Update rounds count
+        updateValue(for: "rounds", value: "\(viewModel.allSummaries.count)")
+
+        guard let summary = viewModel.currentSummary else {
+            // No data - show empty state for all widgets
+            // Traditional stats
+            updateValue(for: "gir", value: "--")
+            updateValue(for: "fir", value: "--")
+            updateValue(for: "putts", value: "--")
+            updateValue(for: "avg", value: "--")
+            updateValue(for: "handicap", value: "--")
+            updateValue(for: "driving", value: "--")
+            updateValue(for: "scramble", value: "--")
+            updateValue(for: "sandsave", value: "--")
+            updateValue(for: "updown", value: "--")
+            // Strokes Gained
+            updateValue(for: "totalsg", value: "--")
+            updateValue(for: "sg_ott", value: "--")
+            updateValue(for: "sg_app", value: "--")
+            updateValue(for: "sg_short", value: "--")
+            updateValue(for: "sg_putt", value: "--")
+            return
+        }
+
+        // Strokes Gained widgets (primary - align with Stats tab)
+        updateValue(for: "totalsg", value: formatSG(summary.totalSG))
+        updateValue(for: "sg_ott", value: formatSG(summary.sgByCategory[.offTheTee] ?? 0))
+        updateValue(for: "sg_app", value: formatSG(summary.sgByCategory[.approach] ?? 0))
+        updateValue(for: "sg_short", value: formatSG(summary.sgByCategory[.shortGame] ?? 0))
+        updateValue(for: "sg_putt", value: formatSG(summary.sgByCategory[.putting] ?? 0))
+
+        // Traditional stats
+        let puttsCount = summary.shotsByCategory[.putting] ?? 0
+        updateValue(for: "putts", value: "\(puttsCount)")
+
+        if summary.totalStrokes > 0 {
+            updateValue(for: "avg", value: "\(summary.totalStrokes)")
+        }
+
+        // Calculate GIR % and FIR % from shot data
+        if let session = viewModel.currentSession {
+            let girCount = calculateGIR(from: session.shots)
+            let holesPlayed = Set(session.shots.compactMap { $0.holeNumber.value }).count
+            if holesPlayed > 0 {
+                let girPercent = Int((Double(girCount) / Double(holesPlayed)) * 100)
+                updateValue(for: "gir", value: "\(girPercent)%")
+            }
+
+            let firResult = calculateFIR(from: session.shots)
+            if firResult.attempts > 0 {
+                let firPercent = Int((Double(firResult.hits) / Double(firResult.attempts)) * 100)
+                updateValue(for: "fir", value: "\(firPercent)%")
+            }
+        }
+    }
+
+    /// Format strokes gained value with +/- sign
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    /// Calculate Greens in Regulation from shot data
+    private func calculateGIR(from shots: [DerivedShot]) -> Int {
+        var girCount = 0
+
+        // Group shots by hole
+        let shotsByHole = Dictionary(grouping: shots) { $0.holeNumber.value ?? 0 }
+
+        for (_, holeShots) in shotsByHole {
+            guard !holeShots.isEmpty else { continue }
+
+            // Find the first shot that ends on green
+            // GIR = reached green in (par - 2) strokes or fewer
+            // For simplicity, check if any approach/tee shot ended on green within regulation
+            let sortedShots = holeShots.sorted { $0.shotNumber < $1.shotNumber }
+
+            for (index, shot) in sortedShots.enumerated() {
+                if shot.endState.lie.value == .green {
+                    // Check if this is within regulation (simplified: shot index <= 2 for par 4, etc.)
+                    if index < 2 {
+                        girCount += 1
+                    }
+                    break
+                }
+            }
+        }
+
+        return girCount
+    }
+
+    /// Calculate Fairways in Regulation (hits/attempts) from shot data
+    private func calculateFIR(from shots: [DerivedShot]) -> (hits: Int, attempts: Int) {
+        var hits = 0
+        var attempts = 0
+
+        for shot in shots {
+            // Only count tee shots on par 4/5 (OTT category)
+            if shot.category == .offTheTee && shot.startState.lie.value == .tee {
+                attempts += 1
+                if shot.endState.lie.value == .fairway {
+                    hits += 1
+                }
+            }
+        }
+
+        return (hits, attempts)
     }
 }
 
@@ -130,6 +288,7 @@ struct PerformanceSnapshot: View {
     var onCustomize: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject private var widgetManager = WidgetPreferencesManager.shared
+    @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     var body: some View {
         VStack(spacing: 16) {
@@ -156,6 +315,12 @@ struct PerformanceSnapshot: View {
 
             // iOS-style widget grid
             widgetGrid
+        }
+        .onAppear {
+            widgetManager.syncFromStrokesGained()
+        }
+        .onChange(of: strokesGainedVM.currentSummary?.id) { _, _ in
+            widgetManager.syncFromStrokesGained()
         }
     }
 
