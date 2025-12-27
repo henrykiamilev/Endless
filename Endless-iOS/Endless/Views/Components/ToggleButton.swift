@@ -8,25 +8,25 @@ struct ToggleButton: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedIndex = index
+                Text(option.uppercased())
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(selectedIndex == index ?
+                        themeManager.theme.textInverse :
+                        themeManager.theme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        selectedIndex == index ?
+                        themeManager.theme.textPrimary :
+                        Color.clear
+                    )
+                    .cornerRadius(26)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedIndex = index
+                        }
                     }
-                }) {
-                    Text(option.uppercased())
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(selectedIndex == index ?
-                            themeManager.theme.textInverse :
-                            themeManager.theme.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            selectedIndex == index ?
-                            themeManager.theme.textPrimary :
-                            Color.clear
-                        )
-                        .cornerRadius(26)
-                }
             }
         }
         .padding(4)
