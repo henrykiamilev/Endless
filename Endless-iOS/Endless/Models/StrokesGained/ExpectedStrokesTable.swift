@@ -231,34 +231,34 @@ final class TableExpectedStrokesProvider: ExpectedStrokesProvider {
     }
 
     /// Linear interpolation between table entries
-    private func interpolate(distance: Double, in table: [(maxDist: Double, expected: Double)]) -> Double {
+    private func interpolate(distance: Double, in table: [(Double, Double)]) -> Double {
         guard !table.isEmpty else { return 3.5 }  // Safe default
 
         // Handle below minimum
-        if distance <= table[0].maxDist {
-            return table[0].expected
+        if distance <= table[0].0 {
+            return table[0].1
         }
 
         // Handle above maximum
-        if distance >= table[table.count - 1].maxDist {
+        if distance >= table[table.count - 1].0 {
             // Extrapolate slightly above max
             let last = table[table.count - 1]
             let secondLast = table[table.count - 2]
-            let slope = (last.expected - secondLast.expected) / (last.maxDist - secondLast.maxDist)
-            return last.expected + slope * (distance - last.maxDist)
+            let slope = (last.1 - secondLast.1) / (last.0 - secondLast.0)
+            return last.1 + slope * (distance - last.0)
         }
 
         // Find bracket and interpolate
         for i in 1..<table.count {
-            if distance <= table[i].maxDist {
+            if distance <= table[i].0 {
                 let lower = table[i - 1]
                 let upper = table[i]
-                let ratio = (distance - lower.maxDist) / (upper.maxDist - lower.maxDist)
-                return lower.expected + ratio * (upper.expected - lower.expected)
+                let ratio = (distance - lower.0) / (upper.0 - lower.0)
+                return lower.1 + ratio * (upper.1 - lower.1)
             }
         }
 
-        return table[table.count - 1].expected
+        return table[table.count - 1].1
     }
 }
 
