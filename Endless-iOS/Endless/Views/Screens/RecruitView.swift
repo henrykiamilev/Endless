@@ -417,22 +417,56 @@ struct RecruitView: View {
     // MARK: - Performance Stats Section
 
     private var performanceStatsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let sgViewModel = StrokesGainedViewModel.shared
+
+        return VStack(alignment: .leading, spacing: 16) {
             sectionHeader(icon: "chart.bar.fill", title: "Performance Stats")
 
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    statBox(label: "Scoring Avg", value: "--", highlight: true)
+                    statBox(
+                        label: "Scoring Avg",
+                        value: sgViewModel.currentSummary?.scoringStats.scoringAverage?.displayValue ?? "--",
+                        highlight: true
+                    )
                     dividerVertical
-                    statBox(label: "Driving Distance", value: "--", highlight: true)
+                    statBox(
+                        label: "SG Driving",
+                        value: formatSG(sgViewModel.currentSummary?.sgOffTheTee),
+                        highlight: true
+                    )
                 }
 
                 dividerHorizontal
 
                 HStack(spacing: 0) {
-                    statBox(label: "GIR %", value: "--", highlight: true)
+                    statBox(
+                        label: "GIR %",
+                        value: sgViewModel.currentSummary?.approachStats.totalGIR?.displayPercentage ?? "--",
+                        highlight: true
+                    )
                     dividerVertical
-                    statBox(label: "Putts/Round", value: "--", highlight: true)
+                    statBox(
+                        label: "SG Putting",
+                        value: formatSG(sgViewModel.currentSummary?.sgPutting),
+                        highlight: true
+                    )
+                }
+
+                dividerHorizontal
+
+                HStack(spacing: 0) {
+                    statBox(
+                        label: "SG Approach",
+                        value: formatSG(sgViewModel.currentSummary?.sgApproach),
+                        highlight: true
+                    )
+                    dividerVertical
+                    statBox(
+                        label: "SG Short Game",
+                        value: formatSG(sgViewModel.currentSummary?.sgShortGame),
+                        highlight: true
+                    )
                 }
             }
             .background(themeManager.theme.cardBackground)
@@ -440,6 +474,15 @@ struct RecruitView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+
+    private func formatSG(_ value: Double?) -> String {
+        guard let value = value else { return "--" }
+        if value >= 0 {
+            return String(format: "+%.2f", value)
+        } else {
+            return String(format: "%.2f", value)
+        }
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)

@@ -20,15 +20,15 @@ struct PerformanceWidget: Identifiable, Codable, Equatable {
 
     static let allWidgets: [PerformanceWidget] = [
         PerformanceWidget(id: "gir", icon: "figure.golf", label: "Greens in Regulation", shortLabel: "GIR", value: "--", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways in Regulation", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
-        PerformanceWidget(id: "putts", icon: "circle.fill", label: "Putts per Round", shortLabel: "Putts", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "fir", icon: "flag.fill", label: "Fairways Hit", shortLabel: "FIR", value: "--", color: "22C55E", isEnabled: true, size: .small),
+        PerformanceWidget(id: "sg_putting", icon: "circle.fill", label: "SG Putting", shortLabel: "SG Putt", value: "--", color: "22C55E", isEnabled: true, size: .small),
         PerformanceWidget(id: "avg", icon: "trophy.fill", label: "Scoring Average", shortLabel: "Avg", value: "--", color: "22C55E", isEnabled: true, size: .medium),
-        PerformanceWidget(id: "handicap", icon: "chart.line.uptrend.xyaxis", label: "Handicap Index", shortLabel: "HCP", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "driving", icon: "arrow.up.right", label: "Driving Distance", shortLabel: "Drive", value: "--", color: "22C55E", isEnabled: false, size: .medium),
-        PerformanceWidget(id: "scramble", icon: "arrow.triangle.2.circlepath", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_driving", icon: "arrow.up.right", label: "SG Driving", shortLabel: "SG OTT", value: "--", color: "22C55E", isEnabled: false, size: .medium),
+        PerformanceWidget(id: "sg_approach", icon: "flag.fill", label: "SG Approach", shortLabel: "SG APP", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "sg_shortgame", icon: "arrow.triangle.2.circlepath", label: "SG Short Game", shortLabel: "SG ARG", value: "--", color: "22C55E", isEnabled: false, size: .small),
         PerformanceWidget(id: "sandsave", icon: "leaf.fill", label: "Sand Save %", shortLabel: "Sand", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "updown", icon: "arrow.up.arrow.down", label: "Up & Down %", shortLabel: "U&D", value: "--", color: "22C55E", isEnabled: false, size: .small),
-        PerformanceWidget(id: "rounds", icon: "repeat", label: "Rounds Played", shortLabel: "Rnds", value: "0", color: "22C55E", isEnabled: false, size: .small)
+        PerformanceWidget(id: "scramble", icon: "arrow.up.arrow.down", label: "Scrambling %", shortLabel: "Scr", value: "--", color: "22C55E", isEnabled: false, size: .small),
+        PerformanceWidget(id: "birdies", icon: "star.fill", label: "Birdies/Round", shortLabel: "Birds", value: "--", color: "22C55E", isEnabled: false, size: .small)
     ]
 }
 
@@ -121,6 +121,65 @@ class WidgetPreferencesManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: widgetsKey)
         widgets = PerformanceWidget.allWidgets
     }
+
+    /// Syncs widget values with StrokesGainedViewModel data
+    func syncWithStrokesGained() {
+        let sgViewModel = StrokesGainedViewModel.shared
+        guard let summary = sgViewModel.currentSummary else { return }
+
+        // Update each widget with actual data
+        if let girValue = summary.approachStats.totalGIR {
+            updateValue(for: "gir", value: girValue.displayPercentage)
+        }
+
+        if let firValue = summary.teeStats.fairwayHitPercentage {
+            updateValue(for: "fir", value: firValue.displayPercentage)
+        }
+
+        // SG Putting
+        let sgPutt = summary.sgPutting
+        updateValue(for: "sg_putting", value: formatSG(sgPutt))
+
+        // Scoring Average
+        if let avgValue = summary.scoringStats.scoringAverage {
+            updateValue(for: "avg", value: avgValue.displayValue)
+        }
+
+        // SG Driving
+        let sgDriving = summary.sgOffTheTee
+        updateValue(for: "sg_driving", value: formatSG(sgDriving))
+
+        // SG Approach
+        let sgApproach = summary.sgApproach
+        updateValue(for: "sg_approach", value: formatSG(sgApproach))
+
+        // SG Short Game
+        let sgShortGame = summary.sgShortGame
+        updateValue(for: "sg_shortgame", value: formatSG(sgShortGame))
+
+        // Sand Save %
+        if let sandSave = summary.shortGameStats.sandSavePercentage {
+            updateValue(for: "sandsave", value: sandSave.displayPercentage)
+        }
+
+        // Scrambling (Non-GIR Par or Better)
+        if let scramble = summary.shortGameStats.nonGIRParOrBetterRate {
+            updateValue(for: "scramble", value: scramble.displayPercentage)
+        }
+
+        // Birdies per Round
+        if let birdies = summary.scoringStats.birdiesPerRound {
+            updateValue(for: "birdies", value: birdies.displayValue)
+        }
+    }
+
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.2f", value)
+        } else {
+            return String(format: "%.2f", value)
+        }
+    }
 }
 
 // MARK: - iOS Style Performance Widgets View
@@ -156,6 +215,10 @@ struct PerformanceSnapshot: View {
 
             // iOS-style widget grid
             widgetGrid
+        }
+        .onAppear {
+            // Sync widget values with Strokes Gained data
+            widgetManager.syncWithStrokesGained()
         }
     }
 
