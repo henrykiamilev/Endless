@@ -121,6 +121,7 @@ struct RecruitView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var profileManager = RecruitProfileManager.shared
     @ObservedObject private var filmHighlights = FilmHighlightsManager.shared
+    @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
     @State private var showingEditProfile = false
     @State private var showingEditContact = false
     @State private var showingMessages = false
@@ -418,21 +419,32 @@ struct RecruitView: View {
 
     private var performanceStatsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(icon: "chart.bar.fill", title: "Performance Stats")
+            sectionHeader(icon: "chart.bar.fill", title: "Strokes Gained")
 
             VStack(spacing: 0) {
+                // Total SG row
                 HStack(spacing: 0) {
-                    statBox(label: "Scoring Avg", value: "--", highlight: true)
+                    statBox(label: "Total SG", value: totalStrokesGained, highlight: true)
                     dividerVertical
-                    statBox(label: "Driving Distance", value: "--", highlight: true)
+                    statBox(label: "Rounds", value: roundsPlayed, highlight: false)
                 }
 
                 dividerHorizontal
 
+                // SG by category - top row
                 HStack(spacing: 0) {
-                    statBox(label: "GIR %", value: "--", highlight: true)
+                    statBox(label: "SG Off Tee", value: sgOffTheTee, highlight: true)
                     dividerVertical
-                    statBox(label: "Putts/Round", value: "--", highlight: true)
+                    statBox(label: "SG Approach", value: sgApproach, highlight: true)
+                }
+
+                dividerHorizontal
+
+                // SG by category - bottom row
+                HStack(spacing: 0) {
+                    statBox(label: "SG Short", value: sgShortGame, highlight: true)
+                    dividerVertical
+                    statBox(label: "SG Putting", value: sgPutting, highlight: true)
                 }
             }
             .background(themeManager.theme.cardBackground)
@@ -440,6 +452,56 @@ struct RecruitView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+
+    // MARK: - Computed Stats from StrokesGainedViewModel
+
+    private var totalStrokesGained: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return summary.formattedTotalSG
+    }
+
+    private var roundsPlayed: String {
+        let count = strokesGainedVM.allSummaries.count
+        return "\(count)"
+    }
+
+    private var sgOffTheTee: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.offTheTee] ?? 0)
+    }
+
+    private var sgApproach: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.approach] ?? 0)
+    }
+
+    private var sgShortGame: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.shortGame] ?? 0)
+    }
+
+    private var sgPutting: String {
+        guard let summary = strokesGainedVM.currentSummary else {
+            return "--"
+        }
+        return formatSG(summary.sgByCategory[.putting] ?? 0)
+    }
+
+    private func formatSG(_ value: Double) -> String {
+        if value >= 0 {
+            return String(format: "+%.1f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
     }
 
     // MARK: - Profile Activity Section (Clickable coaches)
