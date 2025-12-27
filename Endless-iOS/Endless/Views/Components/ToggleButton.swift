@@ -26,7 +26,9 @@ struct ToggleButton: View {
                             Color.clear
                         )
                         .cornerRadius(26)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(4)
