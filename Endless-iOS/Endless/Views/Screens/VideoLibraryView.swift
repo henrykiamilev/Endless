@@ -70,9 +70,6 @@ struct VideoLibraryView: View {
 
                 Spacer(minLength: 120)
             }
-            .onTapGesture {
-                isPromptFocused = false
-            }
         }
         .scrollDismissesKeyboard(.interactively)
         .background(themeManager.theme.background)
