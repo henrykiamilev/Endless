@@ -105,57 +105,70 @@ class GolfCourseSearchService: ObservableObject {
         return response.mapItems.compactMap { item -> GolfCourseResult? in
             guard let name = item.name else { return nil }
 
-            let address: String
-            let coordinate: CLLocationCoordinate2D
-
+            let locationData: MapItemLocationData
             if #available(iOS 26, *) {
-                // iOS 26+: Use modern MKAddressRepresentations API
-                // Apple recommends using MKAddressRepresentations for geographically correct address formatting
-                address = extractAddressModern(from: item)
-                coordinate = item.placemark.coordinate
+                locationData = extractLocationDataModern(from: item)
             } else {
-                // iOS 16-25: Use legacy placemark API
-                address = extractAddressLegacy(from: item.placemark)
-                coordinate = item.placemark.coordinate
+                locationData = extractLocationDataLegacy(from: item)
             }
 
             return GolfCourseResult(
                 name: name,
-                address: address,
-                coordinate: coordinate
+                address: locationData.address,
+                coordinate: locationData.coordinate
             )
         }
     }
 
-    /// Extract address using modern MKAddressRepresentations API (iOS 26+)
+    /// Container for extracted location data from MKMapItem
+    private struct MapItemLocationData {
+        let address: String
+        let coordinate: CLLocationCoordinate2D
+    }
+
+    /// Extract location data using modern MKAddressRepresentations API (iOS 26+)
     /// This approach delegates address formatting correctness to MapKit
     @available(iOS 26, *)
-    private func extractAddressModern(from item: MKMapItem) -> String {
+    private func extractLocationDataModern(from item: MKMapItem) -> MapItemLocationData {
         // Use MKAddressRepresentations for localized, geographically correct address formatting
         // cityWithContext provides city name with appropriate regional context
         // Falls back to regionName if city context unavailable
+        var address = ""
         if let representations = item.addressRepresentations {
             if let cityWithContext = representations.cityWithContext {
-                return cityWithContext
-            }
-            if let regionName = representations.regionName {
-                return regionName
+                address = cityWithContext
+            } else if let regionName = representations.regionName {
+                address = regionName
             }
         }
-        return ""
+
+        // For iOS 26+, coordinate is accessed through the placement API
+        let coordinate = item.placement?.coordinate ?? CLLocationCoordinate2D()
+
+        return MapItemLocationData(address: address, coordinate: coordinate)
     }
 
-    /// Extract address using legacy placemark API (iOS 16-25)
-    /// Manually concatenates locality and administrative area
-    private func extractAddressLegacy(from placemark: MKPlacemark) -> String {
-        var components: [String] = []
+    /// Extract location data using legacy placemark API (iOS 16-25)
+    /// This method is isolated to contain deprecated API usage
+    /// - Note: Uses deprecated MKMapItem.placemark property for backward compatibility
+    @available(iOS, deprecated: 26, message: "Use extractLocationDataModern for iOS 26+")
+    private func extractLocationDataLegacy(from item: MKMapItem) -> MapItemLocationData {
+        let placemark = item.placemark
+
+        // Build address from placemark components
+        var addressComponents: [String] = []
         if let locality = placemark.locality {
-            components.append(locality)
+            addressComponents.append(locality)
         }
         if let administrativeArea = placemark.administrativeArea {
-            components.append(administrativeArea)
+            addressComponents.append(administrativeArea)
         }
-        return components.joined(separator: ", ")
+        let address = addressComponents.joined(separator: ", ")
+
+        // Get coordinate from placemark
+        let coordinate = placemark.coordinate
+
+        return MapItemLocationData(address: address, coordinate: coordinate)
     }
 
     /// Clear all search results
