@@ -126,8 +126,8 @@ class GolfCourseSearchService: ObservableObject {
         let coordinate: CLLocationCoordinate2D
     }
 
-    /// Extract location data using modern MKAddressRepresentations API (iOS 26+)
-    /// This approach delegates address formatting correctness to MapKit
+    /// Extract location data using modern APIs (iOS 26+)
+    /// Uses MKMapItem.location and MKMapItem.addressRepresentations
     @available(iOS 26, *)
     private func extractLocationDataModern(from item: MKMapItem) -> MapItemLocationData {
         // Use MKAddressRepresentations for localized, geographically correct address formatting
@@ -142,8 +142,9 @@ class GolfCourseSearchService: ObservableObject {
             }
         }
 
-        // For iOS 26+, coordinate is accessed through the placement API
-        let coordinate = item.placement?.coordinate ?? CLLocationCoordinate2D()
+        // iOS 26+: Use item.location instead of deprecated item.placemark
+        // item.location is a CLLocation? that replaces placemark.coordinate access
+        let coordinate = item.location?.coordinate ?? CLLocationCoordinate2D()
 
         return MapItemLocationData(address: address, coordinate: coordinate)
     }
