@@ -105,25 +105,57 @@ class GolfCourseSearchService: ObservableObject {
         return response.mapItems.compactMap { item -> GolfCourseResult? in
             guard let name = item.name else { return nil }
 
-            // Build address from placemark
-            let placemark = item.placemark
-            var addressComponents: [String] = []
+            let address: String
+            let coordinate: CLLocationCoordinate2D
 
-            if let locality = placemark.locality {
-                addressComponents.append(locality)
+            if #available(iOS 26, *) {
+                // iOS 26+: Use modern MKAddressRepresentations API
+                // Apple recommends using MKAddressRepresentations for geographically correct address formatting
+                address = extractAddressModern(from: item)
+                coordinate = item.placemark.coordinate
+            } else {
+                // iOS 16-25: Use legacy placemark API
+                address = extractAddressLegacy(from: item.placemark)
+                coordinate = item.placemark.coordinate
             }
-            if let administrativeArea = placemark.administrativeArea {
-                addressComponents.append(administrativeArea)
-            }
-
-            let address = addressComponents.joined(separator: ", ")
 
             return GolfCourseResult(
                 name: name,
                 address: address,
-                coordinate: item.placemark.coordinate
+                coordinate: coordinate
             )
         }
+    }
+
+    /// Extract address using modern MKAddressRepresentations API (iOS 26+)
+    /// This approach delegates address formatting correctness to MapKit
+    @available(iOS 26, *)
+    private func extractAddressModern(from item: MKMapItem) -> String {
+        // Use MKAddressRepresentations for localized, geographically correct address formatting
+        // cityWithContext provides city name with appropriate regional context
+        // Falls back to regionName if city context unavailable
+        if let representations = item.addressRepresentations {
+            if let cityWithContext = representations.cityWithContext {
+                return cityWithContext
+            }
+            if let regionName = representations.regionName {
+                return regionName
+            }
+        }
+        return ""
+    }
+
+    /// Extract address using legacy placemark API (iOS 16-25)
+    /// Manually concatenates locality and administrative area
+    private func extractAddressLegacy(from placemark: MKPlacemark) -> String {
+        var components: [String] = []
+        if let locality = placemark.locality {
+            components.append(locality)
+        }
+        if let administrativeArea = placemark.administrativeArea {
+            components.append(administrativeArea)
+        }
+        return components.joined(separator: ", ")
     }
 
     /// Clear all search results
