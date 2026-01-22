@@ -258,7 +258,7 @@ struct HoleDetailView: View {
     private func categorySG(for category: SGCategory) -> Double {
         let shots = holeShots.filter { shot in
             // Determine category from shot type/lie
-            if let sg = shot.strokesGained {
+            if shot.strokesGained != nil {
                 return viewModel.category(for: shot) == category
             }
             return false
