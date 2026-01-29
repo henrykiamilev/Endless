@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UserNotifications
 
 // Navigation Manager to handle tab switching across views
 class NavigationManager: ObservableObject {
@@ -47,6 +48,8 @@ class NavigationManager: ObservableObject {
 struct ContentView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var navigationManager = NavigationManager()
+    @ObservedObject private var authManager = AuthenticationManager.shared
+    @State private var showingNotificationPrompt = false
 
     init() {
         // Hide default TabView appearance
@@ -83,6 +86,29 @@ struct ContentView: View {
         .background(themeManager.theme.background)
         .ignoresSafeArea(.keyboard)
         .preferredColorScheme(themeManager.isDark ? .dark : .light)
+        .onChange(of: authManager.isNewAccount) { _, isNew in
+            if isNew {
+                showingNotificationPrompt = true
+                authManager.isNewAccount = false
+            }
+        }
+        .alert("Enable Notifications?", isPresented: $showingNotificationPrompt) {
+            Button("Not Now", role: .cancel) { }
+            Button("Enable") {
+                requestNotificationPermission()
+            }
+        } message: {
+            Text("Stay up to date with coach messages, session reminders, and weekly progress updates. You can change this anytime in Settings.")
+        }
+    }
+
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+                let settings = UserSettingsManager.shared
+                settings.pushEnabled = granted
+            }
+        }
     }
 }
 

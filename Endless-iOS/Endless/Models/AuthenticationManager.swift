@@ -54,6 +54,7 @@ final class AuthenticationManager: ObservableObject {
     @Published var currentUser: AppUser?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var isNewAccount = false
 
     private var authStateHandler: AuthStateDidChangeListenerHandle?
 
@@ -109,6 +110,7 @@ final class AuthenticationManager: ObservableObject {
             changeRequest.displayName = "\(firstName) \(lastName)"
             try await changeRequest.commitChanges()
 
+            isNewAccount = true
             isLoading = false
         } catch {
             isLoading = false
