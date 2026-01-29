@@ -113,13 +113,13 @@ class UserSettingsManager: ObservableObject {
         self.faceIDEnabled = defaults.object(forKey: Keys.faceIDEnabled) as? Bool ?? true
         self.privateProfile = defaults.bool(forKey: Keys.privateProfile)
 
-        // Load Notification Settings
-        self.pushEnabled = defaults.object(forKey: Keys.pushEnabled) as? Bool ?? true
-        self.emailEnabled = defaults.object(forKey: Keys.emailEnabled) as? Bool ?? true
+        // Load Notification Settings (default to false — require user consent before enabling)
+        self.pushEnabled = defaults.object(forKey: Keys.pushEnabled) as? Bool ?? false
+        self.emailEnabled = defaults.object(forKey: Keys.emailEnabled) as? Bool ?? false
         self.smsEnabled = defaults.bool(forKey: Keys.smsEnabled)
-        self.coachMessages = defaults.object(forKey: Keys.coachMessages) as? Bool ?? true
-        self.sessionReminders = defaults.object(forKey: Keys.sessionReminders) as? Bool ?? true
-        self.weeklyDigest = defaults.object(forKey: Keys.weeklyDigest) as? Bool ?? true
+        self.coachMessages = defaults.object(forKey: Keys.coachMessages) as? Bool ?? false
+        self.sessionReminders = defaults.object(forKey: Keys.sessionReminders) as? Bool ?? false
+        self.weeklyDigest = defaults.object(forKey: Keys.weeklyDigest) as? Bool ?? false
         self.newFeatures = defaults.bool(forKey: Keys.newFeatures)
     }
 
@@ -160,12 +160,12 @@ class UserSettingsManager: ObservableObject {
         faceIDEnabled = true
         privateProfile = false
 
-        pushEnabled = true
-        emailEnabled = true
+        pushEnabled = false
+        emailEnabled = false
         smsEnabled = false
-        coachMessages = true
-        sessionReminders = true
-        weeklyDigest = true
+        coachMessages = false
+        sessionReminders = false
+        weeklyDigest = false
         newFeatures = false
     }
 }

@@ -54,6 +54,7 @@ final class AuthenticationManager: ObservableObject {
     @Published var currentUser: AppUser?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var isNewAccount = false
 
     private var authStateHandler: AuthStateDidChangeListenerHandle?
 
@@ -109,6 +110,7 @@ final class AuthenticationManager: ObservableObject {
             changeRequest.displayName = "\(firstName) \(lastName)"
             try await changeRequest.commitChanges()
 
+            isNewAccount = true
             isLoading = false
         } catch {
             isLoading = false
@@ -146,6 +148,45 @@ final class AuthenticationManager: ObservableObject {
             clearAllUserData()
         } catch {
             errorMessage = "Failed to sign out: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Delete Account
+
+    func deleteAccount() async throws {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            guard let firebaseUser = Auth.auth().currentUser else {
+                isLoading = false
+                errorMessage = "No user is currently signed in."
+                return
+            }
+
+            // Clear all user data from all managers
+            let uid = firebaseUser.uid
+            VideoStorageManager.shared.clearAllVideos()
+            SwingVideoManager.shared.clearAllSwingVideos()
+            FilmHighlightsManager.shared.clearAllHighlights()
+            UserSettingsManager.shared.clearAllSettings()
+            RecruitProfileManager.shared.clearCurrentUser()
+            WidgetPreferencesManager.shared.clearCurrentUser()
+            EndlessAIService.shared.clearCurrentUser()
+
+            // Remove persisted user data
+            UserDefaults.standard.removeObject(forKey: "currentUser_\(uid)")
+
+            // Delete the Firebase account
+            try await firebaseUser.delete()
+
+            currentUser = nil
+            authState = .unauthenticated
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = parseAuthError(error)
+            throw error
         }
     }
 

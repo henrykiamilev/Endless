@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UserNotifications
 
 struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
@@ -679,7 +680,12 @@ struct PrivacySecuritySheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var settings = UserSettingsManager.shared
+    @ObservedObject private var authManager = AuthenticationManager.shared
     @State private var showingChangePassword = false
+    @State private var showingDeleteConfirmation = false
+    @State private var showingFinalDeleteConfirmation = false
+    @State private var showingDeleteError = false
+    @State private var deleteErrorMessage = ""
 
     var body: some View {
         NavigationView {
@@ -736,12 +742,14 @@ struct PrivacySecuritySheet: View {
                     }
                     .foregroundColor(themeManager.theme.textPrimary)
 
-                    Button(action: {}) {
+                    Button(action: { showingDeleteConfirmation = true }) {
                         Label("Delete Account", systemImage: "trash.fill")
                             .foregroundColor(themeManager.theme.error)
                     }
                 } header: {
                     Text("Your Data")
+                } footer: {
+                    Text("Deleting your account is permanent and cannot be undone. All your data, videos, and settings will be removed.")
                 }
             }
             .listStyle(.insetGrouped)
@@ -755,6 +763,35 @@ struct PrivacySecuritySheet: View {
             }
             .sheet(isPresented: $showingChangePassword) {
                 ChangePasswordSheet()
+            }
+            .alert("Delete Account?", isPresented: $showingDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Continue", role: .destructive) {
+                    showingFinalDeleteConfirmation = true
+                }
+            } message: {
+                Text("Are you sure you want to delete your Endless account? This will permanently remove all your data including videos, swing analyses, recruitment profile, and settings. This action cannot be undone.")
+            }
+            .alert("Permanently Delete Account?", isPresented: $showingFinalDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete My Account", role: .destructive) {
+                    Task {
+                        do {
+                            try await authManager.deleteAccount()
+                            dismiss()
+                        } catch {
+                            deleteErrorMessage = error.localizedDescription
+                            showingDeleteError = true
+                        }
+                    }
+                }
+            } message: {
+                Text("This is your final confirmation. Your account and all associated data will be permanently deleted. You will not be able to recover your account.")
+            }
+            .alert("Unable to Delete Account", isPresented: $showingDeleteError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(deleteErrorMessage.isEmpty ? "An error occurred while deleting your account. Please try again or contact support." : deleteErrorMessage)
             }
         }
     }
@@ -879,16 +916,31 @@ struct NotificationsSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var settings = UserSettingsManager.shared
+    @State private var pushPermissionDenied = false
 
     var body: some View {
         NavigationView {
             List {
                 Section {
-                    Toggle("Push Notifications", isOn: $settings.pushEnabled)
+                    Toggle("Push Notifications", isOn: Binding(
+                        get: { settings.pushEnabled },
+                        set: { newValue in
+                            if newValue {
+                                requestPushPermission()
+                            } else {
+                                settings.pushEnabled = false
+                            }
+                        }
+                    ))
                     Toggle("Email Notifications", isOn: $settings.emailEnabled)
                     Toggle("SMS Notifications", isOn: $settings.smsEnabled)
                 } header: {
                     Text("Notification Methods")
+                } footer: {
+                    if pushPermissionDenied {
+                        Text("Push notifications are disabled in your device settings. Please enable them in Settings > Notifications > Endless.")
+                            .foregroundColor(themeManager.theme.error)
+                    }
                 }
 
                 Section {
@@ -915,6 +967,20 @@ struct NotificationsSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(themeManager.theme.primary)
+                }
+            }
+        }
+    }
+
+    private func requestPushPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+                if granted {
+                    settings.pushEnabled = true
+                    pushPermissionDenied = false
+                } else {
+                    settings.pushEnabled = false
+                    pushPermissionDenied = true
                 }
             }
         }
