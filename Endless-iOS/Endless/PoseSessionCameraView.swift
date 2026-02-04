@@ -7,6 +7,7 @@ import UIKit
 // Wrap the controller for SwiftUI
 struct PoseSessionCameraView: UIViewControllerRepresentable {
     @Binding var isSessionActive: Bool  //function elems
+    @Binding var isFrontCamera: Bool
     var onExported: (URL) -> Void
     var onShotCaptured: () -> Void
 
@@ -19,6 +20,7 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: PoseSessionController, context: Context) {
         uiViewController.setSessionActive(isSessionActive)
+        uiViewController.setCamera(front: isFrontCamera)
     }
 }
 
@@ -35,6 +37,7 @@ final class PoseSessionController: UIViewController,
     private let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let movieOutput = AVCaptureMovieFileOutput()
+    private var currentCameraPosition: AVCaptureDevice.Position = .front
 
     // Vision / Model
     private let visionQueue = DispatchQueue(label: "vision.queue")
@@ -80,6 +83,7 @@ final class PoseSessionController: UIViewController,
 
     // Captured swing clips
     private var clipURLs: [URL] = []
+    private var clipCameraPositions: [URL: AVCaptureDevice.Position] = [:]
     private var currentClipURL: URL?
 
     // MARK: Lifecycle
@@ -136,6 +140,58 @@ final class PoseSessionController: UIViewController,
         }
     }
 
+    func setCamera(front: Bool) {
+        let desired: AVCaptureDevice.Position = front ? .front : .back
+        guard desired != currentCameraPosition else { return }
+        switchCamera(to: desired)
+    }
+
+    private func switchCamera(to position: AVCaptureDevice.Position) {
+        // Don't switch while actively recording a clip
+        guard !movieOutput.isRecording else { return }
+
+        session.beginConfiguration()
+
+        // Remove existing video input
+        if let currentInput = session.inputs.first(where: { input in
+            guard let devInput = input as? AVCaptureDeviceInput else { return false }
+            return devInput.device.hasMediaType(.video)
+        }) {
+            session.removeInput(currentInput)
+        }
+
+        // Add new camera input
+        guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+              let newInput = try? AVCaptureDeviceInput(device: newDevice),
+              session.canAddInput(newInput) else {
+            session.commitConfiguration()
+            return
+        }
+        session.addInput(newInput)
+        currentCameraPosition = position
+
+        // Re-apply connection settings for the new camera
+        let shouldMirror = (position == .front)
+        if let conn = videoOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+        if let conn = movieOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+
+        session.commitConfiguration()
+    }
+
     private func performStitchAndExport() {
         // Only export if we have clips to stitch
         guard !clipURLs.isEmpty else {
@@ -152,8 +208,10 @@ final class PoseSessionController: UIViewController,
         // Copy clipURLs to avoid race conditions
         let clipsToStitch = self.clipURLs
 
+        let cameraPositions = self.clipCameraPositions
+
         Task {
-            await stitchAllClips(clips: clipsToStitch, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
+            await stitchAllClips(clips: clipsToStitch, clipCameraPositions: cameraPositions, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     if let url = url {
@@ -161,6 +219,7 @@ final class PoseSessionController: UIViewController,
                     }
                     // Reset for next session
                     self.clipURLs.removeAll()
+                    self.clipCameraPositions.removeAll()
                     self.isEndingSession = false
                     self.enter(.idle)
                 }
@@ -343,6 +402,7 @@ final class PoseSessionController: UIViewController,
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("swing-\(UUID().uuidString).mov")
         currentClipURL = url
+        clipCameraPositions[url] = currentCameraPosition
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
 
@@ -379,6 +439,7 @@ final class PoseSessionController: UIViewController,
 
     // MARK: - Stitching
     private func stitchAllClips(clips: [URL],
+                                clipCameraPositions: [URL: AVCaptureDevice.Position] = [:],
                                 shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
                                 displayScale: CGFloat = 3.0,   // Captured from main thread
                                 logoImage: CGImage? = nil,     // Captured from main thread
@@ -423,8 +484,11 @@ final class PoseSessionController: UIViewController,
                 // Because compVideo reuses the same track, we set it as a "setTransform" at this timeRange start.
                 var t = preferredTransform
 
-                //unmirror camera
-                t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
+                // Unmirror front camera clips; back camera clips don't need this
+                let clipPosition = clipCameraPositions[url] ?? .front
+                if clipPosition == .front {
+                    t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
+                }
 
                 // Use the new Configuration API
                 var layerConfig = AVVideoCompositionLayerInstruction.Configuration(trackID: compVideo.trackID)

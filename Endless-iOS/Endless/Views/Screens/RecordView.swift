@@ -5,7 +5,7 @@ struct RecordView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @State private var isRecording = false
-    @State private var isFrontCamera = false
+    @State private var isFrontCamera = true
     @State private var hasPermission = false
     @State private var showPermissionAlert = false
     @State private var selectedMode = 3 // 0 = Photo, 1 = Video, 2 = Slo-Mo, 3 = AI Golf
@@ -89,6 +89,7 @@ struct RecordView: View {
             // PoseSessionCameraView - Real-time pose detection
             PoseSessionCameraView(
                 isSessionActive: $isAISessionActive,
+                isFrontCamera: $isFrontCamera,
                 onExported: { url in
                     exportedVideoURL = url
                     showExportSuccess = true
@@ -208,16 +209,27 @@ struct RecordView: View {
                             }
                         }
 
-                        // Reset button
-                        Button(action: {
-                            shotCount = 0
-                        }) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 22))
-                                .foregroundColor(.white)
-                                .frame(width: 54, height: 54)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
+                        // Flip camera / Reset button stack
+                        VStack(spacing: 12) {
+                            Button(action: { isFrontCamera.toggle() }) {
+                                Image(systemName: "camera.rotate")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white)
+                                    .frame(width: 54, height: 54)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
+
+                            Button(action: {
+                                shotCount = 0
+                            }) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
                         }
                     }
                     .padding(.bottom, 30)
