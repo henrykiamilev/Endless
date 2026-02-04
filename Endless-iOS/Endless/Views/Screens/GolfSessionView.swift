@@ -11,6 +11,7 @@ struct GolfSessionView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var isSessionActive = true  // Start active by default
+    @State private var isFrontCamera = false  // Use back camera for golf
     @State private var exportURL: URL?
     @State private var saveMessage: String?
     @State private var shotCount = 0
@@ -21,6 +22,7 @@ struct GolfSessionView: View {
             // Camera view
             PoseSessionCameraView(
                 isSessionActive: $isSessionActive,
+                isFrontCamera: $isFrontCamera,
                 onExported: { url in
                     exportURL = url
                     isSaving = true
