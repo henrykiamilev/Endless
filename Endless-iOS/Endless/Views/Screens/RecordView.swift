@@ -143,6 +143,16 @@ struct RecordView: View {
                     .padding(.horizontal, 12)
                     .background(Color.black.opacity(0.6))
                     .cornerRadius(20)
+
+                    // Flip camera button
+                    Button(action: { isFrontCamera.toggle() }) {
+                        Image(systemName: "camera.rotate")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
@@ -209,27 +219,16 @@ struct RecordView: View {
                             }
                         }
 
-                        // Flip camera / Reset button stack
-                        VStack(spacing: 12) {
-                            Button(action: { isFrontCamera.toggle() }) {
-                                Image(systemName: "camera.rotate")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.white)
-                                    .frame(width: 54, height: 54)
-                                    .background(Color.black.opacity(0.5))
-                                    .clipShape(Circle())
-                            }
-
-                            Button(action: {
-                                shotCount = 0
-                            }) {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.white)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color.black.opacity(0.5))
-                                    .clipShape(Circle())
-                            }
+                        // Reset button
+                        Button(action: {
+                            shotCount = 0
+                        }) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white)
+                                .frame(width: 54, height: 54)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
                         }
                     }
                     .padding(.bottom, 30)
