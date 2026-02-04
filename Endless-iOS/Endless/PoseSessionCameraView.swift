@@ -301,7 +301,7 @@ final class PoseSessionController: UIViewController,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let orientation: CGImagePropertyOrientation = .leftMirrored
+        let orientation: CGImagePropertyOrientation = (currentCameraPosition == .front) ? .leftMirrored : .left
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: orientation)
 
         visionQueue.async {
