@@ -90,6 +90,16 @@ struct GolfSessionView: View {
                     .padding(.vertical, 8)
                     .background(.black.opacity(0.6))
                     .clipShape(Capsule())
+
+                    // Flip camera button
+                    Button(action: { isFrontCamera.toggle() }) {
+                        Image(systemName: "camera.rotate")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(Color.black.opacity(0.6))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
