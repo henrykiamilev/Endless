@@ -26,8 +26,8 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
 
 // MARK: - Aim data stored per clip
 private struct AimData {
-    var origin: CGPoint      // normalized (0...1) — ball/golfer position
-    var target: CGPoint      // normalized (0...1) — where user is aiming
+    var origin: CGPoint      // normalized screen coords (0...1) — (0,0)=top-left, (1,1)=bottom-right
+    var target: CGPoint      // normalized screen coords (0...1) — where user is aiming
 }
 
 // MARK: - Draggable aim marker
@@ -442,10 +442,13 @@ final class PoseSessionController: UIViewController,
         return path
     }
 
-    /// Convert a screen point to normalized capture-device coordinates (0...1)
-    private func normalizedPoint(for screenPoint: CGPoint) -> CGPoint {
-        guard let previewLayer = previewLayer else { return CGPoint(x: 0.5, y: 0.5) }
-        return previewLayer.captureDevicePointConverted(fromLayerPoint: screenPoint)
+    /// Convert a screen point to normalized screen-relative coordinates (0...1)
+    /// where (0,0) is top-left and (1,1) is bottom-right of the view.
+    private func normalizedScreenPoint(for screenPoint: CGPoint) -> CGPoint {
+        let w = view.bounds.width
+        let h = view.bounds.height
+        guard w > 0, h > 0 else { return CGPoint(x: 0.5, y: 0.5) }
+        return CGPoint(x: screenPoint.x / w, y: screenPoint.y / h)
     }
 
     private func lockAim() {
@@ -593,8 +596,8 @@ final class PoseSessionController: UIViewController,
         currentClipURL = url
         clipCameraPositions[url] = currentCameraPosition
         clipAimData[url] = AimData(
-            origin: normalizedPoint(for: originMarker.center),
-            target: normalizedPoint(for: targetMarker.center)
+            origin: normalizedScreenPoint(for: originMarker.center),
+            target: normalizedScreenPoint(for: targetMarker.center)
         )
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
@@ -772,8 +775,10 @@ final class PoseSessionController: UIViewController,
 
                     // Aim overlay: target circle + parabolic arc for this clip
                     if let aim = clipAimData[url] {
-                        // Convert normalized capture-device coords to CA render coords
-                        // CA origin is bottom-left; capture-device Y increases downward
+                        // Convert normalized screen coords to CA render coords.
+                        // Screen: (0,0)=top-left, Y increases downward
+                        // CA layer: (0,0)=bottom-left, Y increases upward
+                        // So: caX = normX * width, caY = (1 - normY) * height
                         let originPt = CGPoint(x: aim.origin.x * renderSize.width,
                                                y: (1 - aim.origin.y) * renderSize.height)
                         let targetPt = CGPoint(x: aim.target.x * renderSize.width,
