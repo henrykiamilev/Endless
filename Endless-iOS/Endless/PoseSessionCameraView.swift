@@ -24,14 +24,21 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - Crosshair overlay
-private final class CrosshairView: UIView {
-    var armLength: CGFloat = 20
-    var lineWidth: CGFloat = 2.0
-    var crosshairColor: UIColor = .white
-    var isLocked: Bool = false {
-        didSet { setNeedsDisplay() }
-    }
+// MARK: - Aim data stored per clip
+private struct AimData {
+    var origin: CGPoint      // normalized (0...1) — ball/golfer position
+    var target: CGPoint      // normalized (0...1) — where user is aiming
+}
+
+// MARK: - Draggable aim marker
+private final class AimMarkerView: UIView {
+    enum Style { case origin, target }
+
+    var style: Style = .target { didSet { setNeedsDisplay() } }
+    var isLocked: Bool = false { didSet { setNeedsDisplay() } }
+    var markerColor: UIColor = UIColor.systemBlue.withAlphaComponent(0.5)
+
+    private let radius: CGFloat = 28
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -40,39 +47,46 @@ private final class CrosshairView: UIView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
+    convenience init(style: Style) {
+        let size: CGFloat = 80
+        self.init(frame: CGRect(x: 0, y: 0, width: size, height: size))
+        self.style = style
+        self.markerColor = (style == .target)
+            ? UIColor.systemBlue.withAlphaComponent(0.45)
+            : UIColor.white.withAlphaComponent(0.6)
+    }
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let color = isLocked ? crosshairColor.withAlphaComponent(0.6) : crosshairColor
+        let alpha: CGFloat = isLocked ? 0.35 : 1.0
 
-        ctx.setStrokeColor(color.cgColor)
-        ctx.setLineWidth(lineWidth)
-        ctx.setLineCap(.round)
+        switch style {
+        case .target:
+            // Transparent filled circle with border
+            ctx.setFillColor(markerColor.withAlphaComponent(0.15 * alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius,
+                                       width: radius * 2, height: radius * 2))
+            ctx.setStrokeColor(markerColor.withAlphaComponent(0.7 * alpha).cgColor)
+            ctx.setLineWidth(2.0)
+            ctx.strokeEllipseIn(CGRect(x: center.x - radius, y: center.y - radius,
+                                       width: radius * 2, height: radius * 2))
+            // Small center dot
+            let dotR: CGFloat = 3
+            ctx.setFillColor(UIColor.white.withAlphaComponent(0.9 * alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - dotR, y: center.y - dotR,
+                                       width: dotR * 2, height: dotR * 2))
 
-        // Horizontal line
-        ctx.move(to: CGPoint(x: center.x - armLength, y: center.y))
-        ctx.addLine(to: CGPoint(x: center.x + armLength, y: center.y))
-        // Vertical line
-        ctx.move(to: CGPoint(x: center.x, y: center.y - armLength))
-        ctx.addLine(to: CGPoint(x: center.x, y: center.y + armLength))
-        ctx.strokePath()
-
-        // Center circle
-        let circleRadius: CGFloat = 4
-        let circleRect = CGRect(x: center.x - circleRadius, y: center.y - circleRadius,
-                                width: circleRadius * 2, height: circleRadius * 2)
-        ctx.setStrokeColor(color.cgColor)
-        ctx.setLineWidth(1.5)
-        ctx.strokeEllipseIn(circleRect)
-
-        // Outer ring when locked
-        if isLocked {
-            let outerRadius: CGFloat = armLength + 4
-            let outerRect = CGRect(x: center.x - outerRadius, y: center.y - outerRadius,
-                                   width: outerRadius * 2, height: outerRadius * 2)
-            ctx.setStrokeColor(color.cgColor)
-            ctx.setLineWidth(1.0)
-            ctx.strokeEllipseIn(outerRect)
+        case .origin:
+            // Small filled circle representing ball position
+            let r: CGFloat = 10
+            ctx.setFillColor(markerColor.withAlphaComponent(alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - r, y: center.y - r,
+                                       width: r * 2, height: r * 2))
+            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8 * alpha).cgColor)
+            ctx.setLineWidth(1.5)
+            ctx.strokeEllipseIn(CGRect(x: center.x - r, y: center.y - r,
+                                       width: r * 2, height: r * 2))
         }
     }
 }
@@ -86,10 +100,14 @@ final class PoseSessionController: UIViewController,
     private let overlayLayer = CAShapeLayer()
     private let hud = UILabel()
 
-    // Crosshair
-    private let crosshairView = CrosshairView(frame: CGRect(x: 0, y: 0, width: 60, height: 60))
-    private var crosshairPanGesture: UIPanGestureRecognizer!
-    private var clipAimPoints: [URL: CGPoint] = [:]  // normalized aim position per clip
+    // Aim overlay (origin + target + arc)
+    private let originMarker = AimMarkerView(style: .origin)
+    private let targetMarker = AimMarkerView(style: .target)
+    private let arcLayer = CAShapeLayer()
+    private var originPanGesture: UIPanGestureRecognizer!
+    private var targetPanGesture: UIPanGestureRecognizer!
+    private var aimLocked = false
+    private var clipAimData: [URL: AimData] = [:]
 
     // Camera
     private let session = AVCaptureSession()
@@ -149,7 +167,7 @@ final class PoseSessionController: UIViewController,
         super.viewDidLoad()
         setupCamera()
         setupOverlay()
-        setupCrosshair()
+        setupAimOverlay()
         setupHUD()
         
         // Start the session on a background queue to avoid blocking the main thread
@@ -268,10 +286,10 @@ final class PoseSessionController: UIViewController,
         let clipsToStitch = self.clipURLs
 
         let cameraPositions = self.clipCameraPositions
-        let aimPoints = self.clipAimPoints
+        let aimData = self.clipAimData
 
         Task {
-            await stitchAllClips(clips: clipsToStitch, clipCameraPositions: cameraPositions, clipAimPoints: aimPoints, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
+            await stitchAllClips(clips: clipsToStitch, clipCameraPositions: cameraPositions, clipAimData: aimData, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     if let url = url {
@@ -280,7 +298,7 @@ final class PoseSessionController: UIViewController,
                     // Reset for next session
                     self.clipURLs.removeAll()
                     self.clipCameraPositions.removeAll()
-                    self.clipAimPoints.removeAll()
+                    self.clipAimData.removeAll()
                     self.isEndingSession = false
                     self.enter(.idle)
                 }
@@ -339,40 +357,114 @@ final class PoseSessionController: UIViewController,
         view.layer.addSublayer(overlayLayer)
     }
 
-    private func setupCrosshair() {
-        crosshairView.center = view.center
-        view.addSubview(crosshairView)
+    private func setupAimOverlay() {
+        // Origin marker — default to bottom-center (ball position)
+        originMarker.center = CGPoint(x: view.bounds.midX, y: view.bounds.height * 0.85)
+        view.addSubview(originMarker)
 
-        crosshairPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleCrosshairPan(_:)))
-        crosshairView.addGestureRecognizer(crosshairPanGesture)
+        // Target marker — default to upper-center (where you're aiming)
+        targetMarker.center = CGPoint(x: view.bounds.midX, y: view.bounds.height * 0.25)
+        view.addSubview(targetMarker)
+
+        // Arc layer — sits between preview and markers
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+        arcLayer.fillColor = UIColor.clear.cgColor
+        arcLayer.lineWidth = 3.0
+        arcLayer.lineCap = .round
+        arcLayer.lineJoin = .round
+        arcLayer.lineDashPattern = [8, 6]
+        view.layer.insertSublayer(arcLayer, below: originMarker.layer)
+
+        // Pan gestures
+        originPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleOriginPan(_:)))
+        originMarker.addGestureRecognizer(originPanGesture)
+
+        targetPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleTargetPan(_:)))
+        targetMarker.addGestureRecognizer(targetPanGesture)
+
+        updateArcPath()
     }
 
-    @objc private func handleCrosshairPan(_ gesture: UIPanGestureRecognizer) {
-        guard !crosshairView.isLocked else { return }
+    @objc private func handleOriginPan(_ gesture: UIPanGestureRecognizer) {
+        guard !aimLocked else { return }
         let translation = gesture.translation(in: view)
-        crosshairView.center = CGPoint(
-            x: crosshairView.center.x + translation.x,
-            y: crosshairView.center.y + translation.y
+        originMarker.center = CGPoint(
+            x: originMarker.center.x + translation.x,
+            y: originMarker.center.y + translation.y
         )
         gesture.setTranslation(.zero, in: view)
+        updateArcPath()
     }
 
-    /// Converts the crosshair's screen position to normalized video coordinates (0...1)
-    private func normalizedAimPosition() -> CGPoint {
-        guard let previewLayer = previewLayer else {
-            return CGPoint(x: 0.5, y: 0.5)
+    @objc private func handleTargetPan(_ gesture: UIPanGestureRecognizer) {
+        guard !aimLocked else { return }
+        let translation = gesture.translation(in: view)
+        targetMarker.center = CGPoint(
+            x: targetMarker.center.x + translation.x,
+            y: targetMarker.center.y + translation.y
+        )
+        gesture.setTranslation(.zero, in: view)
+        updateArcPath()
+    }
+
+    /// Builds a parabolic arc path from origin to target through an apex
+    private func updateArcPath() {
+        let from = originMarker.center
+        let to = targetMarker.center
+        arcLayer.frame = view.bounds
+
+        let path = Self.parabolicPath(from: from, to: to, in: view.bounds)
+        arcLayer.path = path.cgPath
+    }
+
+    /// Creates a parabolic UIBezierPath from `from` to `to`.
+    /// The apex rises above the higher point by a fraction of the horizontal distance.
+    static func parabolicPath(from: CGPoint, to: CGPoint, in bounds: CGRect) -> UIBezierPath {
+        let path = UIBezierPath()
+        let midX = (from.x + to.x) / 2
+        let minY = min(from.y, to.y)
+        // Apex height: the arc peaks above the higher point, proportional to distance
+        let dist = hypot(to.x - from.x, to.y - from.y)
+        let apexY = max(minY - dist * 0.45, bounds.height * 0.03)  // don't go off-screen
+        let apex = CGPoint(x: midX, y: apexY)
+
+        // Quadratic bezier from → apex → to
+        let segments = 40
+        for i in 0...segments {
+            let t = CGFloat(i) / CGFloat(segments)
+            let invT = 1 - t
+            // Quadratic Bézier: B(t) = (1-t)²·P0 + 2(1-t)t·P1 + t²·P2
+            let x = invT * invT * from.x + 2 * invT * t * apex.x + t * t * to.x
+            let y = invT * invT * from.y + 2 * invT * t * apex.y + t * t * to.y
+            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+            else { path.addLine(to: CGPoint(x: x, y: y)) }
         }
-        return previewLayer.captureDevicePointConverted(fromLayerPoint: crosshairView.center)
+        return path
     }
 
-    private func lockCrosshair() {
-        crosshairView.isLocked = true
-        crosshairPanGesture.isEnabled = false
+    /// Convert a screen point to normalized capture-device coordinates (0...1)
+    private func normalizedPoint(for screenPoint: CGPoint) -> CGPoint {
+        guard let previewLayer = previewLayer else { return CGPoint(x: 0.5, y: 0.5) }
+        return previewLayer.captureDevicePointConverted(fromLayerPoint: screenPoint)
     }
 
-    private func unlockCrosshair() {
-        crosshairView.isLocked = false
-        crosshairPanGesture.isEnabled = true
+    private func lockAim() {
+        aimLocked = true
+        originMarker.isLocked = true
+        targetMarker.isLocked = true
+        originPanGesture.isEnabled = false
+        targetPanGesture.isEnabled = false
+        // Dim the arc
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+    }
+
+    private func unlockAim() {
+        aimLocked = false
+        originMarker.isLocked = false
+        targetMarker.isLocked = false
+        originPanGesture.isEnabled = true
+        targetPanGesture.isEnabled = true
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
     }
 
     private func setupHUD() {
@@ -500,7 +592,10 @@ final class PoseSessionController: UIViewController,
             .appendingPathComponent("swing-\(UUID().uuidString).mov")
         currentClipURL = url
         clipCameraPositions[url] = currentCameraPosition
-        clipAimPoints[url] = normalizedAimPosition()
+        clipAimData[url] = AimData(
+            origin: normalizedPoint(for: originMarker.center),
+            target: normalizedPoint(for: targetMarker.center)
+        )
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
 
@@ -538,7 +633,7 @@ final class PoseSessionController: UIViewController,
     // MARK: - Stitching
     private func stitchAllClips(clips: [URL],
                                 clipCameraPositions: [URL: AVCaptureDevice.Position] = [:],
-                                clipAimPoints: [URL: CGPoint] = [:],
+                                clipAimData: [URL: AimData] = [:],
                                 shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
                                 displayScale: CGFloat = 3.0,   // Captured from main thread
                                 logoImage: CGImage? = nil,     // Captured from main thread
@@ -675,31 +770,60 @@ final class PoseSessionController: UIViewController,
 
                     tagsContainer.addSublayer(tag)
 
-                    // Crosshair overlay for this clip
-                    if let aimPt = clipAimPoints[url] {
-                        let crosshair = CAShapeLayer()
-                        crosshair.contentsScale = displayScale
-                        // aimPt is in capture-device coords (0...1); convert to render coords
-                        // Note: CA layer coordinate system has origin at bottom-left
-                        let cx = aimPt.x * renderSize.width
-                        let cy = (1 - aimPt.y) * renderSize.height
-                        let arm: CGFloat = 30
-                        let chPath = UIBezierPath()
-                        chPath.move(to: CGPoint(x: cx - arm, y: cy))
-                        chPath.addLine(to: CGPoint(x: cx + arm, y: cy))
-                        chPath.move(to: CGPoint(x: cx, y: cy - arm))
-                        chPath.addLine(to: CGPoint(x: cx, y: cy + arm))
-                        // Center circle
-                        chPath.addArc(withCenter: CGPoint(x: cx, y: cy), radius: 5,
-                                      startAngle: 0, endAngle: .pi * 2, clockwise: true)
-                        crosshair.path = chPath.cgPath
-                        crosshair.strokeColor = UIColor.white.cgColor
-                        crosshair.fillColor = UIColor.clear.cgColor
-                        crosshair.lineWidth = 2.0
-                        crosshair.lineCap = .round
-                        crosshair.beginTime = AVCoreAnimationBeginTimeAtZero + begin
-                        crosshair.duration = d
-                        tagsContainer.addSublayer(crosshair)
+                    // Aim overlay: target circle + parabolic arc for this clip
+                    if let aim = clipAimData[url] {
+                        // Convert normalized capture-device coords to CA render coords
+                        // CA origin is bottom-left; capture-device Y increases downward
+                        let originPt = CGPoint(x: aim.origin.x * renderSize.width,
+                                               y: (1 - aim.origin.y) * renderSize.height)
+                        let targetPt = CGPoint(x: aim.target.x * renderSize.width,
+                                               y: (1 - aim.target.y) * renderSize.height)
+
+                        // Target circle
+                        let targetCircle = CAShapeLayer()
+                        targetCircle.contentsScale = displayScale
+                        let circleR: CGFloat = 28
+                        let circlePath = UIBezierPath(ovalIn: CGRect(
+                            x: targetPt.x - circleR, y: targetPt.y - circleR,
+                            width: circleR * 2, height: circleR * 2))
+                        targetCircle.path = circlePath.cgPath
+                        targetCircle.strokeColor = UIColor.systemBlue.withAlphaComponent(0.7).cgColor
+                        targetCircle.fillColor = UIColor.systemBlue.withAlphaComponent(0.15).cgColor
+                        targetCircle.lineWidth = 2.0
+                        targetCircle.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        targetCircle.duration = d
+                        tagsContainer.addSublayer(targetCircle)
+
+                        // Origin dot
+                        let originDot = CAShapeLayer()
+                        originDot.contentsScale = displayScale
+                        let dotR: CGFloat = 8
+                        let dotPath = UIBezierPath(ovalIn: CGRect(
+                            x: originPt.x - dotR, y: originPt.y - dotR,
+                            width: dotR * 2, height: dotR * 2))
+                        originDot.path = dotPath.cgPath
+                        originDot.strokeColor = UIColor.white.withAlphaComponent(0.8).cgColor
+                        originDot.fillColor = UIColor.white.withAlphaComponent(0.5).cgColor
+                        originDot.lineWidth = 1.5
+                        originDot.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        originDot.duration = d
+                        tagsContainer.addSublayer(originDot)
+
+                        // Parabolic arc from origin to target
+                        let arcShape = CAShapeLayer()
+                        arcShape.contentsScale = displayScale
+                        let arcPath = PoseSessionController.parabolicPath(
+                            from: originPt, to: targetPt,
+                            in: CGRect(origin: .zero, size: renderSize))
+                        arcShape.path = arcPath.cgPath
+                        arcShape.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+                        arcShape.fillColor = UIColor.clear.cgColor
+                        arcShape.lineWidth = 3.0
+                        arcShape.lineCap = .round
+                        arcShape.lineDashPattern = [8, 6]
+                        arcShape.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        arcShape.duration = d
+                        tagsContainer.addSublayer(arcShape)
                     }
 
                     begin += d
@@ -767,12 +891,12 @@ final class PoseSessionController: UIViewController,
             self.updateHUD()
             self.updateOverlayColor(for: newPhase)
 
-            // Crosshair lock/unlock
+            // Aim lock/unlock
             switch newPhase {
             case .recordingSwing:
-                self.lockCrosshair()
+                self.lockAim()
             case .waitingReady:
-                self.unlockCrosshair()
+                self.unlockAim()
             case .idle, .postEndSwing:
                 break
             }
