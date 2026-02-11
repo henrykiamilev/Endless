@@ -16,6 +16,10 @@ struct RecordView: View {
     @State private var exportedVideoURL: URL?
     @State private var showExportSuccess = false
 
+    // Shot alignment toggle & landscape mode
+    @State private var showShotAlignment = true
+    @State private var isLandscape = false
+
     var body: some View {
         ZStack {
             // Camera preview placeholder
@@ -90,6 +94,8 @@ struct RecordView: View {
             PoseSessionCameraView(
                 isSessionActive: $isAISessionActive,
                 isFrontCamera: $isFrontCamera,
+                showShotAlignment: $showShotAlignment,
+                isLandscape: $isLandscape,
                 onExported: { url in
                     exportedVideoURL = url
                     showExportSuccess = true
@@ -144,6 +150,34 @@ struct RecordView: View {
                     .background(Color.black.opacity(0.6))
                     .cornerRadius(20)
 
+                    // Shot alignment toggle
+                    Button(action: { showShotAlignment.toggle() }) {
+                        Image(systemName: showShotAlignment ? "scope" : "scope")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(showShotAlignment ? .green : .white.opacity(0.6))
+                            .frame(width: 46, height: 46)
+                            .background(showShotAlignment ? Color.green.opacity(0.25) : Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(showShotAlignment ? Color.green.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                            )
+                    }
+
+                    // Rotate camera (portrait/landscape)
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isLandscape.toggle()
+                        }
+                    }) {
+                        Image(systemName: isLandscape ? "rectangle.landscape.rotate" : "rectangle.portrait.rotate")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+
                     // Flip camera button
                     Button(action: { isFrontCamera.toggle() }) {
                         Image(systemName: "camera.rotate")
@@ -163,13 +197,23 @@ struct RecordView: View {
                 VStack(spacing: 20) {
                     // Session status
                     if isAISessionActive {
-                        Text("Detecting swing poses...")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .background(Color.green.opacity(0.8))
-                            .cornerRadius(20)
+                        HStack(spacing: 8) {
+                            Text("Detecting swing poses...")
+                                .font(.system(size: 14, weight: .medium))
+                            if !showShotAlignment {
+                                Text("Tracer Off")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.green.opacity(0.8))
+                        .cornerRadius(20)
                     }
 
                     // Main controls

@@ -8,6 +8,8 @@ import UIKit
 struct PoseSessionCameraView: UIViewControllerRepresentable {
     @Binding var isSessionActive: Bool  //function elems
     @Binding var isFrontCamera: Bool
+    @Binding var showShotAlignment: Bool
+    @Binding var isLandscape: Bool
     var onExported: (URL) -> Void
     var onShotCaptured: () -> Void
 
@@ -15,12 +17,16 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
         let vc = PoseSessionController()
         vc.onExported = onExported
         vc.onShotCaptured = onShotCaptured
+        vc.showShotAlignment = showShotAlignment
+        vc.isLandscape = isLandscape
         return vc
     }
 
     func updateUIViewController(_ uiViewController: PoseSessionController, context: Context) {
         uiViewController.setSessionActive(isSessionActive)
         uiViewController.setCamera(front: isFrontCamera)
+        uiViewController.setShotAlignment(visible: showShotAlignment)
+        uiViewController.setOrientation(landscape: isLandscape)
     }
 }
 
@@ -108,6 +114,13 @@ final class PoseSessionController: UIViewController,
     private var targetPanGesture: UIPanGestureRecognizer!
     private var aimLocked = false
     private var clipAimData: [URL: AimData] = [:]
+
+    // Shot alignment toggle
+    var showShotAlignment: Bool = true
+
+    // Orientation
+    var isLandscape: Bool = false
+    private var currentRotationAngle: CGFloat = 90  // 90 = portrait, 0 = landscape
 
     // Camera
     private let session = AVCaptureSession()
@@ -223,6 +236,51 @@ final class PoseSessionController: UIViewController,
         switchCamera(to: desired)
     }
 
+    func setShotAlignment(visible: Bool) {
+        guard showShotAlignment != visible else { return }
+        showShotAlignment = visible
+        DispatchQueue.main.async {
+            let hidden = !visible
+            self.originMarker.isHidden = hidden
+            self.targetMarker.isHidden = hidden
+            self.arcLayer.isHidden = hidden
+            self.originPanGesture.isEnabled = visible && !self.aimLocked
+            self.targetPanGesture.isEnabled = visible && !self.aimLocked
+        }
+    }
+
+    func setOrientation(landscape: Bool) {
+        guard isLandscape != landscape else { return }
+        isLandscape = landscape
+        let angle: CGFloat = landscape ? 0 : 90
+        currentRotationAngle = angle
+        applyRotationAngle(angle)
+    }
+
+    private func applyRotationAngle(_ angle: CGFloat) {
+        guard !movieOutput.isRecording else { return }
+
+        session.beginConfiguration()
+        let shouldMirror = (currentCameraPosition == .front)
+        if let conn = videoOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+        if let conn = movieOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+        session.commitConfiguration()
+    }
+
     private func switchCamera(to position: AVCaptureDevice.Position) {
         // Don't switch while actively recording a clip
         guard !movieOutput.isRecording else { return }
@@ -247,19 +305,20 @@ final class PoseSessionController: UIViewController,
         session.addInput(newInput)
         currentCameraPosition = position
 
-        // Re-apply connection settings for the new camera
+        // Re-apply connection settings for the new camera using current rotation angle
         let shouldMirror = (position == .front)
+        let angle = currentRotationAngle
         if let conn = videoOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(90) {
-                conn.videoRotationAngle = 90
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
             }
             if conn.isVideoMirroringSupported {
                 conn.isVideoMirrored = shouldMirror
             }
         }
         if let conn = movieOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(90) {
-                conn.videoRotationAngle = 90
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
             }
             if conn.isVideoMirroringSupported {
                 conn.isVideoMirrored = shouldMirror
@@ -286,7 +345,7 @@ final class PoseSessionController: UIViewController,
         let clipsToStitch = self.clipURLs
 
         let cameraPositions = self.clipCameraPositions
-        let aimData = self.clipAimData
+        let aimData = self.showShotAlignment ? self.clipAimData : [:]
 
         Task {
             await stitchAllClips(clips: clipsToStitch, clipCameraPositions: cameraPositions, clipAimData: aimData, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
@@ -327,15 +386,16 @@ final class PoseSessionController: UIViewController,
             session.addOutput(movieOutput)
         }
 
+        let initialAngle = currentRotationAngle
         if let conn = videoOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(90) { 
-                conn.videoRotationAngle = 90 // portrait orientation
+            if conn.isVideoRotationAngleSupported(initialAngle) {
+                conn.videoRotationAngle = initialAngle
             }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
         if let conn = movieOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(90) { 
-                conn.videoRotationAngle = 90 // portrait orientation
+            if conn.isVideoRotationAngleSupported(initialAngle) {
+                conn.videoRotationAngle = initialAngle
             }
             if conn.isVideoMirroringSupported { conn.isVideoMirrored = true }
         }
@@ -383,6 +443,14 @@ final class PoseSessionController: UIViewController,
         targetMarker.addGestureRecognizer(targetPanGesture)
 
         updateArcPath()
+
+        // Apply initial shot alignment visibility
+        let hidden = !showShotAlignment
+        originMarker.isHidden = hidden
+        targetMarker.isHidden = hidden
+        arcLayer.isHidden = hidden
+        originPanGesture.isEnabled = showShotAlignment
+        targetPanGesture.isEnabled = showShotAlignment
     }
 
     @objc private func handleOriginPan(_ gesture: UIPanGestureRecognizer) {
@@ -493,7 +561,11 @@ final class PoseSessionController: UIViewController,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let orientation: CGImagePropertyOrientation = (currentCameraPosition == .front) ? .leftMirrored : .left
+        // Adjust Vision orientation based on camera position and landscape/portrait mode
+        let orientation: CGImagePropertyOrientation = poseOrientation(
+            isFront: currentCameraPosition == .front,
+            isLandscape: isLandscape
+        )
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: orientation)
 
         visionQueue.async {
@@ -595,10 +667,13 @@ final class PoseSessionController: UIViewController,
             .appendingPathComponent("swing-\(UUID().uuidString).mov")
         currentClipURL = url
         clipCameraPositions[url] = currentCameraPosition
-        clipAimData[url] = AimData(
-            origin: normalizedScreenPoint(for: originMarker.center),
-            target: normalizedScreenPoint(for: targetMarker.center)
-        )
+        // Only store aim data when shot alignment is enabled
+        if showShotAlignment {
+            clipAimData[url] = AimData(
+                origin: normalizedScreenPoint(for: originMarker.center),
+                target: normalizedScreenPoint(for: targetMarker.center)
+            )
+        }
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
 
@@ -887,6 +962,19 @@ final class PoseSessionController: UIViewController,
     }
 
 
+    // MARK: - Orientation helper for pose detection
+    /// Maps camera position + device orientation to the correct CGImagePropertyOrientation
+    /// so that Vision framework interprets the body pose correctly in any filming mode.
+    private func poseOrientation(isFront: Bool, isLandscape: Bool) -> CGImagePropertyOrientation {
+        if isLandscape {
+            // Landscape: rotation angle is 0, buffer comes in native landscape
+            return isFront ? .upMirrored : .up
+        } else {
+            // Portrait: rotation angle is 90, buffer is rotated
+            return isFront ? .leftMirrored : .left
+        }
+    }
+
     // MARK: - Helpers
     private func enter(_ newPhase: Phase) {
         print("Phase: \(phase) → \(newPhase) @ \(CACurrentMediaTime())")    //debug
@@ -896,14 +984,16 @@ final class PoseSessionController: UIViewController,
             self.updateHUD()
             self.updateOverlayColor(for: newPhase)
 
-            // Aim lock/unlock
-            switch newPhase {
-            case .recordingSwing:
-                self.lockAim()
-            case .waitingReady:
-                self.unlockAim()
-            case .idle, .postEndSwing:
-                break
+            // Aim lock/unlock (only when shot alignment is visible)
+            if self.showShotAlignment {
+                switch newPhase {
+                case .recordingSwing:
+                    self.lockAim()
+                case .waitingReady:
+                    self.unlockAim()
+                case .idle, .postEndSwing:
+                    break
+                }
             }
         }
     }
