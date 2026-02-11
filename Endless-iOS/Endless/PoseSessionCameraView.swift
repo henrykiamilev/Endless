@@ -7,6 +7,7 @@ import UIKit
 // Wrap the controller for SwiftUI
 struct PoseSessionCameraView: UIViewControllerRepresentable {
     @Binding var isSessionActive: Bool  //function elems
+    @Binding var isFrontCamera: Bool
     var onExported: (URL) -> Void
     var onShotCaptured: () -> Void
 
@@ -19,6 +20,74 @@ struct PoseSessionCameraView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: PoseSessionController, context: Context) {
         uiViewController.setSessionActive(isSessionActive)
+        uiViewController.setCamera(front: isFrontCamera)
+    }
+}
+
+// MARK: - Aim data stored per clip
+private struct AimData {
+    var origin: CGPoint      // normalized screen coords (0...1) — (0,0)=top-left, (1,1)=bottom-right
+    var target: CGPoint      // normalized screen coords (0...1) — where user is aiming
+}
+
+// MARK: - Draggable aim marker
+private final class AimMarkerView: UIView {
+    enum Style { case origin, target }
+
+    var style: Style = .target { didSet { setNeedsDisplay() } }
+    var isLocked: Bool = false { didSet { setNeedsDisplay() } }
+    var markerColor: UIColor = UIColor.systemBlue.withAlphaComponent(0.5)
+
+    private let radius: CGFloat = 28
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isUserInteractionEnabled = true
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    convenience init(style: Style) {
+        let size: CGFloat = 80
+        self.init(frame: CGRect(x: 0, y: 0, width: size, height: size))
+        self.style = style
+        self.markerColor = (style == .target)
+            ? UIColor.systemBlue.withAlphaComponent(0.45)
+            : UIColor.white.withAlphaComponent(0.6)
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let alpha: CGFloat = isLocked ? 0.35 : 1.0
+
+        switch style {
+        case .target:
+            // Transparent filled circle with border
+            ctx.setFillColor(markerColor.withAlphaComponent(0.15 * alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius,
+                                       width: radius * 2, height: radius * 2))
+            ctx.setStrokeColor(markerColor.withAlphaComponent(0.7 * alpha).cgColor)
+            ctx.setLineWidth(2.0)
+            ctx.strokeEllipseIn(CGRect(x: center.x - radius, y: center.y - radius,
+                                       width: radius * 2, height: radius * 2))
+            // Small center dot
+            let dotR: CGFloat = 3
+            ctx.setFillColor(UIColor.white.withAlphaComponent(0.9 * alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - dotR, y: center.y - dotR,
+                                       width: dotR * 2, height: dotR * 2))
+
+        case .origin:
+            // Small filled circle representing ball position
+            let r: CGFloat = 10
+            ctx.setFillColor(markerColor.withAlphaComponent(alpha).cgColor)
+            ctx.fillEllipse(in: CGRect(x: center.x - r, y: center.y - r,
+                                       width: r * 2, height: r * 2))
+            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8 * alpha).cgColor)
+            ctx.setLineWidth(1.5)
+            ctx.strokeEllipseIn(CGRect(x: center.x - r, y: center.y - r,
+                                       width: r * 2, height: r * 2))
+        }
     }
 }
 
@@ -31,10 +100,20 @@ final class PoseSessionController: UIViewController,
     private let overlayLayer = CAShapeLayer()
     private let hud = UILabel()
 
+    // Aim overlay (origin + target + arc)
+    private let originMarker = AimMarkerView(style: .origin)
+    private let targetMarker = AimMarkerView(style: .target)
+    private let arcLayer = CAShapeLayer()
+    private var originPanGesture: UIPanGestureRecognizer!
+    private var targetPanGesture: UIPanGestureRecognizer!
+    private var aimLocked = false
+    private var clipAimData: [URL: AimData] = [:]
+
     // Camera
     private let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let movieOutput = AVCaptureMovieFileOutput()
+    private var currentCameraPosition: AVCaptureDevice.Position = .front
 
     // Vision / Model
     private let visionQueue = DispatchQueue(label: "vision.queue")
@@ -80,6 +159,7 @@ final class PoseSessionController: UIViewController,
 
     // Captured swing clips
     private var clipURLs: [URL] = []
+    private var clipCameraPositions: [URL: AVCaptureDevice.Position] = [:]
     private var currentClipURL: URL?
 
     // MARK: Lifecycle
@@ -87,6 +167,7 @@ final class PoseSessionController: UIViewController,
         super.viewDidLoad()
         setupCamera()
         setupOverlay()
+        setupAimOverlay()
         setupHUD()
         
         // Start the session on a background queue to avoid blocking the main thread
@@ -136,6 +217,58 @@ final class PoseSessionController: UIViewController,
         }
     }
 
+    func setCamera(front: Bool) {
+        let desired: AVCaptureDevice.Position = front ? .front : .back
+        guard desired != currentCameraPosition else { return }
+        switchCamera(to: desired)
+    }
+
+    private func switchCamera(to position: AVCaptureDevice.Position) {
+        // Don't switch while actively recording a clip
+        guard !movieOutput.isRecording else { return }
+
+        session.beginConfiguration()
+
+        // Remove existing video input
+        if let currentInput = session.inputs.first(where: { input in
+            guard let devInput = input as? AVCaptureDeviceInput else { return false }
+            return devInput.device.hasMediaType(.video)
+        }) {
+            session.removeInput(currentInput)
+        }
+
+        // Add new camera input
+        guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+              let newInput = try? AVCaptureDeviceInput(device: newDevice),
+              session.canAddInput(newInput) else {
+            session.commitConfiguration()
+            return
+        }
+        session.addInput(newInput)
+        currentCameraPosition = position
+
+        // Re-apply connection settings for the new camera
+        let shouldMirror = (position == .front)
+        if let conn = videoOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+        if let conn = movieOutput.connection(with: .video) {
+            if conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = shouldMirror
+            }
+        }
+
+        session.commitConfiguration()
+    }
+
     private func performStitchAndExport() {
         // Only export if we have clips to stitch
         guard !clipURLs.isEmpty else {
@@ -152,8 +285,11 @@ final class PoseSessionController: UIViewController,
         // Copy clipURLs to avoid race conditions
         let clipsToStitch = self.clipURLs
 
+        let cameraPositions = self.clipCameraPositions
+        let aimData = self.clipAimData
+
         Task {
-            await stitchAllClips(clips: clipsToStitch, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
+            await stitchAllClips(clips: clipsToStitch, clipCameraPositions: cameraPositions, clipAimData: aimData, displayScale: displayScale, logoImage: logoImage) { [weak self] url in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     if let url = url {
@@ -161,6 +297,8 @@ final class PoseSessionController: UIViewController,
                     }
                     // Reset for next session
                     self.clipURLs.removeAll()
+                    self.clipCameraPositions.removeAll()
+                    self.clipAimData.removeAll()
                     self.isEndingSession = false
                     self.enter(.idle)
                 }
@@ -219,6 +357,119 @@ final class PoseSessionController: UIViewController,
         view.layer.addSublayer(overlayLayer)
     }
 
+    private func setupAimOverlay() {
+        // Origin marker — default to bottom-center (ball position)
+        originMarker.center = CGPoint(x: view.bounds.midX, y: view.bounds.height * 0.85)
+        view.addSubview(originMarker)
+
+        // Target marker — default to upper-center (where you're aiming)
+        targetMarker.center = CGPoint(x: view.bounds.midX, y: view.bounds.height * 0.25)
+        view.addSubview(targetMarker)
+
+        // Arc layer — sits between preview and markers
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+        arcLayer.fillColor = UIColor.clear.cgColor
+        arcLayer.lineWidth = 3.0
+        arcLayer.lineCap = .round
+        arcLayer.lineJoin = .round
+        arcLayer.lineDashPattern = [8, 6]
+        view.layer.insertSublayer(arcLayer, below: originMarker.layer)
+
+        // Pan gestures
+        originPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleOriginPan(_:)))
+        originMarker.addGestureRecognizer(originPanGesture)
+
+        targetPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleTargetPan(_:)))
+        targetMarker.addGestureRecognizer(targetPanGesture)
+
+        updateArcPath()
+    }
+
+    @objc private func handleOriginPan(_ gesture: UIPanGestureRecognizer) {
+        guard !aimLocked else { return }
+        let translation = gesture.translation(in: view)
+        originMarker.center = CGPoint(
+            x: originMarker.center.x + translation.x,
+            y: originMarker.center.y + translation.y
+        )
+        gesture.setTranslation(.zero, in: view)
+        updateArcPath()
+    }
+
+    @objc private func handleTargetPan(_ gesture: UIPanGestureRecognizer) {
+        guard !aimLocked else { return }
+        let translation = gesture.translation(in: view)
+        targetMarker.center = CGPoint(
+            x: targetMarker.center.x + translation.x,
+            y: targetMarker.center.y + translation.y
+        )
+        gesture.setTranslation(.zero, in: view)
+        updateArcPath()
+    }
+
+    /// Builds a parabolic arc path from origin to target through an apex
+    private func updateArcPath() {
+        let from = originMarker.center
+        let to = targetMarker.center
+        arcLayer.frame = view.bounds
+
+        let path = Self.parabolicPath(from: from, to: to, in: view.bounds)
+        arcLayer.path = path.cgPath
+    }
+
+    /// Creates a parabolic UIBezierPath from `from` to `to`.
+    /// The apex rises above the higher point by a fraction of the horizontal distance.
+    static func parabolicPath(from: CGPoint, to: CGPoint, in bounds: CGRect) -> UIBezierPath {
+        let path = UIBezierPath()
+        let midX = (from.x + to.x) / 2
+        let minY = min(from.y, to.y)
+        // Apex height: the arc peaks above the higher point, proportional to distance
+        let dist = hypot(to.x - from.x, to.y - from.y)
+        let apexY = max(minY - dist * 0.45, bounds.height * 0.03)  // don't go off-screen
+        let apex = CGPoint(x: midX, y: apexY)
+
+        // Quadratic bezier from → apex → to
+        let segments = 40
+        for i in 0...segments {
+            let t = CGFloat(i) / CGFloat(segments)
+            let invT = 1 - t
+            // Quadratic Bézier: B(t) = (1-t)²·P0 + 2(1-t)t·P1 + t²·P2
+            let x = invT * invT * from.x + 2 * invT * t * apex.x + t * t * to.x
+            let y = invT * invT * from.y + 2 * invT * t * apex.y + t * t * to.y
+            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+            else { path.addLine(to: CGPoint(x: x, y: y)) }
+        }
+        return path
+    }
+
+    /// Convert a screen point to normalized screen-relative coordinates (0...1)
+    /// where (0,0) is top-left and (1,1) is bottom-right of the view.
+    private func normalizedScreenPoint(for screenPoint: CGPoint) -> CGPoint {
+        let w = view.bounds.width
+        let h = view.bounds.height
+        guard w > 0, h > 0 else { return CGPoint(x: 0.5, y: 0.5) }
+        return CGPoint(x: screenPoint.x / w, y: screenPoint.y / h)
+    }
+
+    private func lockAim() {
+        aimLocked = true
+        originMarker.isLocked = true
+        targetMarker.isLocked = true
+        originPanGesture.isEnabled = false
+        targetPanGesture.isEnabled = false
+        // Dim the arc
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+    }
+
+    private func unlockAim() {
+        aimLocked = false
+        originMarker.isLocked = false
+        targetMarker.isLocked = false
+        originPanGesture.isEnabled = true
+        targetPanGesture.isEnabled = true
+        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+    }
+
     private func setupHUD() {
         hud.text = "—"
         hud.textColor = .white
@@ -242,7 +493,7 @@ final class PoseSessionController: UIViewController,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let orientation: CGImagePropertyOrientation = .leftMirrored
+        let orientation: CGImagePropertyOrientation = (currentCameraPosition == .front) ? .leftMirrored : .left
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: orientation)
 
         visionQueue.async {
@@ -343,6 +594,11 @@ final class PoseSessionController: UIViewController,
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("swing-\(UUID().uuidString).mov")
         currentClipURL = url
+        clipCameraPositions[url] = currentCameraPosition
+        clipAimData[url] = AimData(
+            origin: normalizedScreenPoint(for: originMarker.center),
+            target: normalizedScreenPoint(for: targetMarker.center)
+        )
         movieOutput.startRecording(to: url, recordingDelegate: self)
     }
 
@@ -379,6 +635,8 @@ final class PoseSessionController: UIViewController,
 
     // MARK: - Stitching
     private func stitchAllClips(clips: [URL],
+                                clipCameraPositions: [URL: AVCaptureDevice.Position] = [:],
+                                clipAimData: [URL: AimData] = [:],
                                 shotLabels: [String]? = nil,  // e.g., ["Shot 1","Shot 2",...]
                                 displayScale: CGFloat = 3.0,   // Captured from main thread
                                 logoImage: CGImage? = nil,     // Captured from main thread
@@ -423,8 +681,11 @@ final class PoseSessionController: UIViewController,
                 // Because compVideo reuses the same track, we set it as a "setTransform" at this timeRange start.
                 var t = preferredTransform
 
-                //unmirror camera
-                t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
+                // Unmirror front camera clips; back camera clips don't need this
+                let clipPosition = clipCameraPositions[url] ?? .front
+                if clipPosition == .front {
+                    t = t.scaledBy(x: 1, y: -1).translatedBy(x: 0, y: -renderSize.width)
+                }
 
                 // Use the new Configuration API
                 var layerConfig = AVVideoCompositionLayerInstruction.Configuration(trackID: compVideo.trackID)
@@ -511,6 +772,65 @@ final class PoseSessionController: UIViewController,
                     tag.duration  = d
 
                     tagsContainer.addSublayer(tag)
+
+                    // Aim overlay: target circle + parabolic arc for this clip
+                    if let aim = clipAimData[url] {
+                        // Convert normalized screen coords to CA render coords.
+                        // Screen: (0,0)=top-left, Y increases downward
+                        // CA layer: (0,0)=bottom-left, Y increases upward
+                        // So: caX = normX * width, caY = (1 - normY) * height
+                        let originPt = CGPoint(x: aim.origin.x * renderSize.width,
+                                               y: (1 - aim.origin.y) * renderSize.height)
+                        let targetPt = CGPoint(x: aim.target.x * renderSize.width,
+                                               y: (1 - aim.target.y) * renderSize.height)
+
+                        // Target circle
+                        let targetCircle = CAShapeLayer()
+                        targetCircle.contentsScale = displayScale
+                        let circleR: CGFloat = 28
+                        let circlePath = UIBezierPath(ovalIn: CGRect(
+                            x: targetPt.x - circleR, y: targetPt.y - circleR,
+                            width: circleR * 2, height: circleR * 2))
+                        targetCircle.path = circlePath.cgPath
+                        targetCircle.strokeColor = UIColor.systemBlue.withAlphaComponent(0.7).cgColor
+                        targetCircle.fillColor = UIColor.systemBlue.withAlphaComponent(0.15).cgColor
+                        targetCircle.lineWidth = 2.0
+                        targetCircle.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        targetCircle.duration = d
+                        tagsContainer.addSublayer(targetCircle)
+
+                        // Origin dot
+                        let originDot = CAShapeLayer()
+                        originDot.contentsScale = displayScale
+                        let dotR: CGFloat = 8
+                        let dotPath = UIBezierPath(ovalIn: CGRect(
+                            x: originPt.x - dotR, y: originPt.y - dotR,
+                            width: dotR * 2, height: dotR * 2))
+                        originDot.path = dotPath.cgPath
+                        originDot.strokeColor = UIColor.white.withAlphaComponent(0.8).cgColor
+                        originDot.fillColor = UIColor.white.withAlphaComponent(0.5).cgColor
+                        originDot.lineWidth = 1.5
+                        originDot.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        originDot.duration = d
+                        tagsContainer.addSublayer(originDot)
+
+                        // Parabolic arc from origin to target
+                        let arcShape = CAShapeLayer()
+                        arcShape.contentsScale = displayScale
+                        let arcPath = PoseSessionController.parabolicPath(
+                            from: originPt, to: targetPt,
+                            in: CGRect(origin: .zero, size: renderSize))
+                        arcShape.path = arcPath.cgPath
+                        arcShape.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+                        arcShape.fillColor = UIColor.clear.cgColor
+                        arcShape.lineWidth = 3.0
+                        arcShape.lineCap = .round
+                        arcShape.lineDashPattern = [8, 6]
+                        arcShape.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        arcShape.duration = d
+                        tagsContainer.addSublayer(arcShape)
+                    }
+
                     begin += d
                 } catch {
                     print("Error loading duration for asset at \(url): \(error)")
@@ -575,6 +895,16 @@ final class PoseSessionController: UIViewController,
         DispatchQueue.main.async {
             self.updateHUD()
             self.updateOverlayColor(for: newPhase)
+
+            // Aim lock/unlock
+            switch newPhase {
+            case .recordingSwing:
+                self.lockAim()
+            case .waitingReady:
+                self.unlockAim()
+            case .idle, .postEndSwing:
+                break
+            }
         }
     }
     

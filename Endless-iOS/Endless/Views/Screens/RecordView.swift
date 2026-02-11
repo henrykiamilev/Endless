@@ -5,7 +5,7 @@ struct RecordView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var navigationManager: NavigationManager
     @State private var isRecording = false
-    @State private var isFrontCamera = false
+    @State private var isFrontCamera = true
     @State private var hasPermission = false
     @State private var showPermissionAlert = false
     @State private var selectedMode = 3 // 0 = Photo, 1 = Video, 2 = Slo-Mo, 3 = AI Golf
@@ -89,6 +89,7 @@ struct RecordView: View {
             // PoseSessionCameraView - Real-time pose detection
             PoseSessionCameraView(
                 isSessionActive: $isAISessionActive,
+                isFrontCamera: $isFrontCamera,
                 onExported: { url in
                     exportedVideoURL = url
                     showExportSuccess = true
@@ -142,6 +143,16 @@ struct RecordView: View {
                     .padding(.horizontal, 12)
                     .background(Color.black.opacity(0.6))
                     .cornerRadius(20)
+
+                    // Flip camera button
+                    Button(action: { isFrontCamera.toggle() }) {
+                        Image(systemName: "camera.rotate")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
