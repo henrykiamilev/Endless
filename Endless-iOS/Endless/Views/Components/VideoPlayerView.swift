@@ -79,16 +79,6 @@ struct VideoPlayerView: View {
                             }
 
                             Spacer()
-
-                            // Share button
-                            Button(action: shareVideo) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 36, height: 36)
-                                    .background(.ultraThinMaterial.opacity(0.8))
-                                    .clipShape(Circle())
-                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, geometry.safeAreaInsets.top + 8)
