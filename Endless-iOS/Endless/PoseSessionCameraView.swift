@@ -182,7 +182,16 @@ final class PoseSessionController: UIViewController,
         setupOverlay()
         setupAimOverlay()
         setupHUD()
-        
+
+        // Listen for device orientation changes
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(deviceOrientationDidChange),
+            name: UIDevice.orientationDidChangeNotification,
+            object: nil
+        )
+
         // Start the session on a background queue to avoid blocking the main thread
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.session.startRunning()
@@ -201,6 +210,29 @@ final class PoseSessionController: UIViewController,
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.bounds
         overlayLayer.frame = view.bounds
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+    }
+
+    @objc private func deviceOrientationDidChange() {
+        let deviceOrientation = UIDevice.current.orientation
+        let nowLandscape: Bool
+        switch deviceOrientation {
+        case .landscapeLeft, .landscapeRight:
+            nowLandscape = true
+        case .portrait, .portraitUpsideDown:
+            nowLandscape = false
+        default:
+            return // faceUp, faceDown, unknown — ignore
+        }
+        guard isLandscape != nowLandscape else { return }
+        isLandscape = nowLandscape
+        let angle: CGFloat = nowLandscape ? 0 : 90
+        currentRotationAngle = angle
+        applyRotationAngle(angle)
     }
 
     func setSessionActive(_ active: Bool) {

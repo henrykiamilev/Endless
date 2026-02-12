@@ -12,6 +12,8 @@ struct GolfSessionView: View {
     @ObservedObject private var videoStorage = VideoStorageManager.shared
     @State private var isSessionActive = true  // Start active by default
     @State private var isFrontCamera = false  // Use back camera for golf
+    @State private var showShotAlignment = true
+    @State private var isLandscape = false
     @State private var exportURL: URL?
     @State private var saveMessage: String?
     @State private var shotCount = 0
@@ -23,6 +25,8 @@ struct GolfSessionView: View {
             PoseSessionCameraView(
                 isSessionActive: $isSessionActive,
                 isFrontCamera: $isFrontCamera,
+                showShotAlignment: $showShotAlignment,
+                isLandscape: $isLandscape,
                 onExported: { url in
                     exportURL = url
                     isSaving = true
@@ -54,27 +58,24 @@ struct GolfSessionView: View {
             VStack {
                 // Top status bar
                 HStack(spacing: 12) {
-                    // Recording indicator
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(isSessionActive ? Color.red : Color.gray)
-                            .frame(width: 10, height: 10)
-                            .overlay {
-                                if isSessionActive {
-                                    Circle()
-                                        .stroke(Color.red.opacity(0.5), lineWidth: 2)
-                                        .scaleEffect(1.5)
-                                        .opacity(0.8)
-                                }
-                            }
-                        Text(isSessionActive ? "Session Active" : "Session Ended")
-                            .font(.system(size: 14, weight: .semibold))
+                    // Shot alignment toggle (replaces Session Active indicator)
+                    Button(action: { showShotAlignment.toggle() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scope")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(showShotAlignment ? "Tracer On" : "Tracer Off")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(showShotAlignment ? .green : .white.opacity(0.7))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(showShotAlignment ? Color.green.opacity(0.25) : .black.opacity(0.6))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(showShotAlignment ? Color.green.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.black.opacity(0.6))
-                    .clipShape(Capsule())
 
                     Spacer()
 
