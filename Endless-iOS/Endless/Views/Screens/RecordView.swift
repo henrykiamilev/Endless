@@ -150,34 +150,6 @@ struct RecordView: View {
                     .background(Color.black.opacity(0.6))
                     .cornerRadius(20)
 
-                    // Shot alignment toggle
-                    Button(action: { showShotAlignment.toggle() }) {
-                        Image(systemName: showShotAlignment ? "scope" : "scope")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(showShotAlignment ? .green : .white.opacity(0.6))
-                            .frame(width: 46, height: 46)
-                            .background(showShotAlignment ? Color.green.opacity(0.25) : Color.black.opacity(0.5))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(showShotAlignment ? Color.green.opacity(0.6) : Color.clear, lineWidth: 1.5)
-                            )
-                    }
-
-                    // Rotate camera (portrait/landscape)
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isLandscape.toggle()
-                        }
-                    }) {
-                        Image(systemName: isLandscape ? "rectangle.landscape.rotate" : "rectangle.portrait.rotate")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 46, height: 46)
-                            .background(Color.black.opacity(0.5))
-                            .clipShape(Circle())
-                    }
-
                     // Flip camera button
                     Button(action: { isFrontCamera.toggle() }) {
                         Image(systemName: "camera.rotate")
@@ -190,6 +162,55 @@ struct RecordView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
+
+                // Second row — Shot alignment toggle & Landscape rotation
+                HStack(spacing: 12) {
+                    Spacer()
+
+                    // Shot alignment toggle
+                    Button(action: { showShotAlignment.toggle() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scope")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(showShotAlignment ? "Tracer On" : "Tracer Off")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(showShotAlignment ? .green : .white.opacity(0.6))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(showShotAlignment ? Color.green.opacity(0.25) : Color.black.opacity(0.5))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(showShotAlignment ? Color.green.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+
+                    // Rotate camera (portrait/landscape)
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isLandscape.toggle()
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: isLandscape ? "rectangle.landscape.rotate" : "rectangle.portrait.rotate")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(isLandscape ? "Landscape" : "Portrait")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(isLandscape ? .yellow : .white.opacity(0.6))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(isLandscape ? Color.yellow.opacity(0.2) : Color.black.opacity(0.5))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(isLandscape ? Color.yellow.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
 
                 Spacer()
 

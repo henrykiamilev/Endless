@@ -278,6 +278,12 @@ final class PoseSessionController: UIViewController,
                 conn.isVideoMirrored = shouldMirror
             }
         }
+        // Rotate the live preview layer connection to match
+        if let conn = previewLayer?.connection {
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
+            }
+        }
         session.commitConfiguration()
     }
 
@@ -322,6 +328,12 @@ final class PoseSessionController: UIViewController,
             }
             if conn.isVideoMirroringSupported {
                 conn.isVideoMirrored = shouldMirror
+            }
+        }
+        // Re-apply rotation to preview layer connection after camera switch
+        if let conn = previewLayer?.connection {
+            if conn.isVideoRotationAngleSupported(angle) {
+                conn.videoRotationAngle = angle
             }
         }
 
@@ -407,6 +419,11 @@ final class PoseSessionController: UIViewController,
         preview.frame = view.bounds
         view.layer.addSublayer(preview)
         previewLayer = preview
+
+        // Apply initial rotation to the preview layer connection
+        if let conn = preview.connection, conn.isVideoRotationAngleSupported(initialAngle) {
+            conn.videoRotationAngle = initialAngle
+        }
     }
 
     private func setupOverlay() {
