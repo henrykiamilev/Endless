@@ -219,18 +219,21 @@ final class PoseSessionController: UIViewController,
 
     @objc private func deviceOrientationDidChange() {
         let deviceOrientation = UIDevice.current.orientation
-        let nowLandscape: Bool
+        let angle: CGFloat
         switch deviceOrientation {
-        case .landscapeLeft, .landscapeRight:
-            nowLandscape = true
-        case .portrait, .portraitUpsideDown:
-            nowLandscape = false
+        case .landscapeLeft:
+            angle = 0     // home button on right
+        case .landscapeRight:
+            angle = 180   // home button on left
+        case .portrait:
+            angle = 90
+        case .portraitUpsideDown:
+            angle = 270
         default:
             return // faceUp, faceDown, unknown — ignore
         }
-        guard isLandscape != nowLandscape else { return }
-        isLandscape = nowLandscape
-        let angle: CGFloat = nowLandscape ? 0 : 90
+        guard currentRotationAngle != angle else { return }
+        isLandscape = (angle == 0 || angle == 180)
         currentRotationAngle = angle
         applyRotationAngle(angle)
     }
@@ -610,10 +613,10 @@ final class PoseSessionController: UIViewController,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        // Adjust Vision orientation based on camera position and landscape/portrait mode
+        // Adjust Vision orientation based on camera position and current rotation
         let orientation: CGImagePropertyOrientation = poseOrientation(
             isFront: currentCameraPosition == .front,
-            isLandscape: isLandscape
+            rotationAngle: currentRotationAngle
         )
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: orientation)
 
@@ -1012,14 +1015,17 @@ final class PoseSessionController: UIViewController,
 
 
     // MARK: - Orientation helper for pose detection
-    /// Maps camera position + device orientation to the correct CGImagePropertyOrientation
+    /// Maps camera position + current rotation angle to the correct CGImagePropertyOrientation
     /// so that Vision framework interprets the body pose correctly in any filming mode.
-    private func poseOrientation(isFront: Bool, isLandscape: Bool) -> CGImagePropertyOrientation {
-        if isLandscape {
-            // Landscape: rotation angle is 0, buffer comes in native landscape
+    private func poseOrientation(isFront: Bool, rotationAngle: CGFloat) -> CGImagePropertyOrientation {
+        switch rotationAngle {
+        case 0:   // landscapeLeft (home button right)
             return isFront ? .upMirrored : .up
-        } else {
-            // Portrait: rotation angle is 90, buffer is rotated
+        case 180: // landscapeRight (home button left)
+            return isFront ? .downMirrored : .down
+        case 270: // portraitUpsideDown
+            return isFront ? .rightMirrored : .right
+        default:  // 90 — portrait
             return isFront ? .leftMirrored : .left
         }
     }
