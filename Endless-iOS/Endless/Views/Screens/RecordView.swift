@@ -16,6 +16,10 @@ struct RecordView: View {
     @State private var exportedVideoURL: URL?
     @State private var showExportSuccess = false
 
+    // Shot alignment toggle & landscape mode
+    @State private var showShotAlignment = true
+    @State private var isLandscape = false
+
     var body: some View {
         ZStack {
             // Camera preview placeholder
@@ -90,6 +94,8 @@ struct RecordView: View {
             PoseSessionCameraView(
                 isSessionActive: $isAISessionActive,
                 isFrontCamera: $isFrontCamera,
+                showShotAlignment: $showShotAlignment,
+                isLandscape: $isLandscape,
                 onExported: { url in
                     exportedVideoURL = url
                     showExportSuccess = true
@@ -157,19 +163,78 @@ struct RecordView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
 
+                // Second row — Shot alignment toggle & Landscape rotation
+                HStack(spacing: 12) {
+                    Spacer()
+
+                    // Shot alignment toggle
+                    Button(action: { showShotAlignment.toggle() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scope")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(showShotAlignment ? "Tracer On" : "Tracer Off")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(showShotAlignment ? .green : .white.opacity(0.6))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(showShotAlignment ? Color.green.opacity(0.25) : Color.black.opacity(0.5))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(showShotAlignment ? Color.green.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+
+                    // Rotate camera (portrait/landscape)
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isLandscape.toggle()
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: isLandscape ? "rectangle.landscape.rotate" : "rectangle.portrait.rotate")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(isLandscape ? "Landscape" : "Portrait")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(isLandscape ? .yellow : .white.opacity(0.6))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(isLandscape ? Color.yellow.opacity(0.2) : Color.black.opacity(0.5))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(isLandscape ? Color.yellow.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
                 Spacer()
 
                 // Bottom controls
                 VStack(spacing: 20) {
                     // Session status
                     if isAISessionActive {
-                        Text("Detecting swing poses...")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .background(Color.green.opacity(0.8))
-                            .cornerRadius(20)
+                        HStack(spacing: 8) {
+                            Text("Detecting swing poses...")
+                                .font(.system(size: 14, weight: .medium))
+                            if !showShotAlignment {
+                                Text("Tracer Off")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.green.opacity(0.8))
+                        .cornerRadius(20)
                     }
 
                     // Main controls
