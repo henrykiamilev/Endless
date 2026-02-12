@@ -297,17 +297,18 @@ final class PoseSessionController: UIViewController,
 
         session.beginConfiguration()
         let shouldMirror = (currentCameraPosition == .front)
+        let connAngle = effectiveConnectionAngle(for: currentCameraPosition)
         if let conn = videoOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(angle) {
-                conn.videoRotationAngle = angle
+            if conn.isVideoRotationAngleSupported(connAngle) {
+                conn.videoRotationAngle = connAngle
             }
             if conn.isVideoMirroringSupported {
                 conn.isVideoMirrored = shouldMirror
             }
         }
         if let conn = movieOutput.connection(with: .video) {
-            if conn.isVideoRotationAngleSupported(angle) {
-                conn.videoRotationAngle = angle
+            if conn.isVideoRotationAngleSupported(connAngle) {
+                conn.videoRotationAngle = connAngle
             }
             if conn.isVideoMirroringSupported {
                 conn.isVideoMirrored = shouldMirror
@@ -315,8 +316,8 @@ final class PoseSessionController: UIViewController,
         }
         // Rotate the live preview layer connection to match
         if let conn = previewLayer?.connection {
-            if conn.isVideoRotationAngleSupported(angle) {
-                conn.videoRotationAngle = angle
+            if conn.isVideoRotationAngleSupported(connAngle) {
+                conn.videoRotationAngle = connAngle
             }
         }
         session.commitConfiguration()
@@ -346,9 +347,9 @@ final class PoseSessionController: UIViewController,
         session.addInput(newInput)
         currentCameraPosition = position
 
-        // Re-apply connection settings for the new camera using current rotation angle
+        // Re-apply connection settings for the new camera using effective rotation angle
         let shouldMirror = (position == .front)
-        let angle = currentRotationAngle
+        let angle = effectiveConnectionAngle(for: position)
         if let conn = videoOutput.connection(with: .video) {
             if conn.isVideoRotationAngleSupported(angle) {
                 conn.videoRotationAngle = angle
@@ -1013,6 +1014,21 @@ final class PoseSessionController: UIViewController,
         }
     }
 
+
+    /// Computes the rotation angle to apply to AVCaptureConnection objects.
+    /// The front camera sensor is mounted on the opposite side of the device from
+    /// the back camera, so its "up" direction is reversed in landscape orientations.
+    /// This swaps the landscape angles (0° ↔ 180°) for the front camera.
+    private func effectiveConnectionAngle(for position: AVCaptureDevice.Position) -> CGFloat {
+        if position == .front {
+            switch currentRotationAngle {
+            case 0:   return 180  // landscapeLeft: front sensor needs 180°
+            case 180: return 0    // landscapeRight: front sensor needs 0°
+            default:  return currentRotationAngle
+            }
+        }
+        return currentRotationAngle
+    }
 
     // MARK: - Orientation helper for pose detection
     /// Maps camera position + current rotation angle to the correct CGImagePropertyOrientation
