@@ -528,38 +528,38 @@ final class PoseSessionController: UIViewController,
         updateArcPath()
     }
 
-    /// Builds a parabolic arc path from origin to target through an apex
+    /// Builds a line-of-sight path from origin toward target with a gentle end curve
     private func updateArcPath() {
         let from = originMarker.center
         let to = targetMarker.center
         arcLayer.frame = view.bounds
 
-        let path = Self.parabolicPath(from: from, to: to, in: view.bounds)
+        let path = Self.aimLinePath(from: from, to: to)
         arcLayer.path = path.cgPath
     }
 
-    /// Creates a parabolic UIBezierPath from `from` to `to`.
-    /// The apex rises above the higher point by a fraction of the horizontal distance.
-    static func parabolicPath(from: CGPoint, to: CGPoint, in bounds: CGRect) -> UIBezierPath {
+    /// Creates a mostly-straight UIBezierPath from `from` to `to` representing
+    /// a line of sight, with a subtle curve only at the very end near the target.
+    static func aimLinePath(from: CGPoint, to: CGPoint) -> UIBezierPath {
         let path = UIBezierPath()
-        let midX = (from.x + to.x) / 2
-        let minY = min(from.y, to.y)
-        // Apex height: the arc peaks above the higher point, proportional to distance
-        let dist = hypot(to.x - from.x, to.y - from.y)
-        let apexY = max(minY - dist * 0.45, bounds.height * 0.03)  // don't go off-screen
-        let apex = CGPoint(x: midX, y: apexY)
+        let dx = to.x - from.x
+        let dy = to.y - from.y
+        let dist = hypot(dx, dy)
 
-        // Quadratic bezier from → apex → to
-        let segments = 40
-        for i in 0...segments {
-            let t = CGFloat(i) / CGFloat(segments)
-            let invT = 1 - t
-            // Quadratic Bézier: B(t) = (1-t)²·P0 + 2(1-t)t·P1 + t²·P2
-            let x = invT * invT * from.x + 2 * invT * t * apex.x + t * t * to.x
-            let y = invT * invT * from.y + 2 * invT * t * apex.y + t * t * to.y
-            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-            else { path.addLine(to: CGPoint(x: x, y: y)) }
-        }
+        // Perpendicular unit vector (rotated 90° clockwise from from→to)
+        let perpX = dist > 0 ? -dy / dist : 0
+        let perpY = dist > 0 ?  dx / dist : 0
+
+        // cp1: 75% along the straight line — keeps the first ¾ nearly straight
+        let cp1 = CGPoint(x: from.x + dx * 0.75, y: from.y + dy * 0.75)
+
+        // cp2: 95% along the line with a slight perpendicular offset for the end-curve
+        let curveOffset = dist * 0.06
+        let cp2 = CGPoint(x: from.x + dx * 0.95 + perpX * curveOffset,
+                          y: from.y + dy * 0.95 + perpY * curveOffset)
+
+        path.move(to: from)
+        path.addCurve(to: to, controlPoint1: cp1, controlPoint2: cp2)
         return path
     }
 
@@ -901,7 +901,7 @@ final class PoseSessionController: UIViewController,
 
                     tagsContainer.addSublayer(tag)
 
-                    // Aim overlay: target circle + parabolic arc for this clip
+                    // Aim overlay: target circle + line-of-sight arc for this clip
                     if let aim = clipAimData[url] {
                         // Convert normalized screen coords to CA render coords.
                         // Screen: (0,0)=top-left, Y increases downward
@@ -942,12 +942,11 @@ final class PoseSessionController: UIViewController,
                         originDot.duration = d
                         tagsContainer.addSublayer(originDot)
 
-                        // Parabolic arc from origin to target
+                        // Line-of-sight arc from origin to target
                         let arcShape = CAShapeLayer()
                         arcShape.contentsScale = displayScale
-                        let arcPath = PoseSessionController.parabolicPath(
-                            from: originPt, to: targetPt,
-                            in: CGRect(origin: .zero, size: renderSize))
+                        let arcPath = PoseSessionController.aimLinePath(
+                            from: originPt, to: targetPt)
                         arcShape.path = arcPath.cgPath
                         arcShape.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
                         arcShape.fillColor = UIColor.clear.cgColor
