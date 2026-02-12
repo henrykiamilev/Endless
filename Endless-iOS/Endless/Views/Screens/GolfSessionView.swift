@@ -31,7 +31,7 @@ struct GolfSessionView: View {
                     exportURL = url
                     isSaving = true
                     // Save to local Video library instead of camera roll
-                    videoStorage.saveVideo(from: url, title: "Golf Session") { video in
+                    videoStorage.saveVideo(from: url, title: "Golf Session", shotCount: shotCount) { video in
                         DispatchQueue.main.async {
                             isSaving = false
                             if video != nil {

@@ -113,7 +113,7 @@ class VideoStorageManager: ObservableObject {
     ///   - sourceURL: The temporary URL of the exported video
     ///   - title: The title for the video
     ///   - completion: Called with the saved Video object, or nil if saving failed
-    func saveVideo(from sourceURL: URL, title: String? = nil, completion: @escaping (Video?) -> Void) {
+    func saveVideo(from sourceURL: URL, title: String? = nil, shotCount: Int = 0, completion: @escaping (Video?) -> Void) {
         Task {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "MM/dd/yy"
@@ -137,7 +137,8 @@ class VideoStorageManager: ObservableObject {
                     date: dateString,
                     duration: duration,
                     thumbnail: nil,
-                    videoFileName: destinationURL.path  // Full local path
+                    videoFileName: destinationURL.path,  // Full local path
+                    shotCount: shotCount
                 )
 
                 // Add to list and save metadata
@@ -205,7 +206,8 @@ class VideoStorageManager: ObservableObject {
                     date: meta.date,
                     duration: meta.duration,
                     thumbnail: nil,
-                    videoFileName: videoPath
+                    videoFileName: videoPath,
+                    shotCount: meta.shotCount
                 )
             }
         } catch {
@@ -222,7 +224,8 @@ class VideoStorageManager: ObservableObject {
                 title: video.title,
                 date: video.date,
                 duration: video.duration,
-                fileName: fileName
+                fileName: fileName,
+                shotCount: video.shotCount
             )
         }
 
@@ -279,6 +282,7 @@ private struct VideoMetadata: Codable {
     let date: String
     let duration: String
     let fileName: String
+    var shotCount: Int = 0
 }
 
 /// Legacy metadata struct for migration from old storage format

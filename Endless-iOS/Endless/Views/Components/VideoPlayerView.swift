@@ -494,7 +494,7 @@ struct FullscreenVideoPlayer: View {
 
     var body: some View {
         if let fileName = video.videoFileName {
-            VideoPlayerView(videoFileName: fileName, videoTitle: video.title)
+            VideoPlayerView(videoFileName: fileName, videoTitle: video.title, strokeCount: video.shotCount > 0 ? video.shotCount : nil)
         } else {
             VStack(spacing: 16) {
                 Image(systemName: "video.slash")
