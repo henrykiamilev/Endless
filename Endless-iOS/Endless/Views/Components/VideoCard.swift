@@ -134,7 +134,7 @@ struct VideoCard: View {
         }
         .fullScreenCover(isPresented: $showingPlayer) {
             if let videoFileName = video.videoFileName {
-                VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title)
+                VideoPlayerView(videoFileName: videoFileName, videoTitle: video.title, strokeCount: video.shotCount > 0 ? video.shotCount : nil)
                     .environmentObject(themeManager)
             } else {
                 // Fallback view if video data is missing

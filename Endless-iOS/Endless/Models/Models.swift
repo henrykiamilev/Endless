@@ -34,6 +34,7 @@ struct Video: Identifiable {
     let duration: String
     var thumbnail: String?
     var videoFileName: String?  // The actual video file name (e.g., "swing-1.mp4")
+    var shotCount: Int = 0      // Number of swings detected during recording
 }
 
 struct RoundHistory: Identifiable {

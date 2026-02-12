@@ -31,7 +31,7 @@ struct GolfSessionView: View {
                     exportURL = url
                     isSaving = true
                     // Save to local Video library instead of camera roll
-                    videoStorage.saveVideo(from: url, title: "Golf Session") { video in
+                    videoStorage.saveVideo(from: url, title: "Golf Session", shotCount: shotCount) { video in
                         DispatchQueue.main.async {
                             isSaving = false
                             if video != nil {
@@ -78,19 +78,6 @@ struct GolfSessionView: View {
                     }
 
                     Spacer()
-
-                    // Shot counter
-                    HStack(spacing: 4) {
-                        Image(systemName: "figure.golf")
-                            .font(.system(size: 12))
-                        Text("Shots: \(shotCount)")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.black.opacity(0.6))
-                    .clipShape(Capsule())
 
                     // Flip camera button
                     Button(action: { isFrontCamera.toggle() }) {
