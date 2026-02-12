@@ -28,8 +28,12 @@ struct VideoPlayerView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var playerManager = VideoPlayerManager()
+    var holeNumber: Int? = nil
+    var strokeCount: Int? = nil
+    var totalScore: String? = nil
     @State private var showControls = false
     @State private var hideTimer: Timer?
+    @State private var isScrubbing = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -111,50 +115,99 @@ struct VideoPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                     }
 
-                    // Bottom overlay — always visible broadcast stat boxes + thin progress
+                    // Bottom overlay
                     VStack(spacing: 0) {
                         Spacer()
 
-                        // Broadcast stat boxes — bottom left
-                        HStack {
-                            HStack(spacing: 6) {
-                                statBox(
-                                    value: videoTitle,
-                                    label: "SESSION"
-                                )
-                                statBox(
-                                    value: formatTime(playerManager.duration),
-                                    label: "DURATION"
-                                )
+                        // Playback scrubber — appears on tap
+                        if showControls {
+                            VStack(spacing: 6) {
+                                // Scrubber bar
+                                GeometryReader { barGeo in
+                                    ZStack(alignment: .leading) {
+                                        // Track
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.3))
+
+                                        // Progress fill
+                                        Capsule()
+                                            .fill(Color.white)
+                                            .frame(width: playerManager.duration > 0
+                                                ? CGFloat(playerManager.currentTime / playerManager.duration) * barGeo.size.width
+                                                : 0)
+
+                                        // Thumb
+                                        Circle()
+                                            .fill(Color.white)
+                                            .frame(width: 16, height: 16)
+                                            .shadow(color: .black.opacity(0.3), radius: 3)
+                                            .offset(x: playerManager.duration > 0
+                                                ? CGFloat(playerManager.currentTime / playerManager.duration) * (barGeo.size.width - 16)
+                                                : 0)
+                                    }
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                isScrubbing = true
+                                                let pct = min(max(value.location.x / barGeo.size.width, 0), 1)
+                                                playerManager.seek(to: Double(pct) * playerManager.duration)
+                                            }
+                                            .onEnded { _ in
+                                                isScrubbing = false
+                                                scheduleHide()
+                                            }
+                                    )
+                                }
+                                .frame(height: 4)
+
+                                // Time labels
+                                HStack {
+                                    Text(formatTime(playerManager.currentTime))
+                                        .font(.system(size: adaptiveFont(base: 11, geometry: geometry), weight: .medium, design: .monospaced))
+                                        .foregroundStyle(.white)
+                                    Spacer()
+                                    Text(formatTime(playerManager.duration))
+                                        .font(.system(size: adaptiveFont(base: 11, geometry: geometry), weight: .medium, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
                             }
-                            .padding(.leading, 16)
-                            .padding(.bottom, 10)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 16)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.25), value: showControls)
+                        }
+
+                        // Masters-style labels — always visible
+                        HStack(spacing: adaptiveFont(base: 20, geometry: geometry)) {
+                            mastersLabel(
+                                value: holeNumber != nil ? "\(holeNumber!)" : "—",
+                                label: "HOLE NO.",
+                                geometry: geometry
+                            )
+                            mastersLabel(
+                                value: strokeCount != nil ? "\(strokeCount!)" : "—",
+                                label: "STROKE",
+                                geometry: geometry
+                            )
+                            mastersLabel(
+                                value: totalScore ?? "—",
+                                label: "TOTAL",
+                                geometry: geometry
+                            )
 
                             Spacer()
                         }
-
-                        // Thin progress bar — very bottom edge
-                        GeometryReader { barGeo in
-                            ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.15))
-
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.85))
-                                    .frame(width: playerManager.duration > 0
-                                        ? CGFloat(playerManager.currentTime / playerManager.duration) * barGeo.size.width
-                                        : 0)
-                            }
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { value in
-                                        let pct = min(max(value.location.x / barGeo.size.width, 0), 1)
-                                        playerManager.seek(to: Double(pct) * playerManager.duration)
-                                    }
-                            )
-                        }
-                        .frame(height: 3)
+                        .padding(.leading, 16)
+                        .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
                     }
+                    .background(
+                        LinearGradient(
+                            colors: [.clear, .clear, .black.opacity(0.6)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .allowsHitTesting(false)
+                    )
                     .ignoresSafeArea(edges: .bottom)
                 }
             }
@@ -169,27 +222,29 @@ struct VideoPlayerView: View {
         }
     }
 
-    // MARK: - Stat box (broadcast style)
-    private func statBox(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
+    // MARK: - Masters-style label (clean, no box)
+    private func mastersLabel(value: String, label: String, geometry: GeometryProxy) -> some View {
+        let isWide = geometry.size.width > geometry.size.height
+        let valueSize: CGFloat = isWide ? 20 : 16
+        let labelSize: CGFloat = isWide ? 10 : 8
+
+        return VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: valueSize, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.6))
-                .tracking(0.5)
+                .font(.system(size: labelSize, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.7))
+                .tracking(0.8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.black.opacity(0.55))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-        )
+    }
+
+    // MARK: - Adaptive font sizing
+    private func adaptiveFont(base: CGFloat, geometry: GeometryProxy) -> CGFloat {
+        let isWide = geometry.size.width > geometry.size.height
+        return isWide ? base * 1.3 : base
     }
 
     // MARK: - Error view
@@ -237,6 +292,7 @@ struct VideoPlayerView: View {
 
     private func scheduleHide() {
         hideTimer?.invalidate()
+        guard !isScrubbing else { return }
         hideTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             DispatchQueue.main.async {
                 withAnimation { showControls = false }
