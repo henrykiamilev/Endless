@@ -75,8 +75,8 @@ private final class AimMarkerView: UIView {
                                        width: radius * 2, height: radius * 2))
             ctx.setStrokeColor(markerColor.withAlphaComponent(0.7 * alpha).cgColor)
             ctx.setLineWidth(2.0)
-            ctx.strokeEllipseIn(CGRect(x: center.x - radius, y: center.y - radius,
-                                       width: radius * 2, height: radius * 2))
+            ctx.strokeEllipse(in: CGRect(x: center.x - radius, y: center.y - radius,
+                                         width: radius * 2, height: radius * 2))
             // Small center dot
             let dotR: CGFloat = 3
             ctx.setFillColor(UIColor.white.withAlphaComponent(0.9 * alpha).cgColor)
@@ -91,8 +91,8 @@ private final class AimMarkerView: UIView {
                                        width: r * 2, height: r * 2))
             ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8 * alpha).cgColor)
             ctx.setLineWidth(1.5)
-            ctx.strokeEllipseIn(CGRect(x: center.x - r, y: center.y - r,
-                                       width: r * 2, height: r * 2))
+            ctx.strokeEllipse(in: CGRect(x: center.x - r, y: center.y - r,
+                                         width: r * 2, height: r * 2))
         }
     }
 }
