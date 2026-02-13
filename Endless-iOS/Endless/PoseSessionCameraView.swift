@@ -109,7 +109,8 @@ final class PoseSessionController: UIViewController,
     // Aim overlay (origin + target + arc)
     private let originMarker = AimMarkerView(style: .origin)
     private let targetMarker = AimMarkerView(style: .target)
-    private let arcLayer = CAShapeLayer()
+    private let glowLayer = CAShapeLayer()   // wide soft bloom behind the aim line
+    private let arcLayer = CAShapeLayer()    // bright solid aim line
     private var originPanGesture: UIPanGestureRecognizer!
     private var targetPanGesture: UIPanGestureRecognizer!
     private var aimLocked = false
@@ -278,6 +279,7 @@ final class PoseSessionController: UIViewController,
             let hidden = !visible
             self.originMarker.isHidden = hidden
             self.targetMarker.isHidden = hidden
+            self.glowLayer.isHidden = hidden
             self.arcLayer.isHidden = hidden
             self.originPanGesture.isEnabled = visible && !self.aimLocked
             self.targetPanGesture.isEnabled = visible && !self.aimLocked
@@ -479,14 +481,22 @@ final class PoseSessionController: UIViewController,
         targetMarker.center = CGPoint(x: view.bounds.midX, y: view.bounds.height * 0.25)
         view.addSubview(targetMarker)
 
-        // Arc layer — sits between preview and markers
-        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+        let aimCyan = UIColor(red: 0.0, green: 0.85, blue: 1.0, alpha: 1.0)
+
+        // Glow layer — wide, soft bloom behind the aim line
+        glowLayer.strokeColor = aimCyan.withAlphaComponent(0.35).cgColor
+        glowLayer.fillColor = UIColor.clear.cgColor
+        glowLayer.lineWidth = 14.0
+        glowLayer.lineCap = .round
+        view.layer.insertSublayer(glowLayer, below: originMarker.layer)
+
+        // Arc layer — bright solid aim line on top of glow
+        arcLayer.strokeColor = aimCyan.cgColor
         arcLayer.fillColor = UIColor.clear.cgColor
         arcLayer.lineWidth = 3.0
         arcLayer.lineCap = .round
         arcLayer.lineJoin = .round
-        arcLayer.lineDashPattern = [8, 6]
-        view.layer.insertSublayer(arcLayer, below: originMarker.layer)
+        view.layer.insertSublayer(arcLayer, above: glowLayer)
 
         // Pan gestures
         originPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleOriginPan(_:)))
@@ -501,6 +511,7 @@ final class PoseSessionController: UIViewController,
         let hidden = !showShotAlignment
         originMarker.isHidden = hidden
         targetMarker.isHidden = hidden
+        glowLayer.isHidden = hidden
         arcLayer.isHidden = hidden
         originPanGesture.isEnabled = showShotAlignment
         targetPanGesture.isEnabled = showShotAlignment
@@ -532,31 +543,31 @@ final class PoseSessionController: UIViewController,
     private func updateArcPath() {
         let from = originMarker.center
         let to = targetMarker.center
-        arcLayer.frame = view.bounds
+        let frame = view.bounds
+        glowLayer.frame = frame
+        arcLayer.frame = frame
 
         let path = Self.aimLinePath(from: from, to: to)
+        glowLayer.path = path.cgPath
         arcLayer.path = path.cgPath
     }
 
     /// Creates a mostly-straight UIBezierPath from `from` to `to` representing
-    /// a line of sight, with a subtle curve only at the very end near the target.
+    /// a line of sight, with a downward gravity drop at the very end (like an arrow).
     static func aimLinePath(from: CGPoint, to: CGPoint) -> UIBezierPath {
         let path = UIBezierPath()
         let dx = to.x - from.x
         let dy = to.y - from.y
         let dist = hypot(dx, dy)
 
-        // Perpendicular unit vector (rotated 90° clockwise from from→to)
-        let perpX = dist > 0 ? -dy / dist : 0
-        let perpY = dist > 0 ?  dx / dist : 0
+        // cp1: 80% along the straight line — keeps the first 4/5 straight
+        let cp1 = CGPoint(x: from.x + dx * 0.8, y: from.y + dy * 0.8)
 
-        // cp1: 75% along the straight line — keeps the first ¾ nearly straight
-        let cp1 = CGPoint(x: from.x + dx * 0.75, y: from.y + dy * 0.75)
-
-        // cp2: 95% along the line with a slight perpendicular offset for the end-curve
-        let curveOffset = dist * 0.06
-        let cp2 = CGPoint(x: from.x + dx * 0.95 + perpX * curveOffset,
-                          y: from.y + dy * 0.95 + perpY * curveOffset)
+        // cp2: at the target's X, offset downward (toward the ground) to simulate
+        // an arrow dropping at the end of its flight. copysign ensures the drop
+        // goes toward the origin's Y side regardless of coordinate system.
+        let drop = dist * 0.1
+        let cp2 = CGPoint(x: to.x, y: to.y + copysign(drop, from.y - to.y))
 
         path.move(to: from)
         path.addCurve(to: to, controlPoint1: cp1, controlPoint2: cp2)
@@ -578,8 +589,10 @@ final class PoseSessionController: UIViewController,
         targetMarker.isLocked = true
         originPanGesture.isEnabled = false
         targetPanGesture.isEnabled = false
-        // Dim the arc
-        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+        // Dim both layers
+        let aimCyan = UIColor(red: 0.0, green: 0.85, blue: 1.0, alpha: 1.0)
+        arcLayer.strokeColor = aimCyan.withAlphaComponent(0.4).cgColor
+        glowLayer.strokeColor = aimCyan.withAlphaComponent(0.15).cgColor
     }
 
     private func unlockAim() {
@@ -588,7 +601,9 @@ final class PoseSessionController: UIViewController,
         targetMarker.isLocked = false
         originPanGesture.isEnabled = true
         targetPanGesture.isEnabled = true
-        arcLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+        let aimCyan = UIColor(red: 0.0, green: 0.85, blue: 1.0, alpha: 1.0)
+        arcLayer.strokeColor = aimCyan.cgColor
+        glowLayer.strokeColor = aimCyan.withAlphaComponent(0.35).cgColor
     }
 
     private func setupHUD() {
@@ -942,17 +957,31 @@ final class PoseSessionController: UIViewController,
                         originDot.duration = d
                         tagsContainer.addSublayer(originDot)
 
-                        // Line-of-sight arc from origin to target
-                        let arcShape = CAShapeLayer()
-                        arcShape.contentsScale = displayScale
+                        // Line-of-sight aim line from origin to target
+                        let aimCyan = UIColor(red: 0.0, green: 0.85, blue: 1.0, alpha: 1.0)
                         let arcPath = PoseSessionController.aimLinePath(
                             from: originPt, to: targetPt)
+
+                        // Glow layer (wide, soft bloom)
+                        let glowShape = CAShapeLayer()
+                        glowShape.contentsScale = displayScale
+                        glowShape.path = arcPath.cgPath
+                        glowShape.strokeColor = aimCyan.withAlphaComponent(0.35).cgColor
+                        glowShape.fillColor = UIColor.clear.cgColor
+                        glowShape.lineWidth = 14.0
+                        glowShape.lineCap = .round
+                        glowShape.beginTime = AVCoreAnimationBeginTimeAtZero + begin
+                        glowShape.duration = d
+                        tagsContainer.addSublayer(glowShape)
+
+                        // Solid bright line on top
+                        let arcShape = CAShapeLayer()
+                        arcShape.contentsScale = displayScale
                         arcShape.path = arcPath.cgPath
-                        arcShape.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5).cgColor
+                        arcShape.strokeColor = aimCyan.cgColor
                         arcShape.fillColor = UIColor.clear.cgColor
                         arcShape.lineWidth = 3.0
                         arcShape.lineCap = .round
-                        arcShape.lineDashPattern = [8, 6]
                         arcShape.beginTime = AVCoreAnimationBeginTimeAtZero + begin
                         arcShape.duration = d
                         tagsContainer.addSublayer(arcShape)
