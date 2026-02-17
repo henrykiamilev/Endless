@@ -86,18 +86,16 @@ struct HomeView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            // Top bar with menu, theme toggle, avatar
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
@@ -105,49 +103,46 @@ struct HomeView: View {
                 // Theme toggle
                 Button(action: { themeManager.toggleTheme() }) {
                     Image(systemName: themeManager.isDark ? "sun.max.fill" : "moon.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: 16))
                         .foregroundColor(themeManager.theme.textSecondary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 // Profile avatar
                 Button(action: { }) {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    Circle()
                         .fill(themeManager.theme.accentGreen)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .overlay(
                             Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                         )
+                        .shadow(color: themeManager.theme.accentGreen.opacity(0.2), radius: 8, x: 0, y: 2)
                 }
-                .padding(.leading, 8)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
 
             // Date label
-            Text(formattedDate)
-                .font(.system(size: 13, weight: .medium))
+            Text(formattedDate.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
                 .foregroundColor(themeManager.theme.textMuted)
-                .padding(.bottom, 4)
+                .padding(.bottom, 6)
 
-            // Greeting
+            // Greeting - elegant serif-inspired styling
             Text("Hello, \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)")
-                .font(.system(size: 28, weight: .bold))
-                .tracking(-0.5)
+                .font(.system(size: 32, weight: .light, design: .serif))
                 .foregroundColor(themeManager.theme.textPrimary)
-                .padding(.bottom, 16)
+                .padding(.bottom, 8)
 
             // Search bar
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(themeManager.theme.textMuted)
 
                 Text("Search sessions, videos...")
@@ -155,22 +150,12 @@ struct HomeView: View {
                     .foregroundColor(themeManager.theme.textMuted)
 
                 Spacer()
-
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16))
-                    .foregroundColor(themeManager.theme.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(themeManager.theme.cardBackgroundElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 13)
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(themeManager.theme.border, lineWidth: 1)
-            )
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -324,11 +309,7 @@ struct HomeView: View {
             }
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 20, x: 0, y: 8)
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 16, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingSessionEditor) {
@@ -354,12 +335,12 @@ struct HomeView: View {
 
     private func playerRow(player: Player) -> some View {
         HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            Circle()
                 .fill(player.isCaptain ? themeManager.theme.textPrimary : themeManager.theme.accentBlue)
-                .frame(width: 42, height: 42)
+                .frame(width: 40, height: 40)
                 .overlay(
                     Text(String(player.name.prefix(1)))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(player.isCaptain ? themeManager.theme.textInverse : .white)
                 )
 
@@ -560,11 +541,12 @@ struct HomeView: View {
         viewAllAction: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(label.localizedCapitalized)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(themeManager.theme.textMuted)
 
                 Spacer()
 
@@ -576,13 +558,9 @@ struct HomeView: View {
                             navigationManager.navigateToVideo()
                         }
                     }) {
-                        HStack(spacing: 4) {
-                            Text("See all")
-                                .font(.system(size: 13, weight: .medium))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .medium))
-                        }
-                        .foregroundColor(themeManager.theme.textSecondary)
+                        Text("See All")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(themeManager.theme.textSecondary)
                     }
                 }
             }
@@ -590,7 +568,7 @@ struct HomeView: View {
             content()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 28)
+        .padding(.bottom, 24)
     }
 }
 
@@ -895,8 +873,8 @@ struct PerformanceDetailView: View {
     private func performanceCard(title: String, value: String, change: String, isPositive: Bool, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(themeManager.theme.primary.opacity(0.15))
+                Circle()
+                    .fill(themeManager.theme.primary.opacity(0.1))
                     .frame(width: 38, height: 38)
                     .overlay(
                         Image(systemName: icon)
@@ -930,7 +908,7 @@ struct PerformanceDetailView: View {
 
     private func roundRow(course: String, score: Int, date: String) -> some View {
         HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            Circle()
                 .fill(themeManager.theme.primary)
                 .frame(width: 42, height: 42)
                 .overlay(
@@ -1052,8 +1030,8 @@ struct MenuSheetView: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(themeManager.theme.primary.opacity(0.1))
+                    Circle()
+                        .fill(themeManager.theme.primary.opacity(0.08))
                         .frame(width: 42, height: 42)
 
                     Image(systemName: icon)

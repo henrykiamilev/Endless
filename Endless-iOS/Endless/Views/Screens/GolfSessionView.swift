@@ -84,9 +84,9 @@ struct GolfSessionView: View {
                         Image(systemName: "camera.rotate")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 42, height: 42)
                             .background(Color.black.opacity(0.5))
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(Circle())
                     }
                 }
                 .padding(.horizontal, 20)

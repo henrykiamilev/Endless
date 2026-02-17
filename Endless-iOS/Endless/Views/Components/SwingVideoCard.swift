@@ -23,7 +23,7 @@ struct SwingVideoCard: View {
                         .foregroundColor(themeManager.theme.primary.opacity(0.5))
 
                     // Play button
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    Circle()
                         .fill(themeManager.theme.cardBackground.opacity(0.95))
                         .frame(width: 28, height: 28)
                         .overlay(

@@ -33,10 +33,10 @@ struct SessionCard: View {
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.5))
+                    .padding(.vertical, 5)
+                    .background(.ultraThinMaterial)
                     .clipShape(Capsule())
-                    .padding(10)
+                    .padding(8)
                 }
                 .frame(width: 160, height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -90,13 +90,13 @@ struct SessionCard: View {
             // Golf icon with subtle styling
             VStack(spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(themeManager.theme.textSecondary.opacity(0.08))
+                    Circle()
+                        .fill(themeManager.theme.textSecondary.opacity(0.06))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "figure.golf")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.35))
                 }
             }
         }

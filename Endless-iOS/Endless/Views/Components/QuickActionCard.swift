@@ -9,22 +9,21 @@ struct QuickActionCard: View {
 
     var body: some View {
         Button(action: { action?() }) {
-            VStack(spacing: 14) {
-                // Icon with subtle styling
+            VStack(spacing: 12) {
+                // Icon with circle background
                 ZStack {
-                    // Rounded square background
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    Circle()
                         .fill(themeManager.theme.textSecondary.opacity(0.08))
-                        .frame(width: 46, height: 46)
+                        .frame(width: 44, height: 44)
 
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary.opacity(0.7))
                 }
 
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Text(title)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(themeManager.theme.textPrimary)
                         .lineLimit(1)
 
@@ -37,11 +36,8 @@ struct QuickActionCard: View {
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(themeManager.theme.border.opacity(0.5), lineWidth: 1)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(PlainButtonStyle())
     }

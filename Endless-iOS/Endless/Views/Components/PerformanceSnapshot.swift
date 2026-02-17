@@ -312,24 +312,25 @@ struct PerformanceSnapshot: View {
     @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Header
             HStack {
-                Text("Performance")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+                Text("PERFORMANCE")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(themeManager.theme.textMuted)
 
                 Spacer()
 
                 // Customize button
                 Button(action: { onCustomize?() }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.6))
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16))
+                        .foregroundColor(themeManager.theme.textSecondary)
                 }
             }
 
-            // iOS-style widget grid
+            // Widget grid
             widgetGrid
         }
         .onAppear {
@@ -390,23 +391,25 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(spacing: 8) {
-                // Centered icon
-                Image(systemName: widget.icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(themeManager.theme.accentGreen)
-
-                // Centered value
+            VStack(spacing: 6) {
+                // Large bold value
                 Text(widget.value)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+
+                // Small label
+                Text(widget.shortLabel)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(themeManager.theme.textMuted)
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 70)
+            .frame(height: 72)
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 3)
         }
         .buttonStyle(PlainButtonStyle())
     }

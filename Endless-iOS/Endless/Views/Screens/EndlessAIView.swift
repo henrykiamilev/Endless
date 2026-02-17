@@ -125,63 +125,35 @@ struct EndlessAIView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
 
-                // Endless Logo with AI badge
-                ZStack(alignment: .bottomTrailing) {
-                    EndlessLogo(size: 48, showText: false)
-
-                    // AI Badge
-                    Text("AI")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            LinearGradient(
-                                colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(6)
-                        .offset(x: 4, y: 4)
-                }
+                // Beta pill
+                Text("BETA")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(themeManager.theme.accentGreen.opacity(0.12))
+                    .clipShape(Capsule())
             }
             .padding(.bottom, 20)
 
-            // Clean modern title
-            HStack(spacing: 12) {
-                Text("Endless AI")
-                    .font(.system(size: 28, weight: .bold))
-                    .tracking(-0.5)
-                    .foregroundColor(themeManager.theme.textPrimary)
-
-                // Beta badge
-                Text("BETA")
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(1)
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(themeManager.theme.accentGreen.opacity(0.15))
-                    .cornerRadius(8)
-            }
-            .padding(.bottom, 8)
+            Text("Endless AI")
+                .font(.system(size: 32, weight: .light, design: .serif))
+                .foregroundColor(themeManager.theme.textPrimary)
+                .padding(.bottom, 6)
 
             Text("Create AI-powered highlight reels from your golf videos")
                 .font(.system(size: 14, weight: .medium))
@@ -211,23 +183,20 @@ struct EndlessAIView: View {
     }
 
     private func aiFeatureChip(icon: String, title: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundColor(themeManager.theme.accentGreen)
 
             Text(title)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundColor(themeManager.theme.textPrimary)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .background(themeManager.theme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(themeManager.theme.border, lineWidth: 1)
-        )
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 6, x: 0, y: 2)
     }
 
     // MARK: - Highlight Reel Card

@@ -190,41 +190,57 @@ struct RecruitView: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Welcome \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName).")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                Spacer()
 
-                Text(dateFormatter.string(from: Date()))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
-
-            Spacer()
-
-            Button(action: { showingMessages = true }) {
-                ZStack(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-
-                    if profileManager.messages.contains(where: { !$0.isRead }) {
+                // Messages button
+                Button(action: { showingMessages = true }) {
+                    ZStack(alignment: .topTrailing) {
                         Circle()
-                            .fill(Color.red)
-                            .frame(width: 12, height: 12)
-                            .offset(x: 2, y: -2)
+                            .fill(themeManager.theme.cardBackground)
+                            .frame(width: 40, height: 40)
+                            .overlay(
+                                Image(systemName: "envelope")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                            )
+                            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
+
+                        if profileManager.messages.contains(where: { !$0.isRead }) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 10, height: 10)
+                                .offset(x: 1, y: -1)
+                        }
                     }
                 }
+
+                // Avatar
+                Circle()
+                    .fill(themeManager.theme.accentGreen)
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                    .shadow(color: themeManager.theme.accentGreen.opacity(0.2), radius: 8, x: 0, y: 2)
             }
+            .padding(.bottom, 20)
+
+            Text(dateFormatter.string(from: Date()).uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
+                .padding(.bottom, 6)
+
+            Text("Welcome, \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)")
+                .font(.system(size: 32, weight: .light, design: .serif))
+                .foregroundColor(themeManager.theme.textPrimary)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.top, 12)
         .padding(.bottom, 24)
     }
 
@@ -663,30 +679,22 @@ struct RecruitView: View {
     // MARK: - Helper Views
 
     private func sectionHeader(icon: String, title: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(themeManager.theme.textSecondary)
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(themeManager.theme.textSecondary)
-        }
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1.2)
+            .foregroundColor(themeManager.theme.textMuted)
     }
 
     private func editableSectionHeader(icon: String, title: String, action: @escaping () -> Void) -> some View {
         HStack {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.theme.textSecondary)
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
             Spacer()
             Button(action: action) {
                 Text("Edit")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(themeManager.theme.accentGreen)
             }
         }

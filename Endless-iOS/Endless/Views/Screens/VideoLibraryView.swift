@@ -210,46 +210,39 @@ struct VideoLibraryView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
 
-                // Endless Logo
-                EndlessLogo(size: 48, showText: false)
+                // Video count pill
+                HStack(spacing: 4) {
+                    Text("\(allVideos.count)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                    Text("videos")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(themeManager.theme.cardBackground)
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
             }
             .padding(.bottom, 20)
 
-            // Clean modern title
-            HStack(alignment: .bottom, spacing: 16) {
-                Text("Video Library")
-                    .font(.system(size: 28, weight: .bold))
-                    .tracking(-0.5)
-                    .foregroundColor(themeManager.theme.textPrimary)
-
-                Spacer()
-
-                // Video count badge
-                HStack(spacing: 6) {
-                    Text("\(allVideos.count)")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                    Text("videos")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary)
-                }
-            }
+            Text("Video Library")
+                .font(.system(size: 32, weight: .light, design: .serif))
+                .foregroundColor(themeManager.theme.textPrimary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -263,16 +256,11 @@ struct VideoLibraryView: View {
 
     private var videoTabContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Section label with icon - MATCH VIDEOS AT TOP
-            HStack(spacing: 8) {
-                Image(systemName: "play.rectangle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.primary)
-                Text("MATCH VIDEOS")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
+            // Section label
+            Text("MATCH VIDEOS")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
             .padding(.horizontal, 20)
             .padding(.bottom, 16)
 
@@ -364,16 +352,11 @@ struct VideoLibraryView: View {
     private var aiAnalysisSection: some View {
         VStack(spacing: 20) {
             // Section header
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                Text("ENDLESS AI")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("ENDLESS AI")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             // Create Highlight Reel Card
             VStack(spacing: 0) {
@@ -751,13 +734,10 @@ struct VideoLibraryView: View {
                 }
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.primary)
                     Text("STROKES GAINED")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundColor(themeManager.theme.textSecondary)
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundColor(themeManager.theme.textMuted)
 
                     Spacer()
 
@@ -995,15 +975,11 @@ struct VideoLibraryView: View {
     // MARK: - Section Helper
 
     private func sectionView<Content: View>(label: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                Text(label.localizedCapitalized)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textPrimary)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
 
             content()
         }

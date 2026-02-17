@@ -100,30 +100,25 @@ struct SettingsView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
 
-                // Endless Logo
-                EndlessLogo(size: 48, showText: false)
+                EndlessLogo(size: 40, showText: false)
             }
             .padding(.bottom, 20)
 
             Text("Settings")
-                .font(.system(size: 28, weight: .bold))
-                .tracking(-0.5)
+                .font(.system(size: 32, weight: .light, design: .serif))
                 .foregroundColor(themeManager.theme.textPrimary)
                 .padding(.bottom, 6)
 
@@ -143,29 +138,17 @@ struct SettingsView: View {
 
     private var profileCard: some View {
         Button(action: { showingEditProfile = true }) {
-            HStack(spacing: 18) {
-                // Profile image with gradient border
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 3
-                        )
-                        .frame(width: 64, height: 64)
-
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                }
+            HStack(spacing: 16) {
+                // Profile avatar - circle
+                Circle()
+                    .fill(themeManager.theme.accentGreen)
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                    .shadow(color: themeManager.theme.accentGreen.opacity(0.2), radius: 8, x: 0, y: 3)
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(profileManager.profile.fullName.trimmingCharacters(in: .whitespaces).isEmpty ? "Set up your profile" : profileManager.profile.fullName)
@@ -187,8 +170,8 @@ struct SettingsView: View {
                     .foregroundColor(themeManager.theme.primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(themeManager.theme.primary.opacity(0.15))
-                    .cornerRadius(10)
+                    .background(themeManager.theme.primary.opacity(0.1))
+                    .clipShape(Capsule())
                 }
 
                 Spacer()
@@ -379,15 +362,11 @@ struct SettingsView: View {
 
     private func settingsSection<Content: View>(label: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                Text(label.localizedCapitalized)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
-            .padding(.leading, 4)
+            Text(label.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
+                .padding(.leading, 4)
 
             content()
         }
@@ -425,12 +404,12 @@ struct SettingsView: View {
 
     private func settingsIcon(_ name: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(themeManager.theme.primary.opacity(0.12))
-                .frame(width: 40, height: 40)
+            Circle()
+                .fill(themeManager.theme.primary.opacity(0.08))
+                .frame(width: 38, height: 38)
 
             Image(systemName: name)
-                .font(.system(size: 18))
+                .font(.system(size: 16))
                 .foregroundColor(themeManager.theme.primary)
         }
     }

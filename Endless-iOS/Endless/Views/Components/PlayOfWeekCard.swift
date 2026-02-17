@@ -52,12 +52,12 @@ struct PlayOfWeekCard: View {
 
                         // Center - Play button
                         ZStack {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            Circle()
                                 .fill(.ultraThinMaterial)
-                                .frame(width: 52, height: 52)
+                                .frame(width: 48, height: 48)
 
                             Image(systemName: "play.fill")
-                                .font(.system(size: 20))
+                                .font(.system(size: 18))
                                 .foregroundColor(.white)
                                 .offset(x: 2)
                         }
@@ -68,12 +68,12 @@ struct PlayOfWeekCard: View {
                         HStack(alignment: .bottom) {
                             // Player info
                             HStack(spacing: 10) {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                Circle()
                                     .fill(themeManager.theme.accentGreen)
-                                    .frame(width: 34, height: 34)
+                                    .frame(width: 32, height: 32)
                                     .overlay(
                                         Text(String(play.playerName.prefix(1)))
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.white)
                                     )
 
@@ -150,7 +150,7 @@ struct PlayOfWeekCard: View {
         }
         .frame(width: 280)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 16, x: 0, y: 8)
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 14, x: 0, y: 6)
         .sheet(isPresented: $showComments) {
             CardCommentsSheet(
                 play: play,
@@ -301,12 +301,12 @@ struct CommentRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            Circle()
                 .fill(themeManager.theme.accentGreen)
-                .frame(width: 34, height: 34)
+                .frame(width: 32, height: 32)
                 .overlay(
                     Text(String(comment.userName.prefix(1)))
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                 )
 
