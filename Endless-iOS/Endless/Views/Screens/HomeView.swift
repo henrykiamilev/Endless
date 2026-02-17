@@ -111,22 +111,8 @@ struct HomeView: View {
                         .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
-                // Profile avatar
-                Button(action: { }) {
-                    EndlessLogo(size: 40, showText: false)
-                }
-
-                Button(action: { }) {
-                    Circle()
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                        .shadow(color: themeManager.theme.accentGreen.opacity(0.2), radius: 8, x: 0, y: 2)
-                }
+                // Endless logo
+                EndlessLogo(size: 40, showText: false)
             }
             .padding(.bottom, 24)
 

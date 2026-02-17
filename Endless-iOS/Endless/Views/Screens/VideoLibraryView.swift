@@ -359,113 +359,152 @@ struct VideoLibraryView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             // Create Highlight Reel Card
-            VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 14) {
-                    ZStack {
+            ZStack {
+                // Background with subtle gradient accent
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(themeManager.theme.cardBackground)
+
+                // Decorative gradient orb in top-right
+                VStack {
+                    HStack {
+                        Spacer()
                         Circle()
                             .fill(
-                                LinearGradient(
-                                    colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.7)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                RadialGradient(
+                                    colors: [themeManager.theme.accentGreen.opacity(0.12), themeManager.theme.accentGreen.opacity(0)],
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: 100
                                 )
                             )
-                            .frame(width: 48, height: 48)
-
-                        Image(systemName: "film.stack")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .frame(width: 200, height: 200)
+                            .offset(x: 40, y: -40)
                     }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Create Highlight Reel")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(themeManager.theme.textPrimary)
-
-                        Text("Powered by AI")
-                            .font(.system(size: 11))
-                            .foregroundColor(themeManager.theme.textSecondary)
-                    }
-
                     Spacer()
                 }
-                .padding(16)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
-                // Prompt input
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Describe your perfect highlight reel... (e.g., \"Create a 2-minute reel focusing on my short game and driving accuracy from my last 3 matches\")")
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.theme.textSecondary)
-                        .lineLimit(3)
+                VStack(spacing: 0) {
+                    // Premium header
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 14) {
+                            // Icon with glass effect
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.75)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 52, height: 52)
+                                    .shadow(color: themeManager.theme.accentGreen.opacity(0.3), radius: 12, x: 0, y: 4)
 
-                    // Disabled text box - tapping shows Coming Soon
-                    Button(action: {
-                        comingSoonFeature = "Highlight Reel"
-                        showingComingSoon = true
-                    }) {
-                        HStack {
-                            Text("Enter your prompt here...")
-                                .font(.system(size: 14))
-                                .foregroundColor(themeManager.theme.textMuted)
+                                Image(systemName: "film.stack")
+                                    .font(.system(size: 22, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Create Highlight Reel")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+
+                                HStack(spacing: 6) {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 9))
+                                    Text("Powered by AI")
+                                        .font(.system(size: 11, weight: .medium))
+                                }
+                                .foregroundColor(themeManager.theme.accentGreen)
+                            }
+
                             Spacer()
                         }
-                        .frame(height: 60, alignment: .topLeading)
-                        .padding(10)
-                        .background(themeManager.theme.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(themeManager.theme.border, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
 
-                    // Course filter tags
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(availableCourses, id: \.self) { course in
-                                CourseFilterTag(
-                                    name: course,
-                                    isSelected: selectedCourses.contains(course)
-                                ) {
-                                    comingSoonFeature = "Highlight Reel"
-                                    showingComingSoon = true
+                        Text("Describe your perfect highlight reel and let AI do the rest")
+                            .font(.system(size: 13))
+                            .foregroundColor(themeManager.theme.textSecondary)
+                            .lineSpacing(2)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
+
+                    // Prompt input area
+                    VStack(spacing: 14) {
+                        Button(action: {
+                            comingSoonFeature = "Highlight Reel"
+                            showingComingSoon = true
+                        }) {
+                            HStack(alignment: .top) {
+                                Image(systemName: "text.cursor")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                                    .padding(.top, 2)
+
+                                Text("e.g. \"Best drives and approaches from my last 3 rounds\"")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(themeManager.theme.textMuted)
+                                    .multilineTextAlignment(.leading)
+                                    .lineSpacing(2)
+
+                                Spacer()
+                            }
+                            .padding(14)
+                            .frame(minHeight: 64, alignment: .topLeading)
+                            .background(themeManager.theme.backgroundSecondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        // Course filter tags
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(availableCourses, id: \.self) { course in
+                                    CourseFilterTag(
+                                        name: course,
+                                        isSelected: selectedCourses.contains(course)
+                                    ) {
+                                        comingSoonFeature = "Highlight Reel"
+                                        showingComingSoon = true
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Generate button
-                    Button(action: {
-                        comingSoonFeature = "Highlight Reel"
-                        showingComingSoon = true
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 14))
-                            Text("Generate Highlight Reel")
-                                .font(.system(size: 14, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            LinearGradient(
-                                colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                        // Generate button
+                        Button(action: {
+                            comingSoonFeature = "Highlight Reel"
+                            showingComingSoon = true
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("Generate Highlight Reel")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(Capsule())
+                            .shadow(color: themeManager.theme.accentGreen.opacity(0.25), radius: 12, x: 0, y: 4)
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
             }
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 16, x: 0, y: 8)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 20, x: 0, y: 10)
 
             // My Swing Videos Section
             mySwingVideosSection
@@ -518,55 +557,78 @@ struct VideoLibraryView: View {
 
     private var mySwingVideosSection: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+            // Premium header
+            HStack(alignment: .center, spacing: 14) {
+                // Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(themeManager.theme.accentBlue.opacity(0.12))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(themeManager.theme.accentBlue)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
                     Text("My Swing Videos")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
-                    Text("Upload up to 5 swing videos with annotations")
-                        .font(.system(size: 11))
+                    Text("Upload and analyze your technique")
+                        .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
 
                 Spacer()
 
-                // Progress indicator
-                Text("\(swingVideoManager.videoCount)/5")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(themeManager.theme.background)
-                    .clipShape(Capsule())
-            }
-            .padding(16)
+                // Progress ring
+                ZStack {
+                    Circle()
+                        .stroke(themeManager.theme.border, lineWidth: 3)
+                        .frame(width: 36, height: 36)
 
-            Divider()
-                .background(themeManager.theme.border)
-                .padding(.horizontal, 16)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(swingVideoManager.videoCount) / 5.0)
+                        .stroke(themeManager.theme.accentBlue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 36, height: 36)
+                        .rotationEffect(.degrees(-90))
+
+                    Text("\(swingVideoManager.videoCount)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(themeManager.theme.textPrimary)
+                }
+            }
+            .padding(20)
 
             // Video list
             if swingVideoManager.swingVideos.isEmpty {
                 // Empty state
-                VStack(spacing: 12) {
-                    Image(systemName: "video.badge.plus")
-                        .font(.system(size: 32))
-                        .foregroundColor(themeManager.theme.textMuted)
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(themeManager.theme.backgroundSecondary)
+                            .frame(width: 64, height: 64)
+
+                        Image(systemName: "video.badge.plus")
+                            .font(.system(size: 26))
+                            .foregroundColor(themeManager.theme.textMuted)
+                    }
 
                     Text("No swing videos yet")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(themeManager.theme.textSecondary)
 
-                    Text("Add videos to get AI analysis")
+                    Text("Add videos to get AI-powered analysis of your technique")
                         .font(.system(size: 12))
                         .foregroundColor(themeManager.theme.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+                .padding(.vertical, 28)
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     ForEach(swingVideoManager.swingVideos) { video in
                         SwingVideoRow(
                             title: video.type.displayName,
@@ -584,7 +646,7 @@ struct VideoLibraryView: View {
                         )
                     }
                 }
-                .padding(16)
+                .padding(.horizontal, 20)
             }
 
             // Add more videos button
@@ -593,23 +655,24 @@ struct VideoLibraryView: View {
                 showingComingSoon = true
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 14))
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
                     Text("Add Swing Video")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(themeManager.theme.accentGreen)
+                .foregroundColor(themeManager.theme.accentBlue)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(themeManager.theme.accentGreen.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.vertical, 14)
+                .background(themeManager.theme.accentBlue.opacity(0.08))
+                .clipShape(Capsule())
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
         .background(themeManager.theme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 16, x: 0, y: 8)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 20, x: 0, y: 10)
         .sheet(isPresented: $showingSwingAnalysis) {
             if let video = selectedSwingVideo {
                 SwingVideoAnalysisView(video: video)
@@ -1722,28 +1785,42 @@ struct SwingVideoRow: View {
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             // Video thumbnail
             ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(themeManager.theme.background)
-                    .frame(width: 60, height: 60)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [themeManager.theme.backgroundSecondary, themeManager.theme.background],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 64, height: 64)
 
                 Image(systemName: "figure.golf")
-                    .font(.system(size: 24))
-                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.6))
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(themeManager.theme.accentBlue.opacity(0.7))
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     Text(title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
                     if hasAnalysis {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(themeManager.theme.accentGreen)
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 9))
+                            Text("Analyzed")
+                                .font(.system(size: 9, weight: .semibold))
+                        }
+                        .foregroundColor(themeManager.theme.accentGreen)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(themeManager.theme.accentGreen.opacity(0.1))
+                        .clipShape(Capsule())
                     }
                 }
 
@@ -1760,8 +1837,8 @@ struct SwingVideoRow: View {
 
                 if let score = score {
                     HStack(spacing: 4) {
-                        Text("Score:")
-                            .font(.system(size: 10))
+                        Text("Score")
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundColor(themeManager.theme.textSecondary)
                         Text("\(score)/100")
                             .font(.system(size: 10, weight: .bold))
@@ -1773,31 +1850,31 @@ struct SwingVideoRow: View {
             Spacer()
 
             // Action buttons
-            HStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Button(action: onAnalyze) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 14))
-                        .foregroundColor(themeManager.theme.accentGreen)
-                        .frame(width: 32, height: 32)
-                        .background(themeManager.theme.accentGreen.opacity(0.15))
-                        .clipShape(Circle())
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(themeManager.theme.accentBlue)
+                        .frame(width: 34, height: 34)
+                        .background(themeManager.theme.accentBlue.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
 
                 if let onDelete = onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundColor(themeManager.theme.error)
-                            .frame(width: 32, height: 32)
-                            .background(themeManager.theme.error.opacity(0.15))
-                            .clipShape(Circle())
+                            .frame(width: 34, height: 34)
+                            .background(themeManager.theme.error.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
         }
-        .padding(12)
-        .background(themeManager.theme.background.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(14)
+        .background(themeManager.theme.backgroundSecondary.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

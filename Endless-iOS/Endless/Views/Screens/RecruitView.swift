@@ -216,16 +216,8 @@ struct RecruitView: View {
                     }
                 }
 
-                // Avatar
-                Circle()
-                    .fill(themeManager.theme.accentGreen)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-                    .shadow(color: themeManager.theme.accentGreen.opacity(0.2), radius: 8, x: 0, y: 2)
+                // Endless logo
+                EndlessLogo(size: 40, showText: false)
             }
             .padding(.bottom, 20)
 
