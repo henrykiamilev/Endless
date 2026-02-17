@@ -100,29 +100,27 @@ struct SettingsView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
 
-                // Endless Logo
-                EndlessLogo(size: 48, showText: false)
+                EndlessLogo(size: 40, showText: false)
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
 
-            Text("SETTINGS")
-                .font(.system(size: 48, weight: .heavy))
-                .tracking(-2)
+            Text("Settings")
+                .font(.system(size: 32, weight: .light, design: .serif))
                 .foregroundColor(themeManager.theme.textPrimary)
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
 
             Text("Manage your account and preferences")
                 .font(.system(size: 14, weight: .medium))
@@ -140,28 +138,35 @@ struct SettingsView: View {
 
     private var profileCard: some View {
         Button(action: { showingEditProfile = true }) {
-            HStack(spacing: 18) {
-                // Profile image with gradient border
+            HStack(spacing: 16) {
+                // Profile avatar with gradient ring
                 ZStack {
                     Circle()
                         .stroke(
                             LinearGradient(
-                                colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
+                                colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.4)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 3
+                            lineWidth: 2.5
                         )
-                        .frame(width: 68, height: 68)
+                        .frame(width: 62, height: 62)
 
                     Circle()
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 60, height: 60)
+                        .fill(
+                            LinearGradient(
+                                colors: [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 54, height: 54)
                         .overlay(
                             Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.white)
                         )
+                        .shadow(color: themeManager.theme.accentGreen.opacity(0.25), radius: 10, x: 0, y: 4)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
@@ -174,18 +179,18 @@ struct SettingsView: View {
                         .foregroundColor(themeManager.theme.textSecondary)
 
                     // Pro badge
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: "crown.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                         Text("PRO MEMBER")
                             .font(.system(size: 9, weight: .bold))
-                            .tracking(0.5)
+                            .tracking(0.8)
                     }
-                    .foregroundColor(themeManager.theme.primary)
+                    .foregroundColor(themeManager.theme.accentGreen)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(themeManager.theme.primary.opacity(0.15))
-                    .cornerRadius(10)
+                    .padding(.vertical, 5)
+                    .background(themeManager.theme.accentGreen.opacity(0.1))
+                    .clipShape(Capsule())
                 }
 
                 Spacer()
@@ -195,9 +200,27 @@ struct SettingsView: View {
                     .foregroundColor(themeManager.theme.textMuted)
             }
             .padding(20)
-            .background(themeManager.theme.cardBackground)
-            .cornerRadius(24)
-            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+            .background(
+                ZStack {
+                    themeManager.theme.cardBackground
+                    // Subtle accent gradient
+                    HStack {
+                        LinearGradient(
+                            colors: [themeManager.theme.accentGreen.opacity(0.04), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .frame(width: 100)
+                        Spacer()
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 14, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -244,8 +267,12 @@ struct SettingsView: View {
             .buttonStyle(PlainButtonStyle())
         }
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 12, x: 0, y: 4)
     }
 
     // MARK: - Account Settings
@@ -269,8 +296,12 @@ struct SettingsView: View {
             }
         }
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 12, x: 0, y: 4)
     }
 
     // MARK: - Preferences Settings
@@ -286,8 +317,12 @@ struct SettingsView: View {
             }
         }
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 12, x: 0, y: 4)
     }
 
     private var golfSettingsSubtitle: String {
@@ -324,25 +359,33 @@ struct SettingsView: View {
             }
         }
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 12, x: 0, y: 4)
     }
 
     // MARK: - Sign Out Button
 
     private var signOutButton: some View {
         Button(action: { showingSignOutAlert = true }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 16, weight: .semibold))
                 Text("Sign Out")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
             }
             .foregroundColor(themeManager.theme.error)
             .frame(maxWidth: .infinity)
             .padding(18)
-            .background(themeManager.theme.error.opacity(0.1))
-            .cornerRadius(24)
+            .background(themeManager.theme.error.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(themeManager.theme.error.opacity(0.15), lineWidth: 0.5)
+            )
         }
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
             Button("Cancel", role: .cancel) { }
@@ -376,21 +419,16 @@ struct SettingsView: View {
 
     private func settingsSection<Content: View>(label: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.primary)
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
-            .padding(.leading, 4)
+            Text(label.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
+                .padding(.leading, 4)
 
             content()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 28)
+        .padding(.bottom, 24)
     }
 
     private func settingsRowButton(icon: String, title: String, subtitle: String?, action: @escaping () -> Void) -> some View {
@@ -423,13 +461,19 @@ struct SettingsView: View {
 
     private func settingsIcon(_ name: String) -> some View {
         ZStack {
-            Circle()
-                .fill(themeManager.theme.primary.opacity(0.12))
-                .frame(width: 42, height: 42)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [themeManager.theme.accentGreen.opacity(0.12), themeManager.theme.accentGreen.opacity(0.04)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 38, height: 38)
 
             Image(systemName: name)
-                .font(.system(size: 18))
-                .foregroundColor(themeManager.theme.primary)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(themeManager.theme.accentGreen)
         }
     }
 
@@ -654,7 +698,7 @@ struct RecruitmentProfileSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -1526,7 +1570,7 @@ struct ContactSupportSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }

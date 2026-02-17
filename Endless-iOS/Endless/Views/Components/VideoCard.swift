@@ -54,14 +54,14 @@ struct VideoCard: View {
                         ZStack {
                             Circle()
                                 .fill(.ultraThinMaterial)
-                                .frame(width: 40, height: 40)
-
-                            Circle()
-                                .fill(themeManager.theme.cardBackground)
                                 .frame(width: 34, height: 34)
 
+                            Circle()
+                                .fill(themeManager.theme.cardBackground.opacity(0.9))
+                                .frame(width: 28, height: 28)
+
                             Image(systemName: "play.fill")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(themeManager.theme.primary)
                                 .offset(x: 1)
                         }
@@ -99,11 +99,11 @@ struct VideoCard: View {
                     }) {
                         ZStack {
                             Circle()
-                                .fill(Color.black.opacity(0.6))
-                                .frame(width: 28, height: 28)
+                                .fill(Color.black.opacity(0.5))
+                                .frame(width: 26, height: 26)
 
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                         }
                     }
@@ -119,11 +119,11 @@ struct VideoCard: View {
                     }) {
                         ZStack {
                             Circle()
-                                .fill(Color.black.opacity(0.6))
-                                .frame(width: 28, height: 28)
+                                .fill(Color.black.opacity(0.5))
+                                .frame(width: 26, height: 26)
 
                             Image(systemName: "xmark")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                         }
                     }
@@ -186,13 +186,13 @@ struct VideoCard: View {
 
             // Video icon - subtle
             ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(themeManager.theme.textSecondary.opacity(0.08))
+                Circle()
+                    .fill(themeManager.theme.textSecondary.opacity(0.06))
                     .frame(width: 40, height: 40)
 
                 Image(systemName: "video.fill")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                    .foregroundColor(themeManager.theme.textSecondary.opacity(0.35))
             }
         }
     }

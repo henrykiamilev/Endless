@@ -8,35 +8,49 @@ struct RoundHistoryCard: View {
     var body: some View {
         Button(action: { action?() }) {
             HStack(spacing: 14) {
-                // Course icon
-                Circle()
-                    .fill(themeManager.theme.primary.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Image(systemName: "figure.golf")
-                            .font(.system(size: 18))
-                            .foregroundColor(themeManager.theme.primary)
-                    )
+                // Course icon with gradient
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [themeManager.theme.accentGreen.opacity(0.12), themeManager.theme.accentGreen.opacity(0.04)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
 
                 // Course info
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(round.course)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
 
                     Text(round.date)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
 
                 Spacer()
 
-                // Score
-                Text("\(round.score)")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(scoreColor)
+                // Score badge
+                VStack(spacing: 2) {
+                    Text("\(round.score)")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(scoreColor)
+                    Text("score")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(themeManager.theme.textMuted)
+                        .textCase(.uppercase)
+                }
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 4)
         }
         .buttonStyle(PlainButtonStyle())
     }

@@ -55,28 +55,35 @@ export const EndlessAIScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground }]}>
-              <Ionicons name="menu" size={22} color={theme.textPrimary} />
+            <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Ionicons name="menu" size={20} color={theme.textPrimary} />
             </TouchableOpacity>
-            <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground }]}>
-              <Text style={[styles.logoText, { color: theme.primary }]}>∞</Text>
+            <View style={[styles.logoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.logoText, { color: theme.primary }]}>&#8734;</Text>
             </View>
           </View>
-          <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
-            ENDLESS{'\n'}AI
+          <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
+            Endless AI
+          </Text>
+          <Text style={[styles.screenSubtitle, { color: theme.textMuted }]}>
+            Create highlight reels and analyze your swing
           </Text>
         </View>
 
         {/* Create Highlight Reel Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>CREATE HIGHLIGHT REEL</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Create Highlight Reel</Text>
+          </View>
           <View style={[styles.highlightCard, { backgroundColor: theme.cardBackground }]}>
             <LinearGradient
               colors={theme.isDark ? ['#1A3A2E', '#0A1A14'] : ['#D4E5DC', '#A8C5B5']}
               style={styles.highlightGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
               <View style={[styles.aiIconContainer, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <Ionicons name="sparkles" size={32} color="#FFFFFF" />
+                <Ionicons name="sparkles" size={28} color="#FFFFFF" />
               </View>
               <Text style={styles.highlightBadge}>POWERED BY AI</Text>
             </LinearGradient>
@@ -88,6 +95,7 @@ export const EndlessAIScreen: React.FC = () => {
                   {
                     backgroundColor: theme.backgroundSecondary,
                     color: theme.textPrimary,
+                    borderColor: theme.border,
                   }
                 ]}
                 placeholder='Describe your perfect highlight reel...'
@@ -105,8 +113,8 @@ export const EndlessAIScreen: React.FC = () => {
                     key={course}
                     style={[
                       styles.courseChip,
-                      { backgroundColor: theme.backgroundSecondary },
-                      selectedCourses.includes(course) && { backgroundColor: theme.primary },
+                      { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+                      selectedCourses.includes(course) && { backgroundColor: theme.primary, borderColor: theme.primary },
                     ]}
                     onPress={() => toggleCourse(course)}
                   >
@@ -125,7 +133,7 @@ export const EndlessAIScreen: React.FC = () => {
 
               <TouchableOpacity style={[styles.generateButton, { backgroundColor: theme.primary }]}>
                 <Ionicons name="sparkles" size={18} color={theme.textInverse} style={{ marginRight: 8 }} />
-                <Text style={[styles.generateButtonText, { color: theme.textInverse }]}>GENERATE REEL</Text>
+                <Text style={[styles.generateButtonText, { color: theme.textInverse }]}>Generate Reel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -133,8 +141,8 @@ export const EndlessAIScreen: React.FC = () => {
 
         {/* My Swing Videos Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>MY SWING VIDEOS</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Swing Videos</Text>
             <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]}>
               <Ionicons name="add" size={20} color={theme.textInverse} />
             </TouchableOpacity>
@@ -150,14 +158,9 @@ export const EndlessAIScreen: React.FC = () => {
           </View>
 
           {/* Add More Videos CTA */}
-          <TouchableOpacity style={[
-            styles.addVideoCard,
-            {
-              backgroundColor: theme.cardBackground,
-            }
-          ]}>
+          <TouchableOpacity style={[styles.addVideoCard, { backgroundColor: theme.cardBackground }]}>
             <View style={[styles.addVideoIconBg, { backgroundColor: `${theme.primary}15` }]}>
-              <Ionicons name="add" size={28} color={theme.primary} />
+              <Ionicons name="add" size={24} color={theme.primary} />
             </View>
             <Text style={[styles.addVideoText, { color: theme.textSecondary }]}>Add Swing Video</Text>
           </TouchableOpacity>
@@ -177,52 +180,64 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   menuButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   logoContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '300',
   },
-  heroTitle: {
-    fontSize: 48,
-    fontWeight: '800',
-    letterSpacing: -2,
-    lineHeight: 48,
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    marginBottom: 8,
   },
   section: {
-    marginBottom: 32,
-    paddingHorizontal: 20,
+    marginBottom: 28,
+    paddingHorizontal: 24,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 14,
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
   highlightCard: {
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   highlightGradient: {
@@ -230,9 +245,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aiIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -247,71 +262,66 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   promptInput: {
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 16,
     fontSize: 14,
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 16,
     lineHeight: 20,
+    borderWidth: 1,
   },
   courseFilters: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 18,
+    gap: 8,
   },
   courseChip: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   courseChipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   generateButton: {
     flexDirection: 'row',
     paddingVertical: 16,
-    borderRadius: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   generateButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: '600',
   },
   addButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionSubtitle: {
     fontSize: 13,
     marginBottom: 18,
+    marginTop: -6,
   },
   swingVideosList: {
     marginBottom: 14,
   },
   addVideoCard: {
-    borderRadius: 20,
-    padding: 32,
+    borderRadius: 18,
+    padding: 28,
     alignItems: 'center',
   },
   addVideoIconBg: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,

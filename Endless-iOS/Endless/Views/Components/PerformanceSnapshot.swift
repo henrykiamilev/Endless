@@ -312,29 +312,25 @@ struct PerformanceSnapshot: View {
     @ObservedObject private var strokesGainedVM = StrokesGainedViewModel.shared
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Header
             HStack {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(themeManager.theme.accentGreen.opacity(0.6))
-                        .frame(width: 6, height: 6)
-                    Text("Performance")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                }
+                Text("PERFORMANCE")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(themeManager.theme.textMuted)
 
                 Spacer()
 
-                // Customize button (+ icon)
+                // Customize button
                 Button(action: { onCustomize?() }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.6))
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16))
+                        .foregroundColor(themeManager.theme.textSecondary)
                 }
             }
 
-            // iOS-style widget grid
+            // Widget grid
             widgetGrid
         }
         .onAppear {
@@ -395,23 +391,55 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(spacing: 8) {
-                // Centered icon
-                Image(systemName: widget.icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(themeManager.theme.accentGreen)
+            VStack(spacing: 6) {
+                // Icon with subtle background
+                ZStack {
+                    Circle()
+                        .fill(themeManager.theme.accentGreen.opacity(0.1))
+                        .frame(width: 32, height: 32)
 
-                // Centered value
+                    Image(systemName: widget.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
+
+                // Large bold value
                 Text(widget.value)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+
+                // Small label
+                Text(widget.shortLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textMuted)
+                    .lineLimit(1)
+                    .textCase(.uppercase)
+                    .tracking(0.3)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 70)
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .frame(height: 100)
+            .background(
+                ZStack {
+                    themeManager.theme.cardBackground
+                    VStack {
+                        LinearGradient(
+                            colors: [themeManager.theme.accentGreen.opacity(0.03), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 30)
+                        Spacer()
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -502,7 +530,7 @@ struct WidgetCustomizationSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -547,7 +575,7 @@ struct WidgetSelectionCard: View {
                             .foregroundColor(themeManager.theme.textMuted)
                             .frame(width: 24, height: 24)
                             .background(themeManager.theme.backgroundSecondary)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
 
@@ -677,7 +705,7 @@ struct EditWidgetValueSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }

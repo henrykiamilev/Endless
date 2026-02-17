@@ -18,8 +18,6 @@ export const SwingVideoCard: React.FC<SwingVideoCardProps> = ({ video, onPress }
         styles.container,
         {
           backgroundColor: theme.cardBackground,
-          borderColor: theme.border,
-          shadowColor: theme.shadowColor,
         }
       ]}
       onPress={onPress}
@@ -30,17 +28,17 @@ export const SwingVideoCard: React.FC<SwingVideoCardProps> = ({ video, onPress }
           <Image source={{ uri: video.thumbnail }} style={styles.thumbnail} />
         ) : (
           <View style={[styles.thumbnail, styles.placeholderThumbnail]}>
-            <Ionicons name="videocam" size={22} color={theme.primary} />
+            <Ionicons name="videocam" size={20} color={theme.primary} />
           </View>
         )}
       </View>
       <View style={styles.content}>
         <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{video.title}</Text>
-        <Text style={[styles.type, { color: theme.textSecondary }]}>{video.type} • {video.date}</Text>
+        <Text style={[styles.type, { color: theme.textMuted }]}>{video.type} · {video.date}</Text>
         <Text style={[styles.description, { color: theme.textMuted }]} numberOfLines={2}>{video.description}</Text>
       </View>
       <TouchableOpacity style={styles.moreButton}>
-        <Ionicons name="ellipsis-vertical" size={18} color={theme.textSecondary} />
+        <Ionicons name="ellipsis-vertical" size={18} color={theme.textMuted} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -49,19 +47,14 @@ export const SwingVideoCard: React.FC<SwingVideoCardProps> = ({ video, onPress }
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 10,
   },
   thumbnailContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 10,
+    width: 58,
+    height: 58,
+    borderRadius: 14,
     overflow: 'hidden',
     marginRight: 14,
   },
@@ -78,13 +71,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 3,
   },
   type: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   description: {
     fontSize: 12,

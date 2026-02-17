@@ -29,7 +29,7 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
             styles.option,
             index === selectedIndex && [
               styles.selectedOption,
-              { backgroundColor: theme.textPrimary }
+              { backgroundColor: theme.primary }
             ],
           ]}
           onPress={() => onSelect(index)}
@@ -38,14 +38,14 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
           <Text
             style={[
               styles.optionText,
-              { color: theme.textSecondary },
+              { color: theme.textMuted },
               index === selectedIndex && [
                 styles.selectedText,
                 { color: theme.textInverse }
               ],
             ]}
           >
-            {option.toUpperCase()}
+            {option}
           </Text>
         </TouchableOpacity>
       ))}
@@ -56,21 +56,20 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: 30,
+    borderRadius: 14,
     padding: 4,
   },
   option: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 26,
+    borderRadius: 12,
     alignItems: 'center',
   },
   selectedOption: {},
   optionText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    letterSpacing: 0.5,
   },
   selectedText: {
     fontWeight: '700',

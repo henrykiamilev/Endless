@@ -34,13 +34,13 @@ struct EndlessLogo: View {
     private var logoCircle: some View {
         ZStack {
             Circle()
-                .fill(themeManager.isDark ? Color.white : Color(hex: "1A1A1A"))
+                .fill(themeManager.isDark ? Color(hex: "F5F2ED") : Color(hex: "2C2C2A"))
                 .frame(width: size, height: size)
 
             // Infinity symbol
             Text("∞")
                 .font(.system(size: size * 0.5, weight: .light))
-                .foregroundColor(themeManager.isDark ? Color(hex: "1A1A1A") : .white)
+                .foregroundColor(themeManager.isDark ? Color(hex: "121210") : Color(hex: "F8F6F1"))
         }
     }
 

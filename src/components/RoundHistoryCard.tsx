@@ -20,7 +20,7 @@ export const RoundHistoryCard: React.FC<RoundHistoryCardProps> = ({ round, onPre
     >
       <View style={styles.leftContent}>
         <Text style={[styles.course, { color: theme.textPrimary }]}>{round.course}</Text>
-        <Text style={[styles.date, { color: theme.textSecondary }]}>{round.date}</Text>
+        <Text style={[styles.date, { color: theme.textMuted }]}>{round.date}</Text>
       </View>
       <View style={styles.rightContent}>
         <Text style={[styles.score, { color: theme.primary }]}>{round.score}</Text>
@@ -35,18 +35,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   leftContent: {
     flex: 1,
   },
   course: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
   date: {
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 3,
   },
   rightContent: {
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   score: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     marginRight: 8,
   },

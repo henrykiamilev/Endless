@@ -8,18 +8,17 @@ struct SessionCard: View {
     var body: some View {
         Button(action: { action?() }) {
             VStack(alignment: .leading, spacing: 0) {
-                // Thumbnail area - using real video thumbnails
+                // Thumbnail area
                 ZStack(alignment: .bottomLeading) {
                     if let videoFileName = session.thumbnail {
-                        // Use video thumbnail from the video file
                         VideoThumbnailView(videoFileName: videoFileName)
                     } else {
                         thumbnailPlaceholder
                     }
 
-                    // Gradient overlay for text readability
+                    // Gradient overlay
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.4)],
+                        colors: [.clear, .clear, .black.opacity(0.5)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -27,9 +26,9 @@ struct SessionCard: View {
                     // Location badge
                     HStack(spacing: 4) {
                         Image(systemName: "mappin")
-                            .font(.system(size: 8, weight: .semibold))
+                            .font(.system(size: 8, weight: .bold))
                         Text(session.location)
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(size: 9, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
@@ -38,28 +37,29 @@ struct SessionCard: View {
                     .clipShape(Capsule())
                     .padding(10)
                 }
-                .frame(width: 160, height: 110)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .frame(width: 170, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 // Content area
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(session.title)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
                         .lineLimit(1)
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: "calendar")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                         Text(session.date)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundColor(themeManager.theme.textSecondary)
                 }
                 .padding(.top, 12)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 4)
             }
-            .frame(width: 160)
+            .frame(width: 170)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -91,12 +91,12 @@ struct SessionCard: View {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(themeManager.theme.textSecondary.opacity(0.08))
+                        .fill(themeManager.theme.textSecondary.opacity(0.06))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "figure.golf")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.4))
+                        .foregroundColor(themeManager.theme.textSecondary.opacity(0.35))
                 }
             }
         }

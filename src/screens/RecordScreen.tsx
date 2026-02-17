@@ -32,8 +32,8 @@ export const RecordScreen: React.FC = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.permissionContainer}>
-          <View style={[styles.permissionIconBg, { backgroundColor: `${theme.primary}20` }]}>
-            <Ionicons name="camera" size={48} color={theme.primary} />
+          <View style={[styles.permissionIconBg, { backgroundColor: `${theme.primary}15` }]}>
+            <Ionicons name="camera" size={44} color={theme.primary} />
           </View>
           <Text style={[styles.permissionTitle, { color: theme.textPrimary }]}>Camera Access Required</Text>
           <Text style={[styles.permissionText, { color: theme.textSecondary }]}>
@@ -74,10 +74,10 @@ export const RecordScreen: React.FC = () => {
         {/* Top Controls */}
         <SafeAreaView style={styles.topControls}>
           <TouchableOpacity style={styles.topButton}>
-            <Ionicons name="close" size={26} color="#FFFFFF" />
+            <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.topButton}>
-            <Ionicons name="flash-off" size={22} color="#FFFFFF" />
+            <Ionicons name="flash-off" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </SafeAreaView>
 
@@ -93,7 +93,7 @@ export const RecordScreen: React.FC = () => {
         <View style={styles.bottomControls}>
           {/* Gallery Button */}
           <TouchableOpacity style={styles.sideButton}>
-            <Ionicons name="images" size={26} color="#FFFFFF" />
+            <Ionicons name="images" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
           {/* Record Button */}
@@ -115,7 +115,7 @@ export const RecordScreen: React.FC = () => {
 
           {/* Flip Camera Button */}
           <TouchableOpacity style={styles.sideButton} onPress={toggleCameraFacing}>
-            <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
+            <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -151,9 +151,9 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   permissionIconBg: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   permissionText: {
     fontSize: 15,
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
   permissionButton: {
     paddingVertical: 14,
     paddingHorizontal: 36,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   permissionButtonText: {
     fontSize: 16,
@@ -186,10 +187,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   topButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -199,10 +200,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: 12,
   },
   recordingDot: {
     width: 10,
@@ -226,18 +227,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sideButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 36,
   },
   recordButton: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 4,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
@@ -247,13 +248,13 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
   },
   recordButtonInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   recordButtonInnerActive: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 6,
   },
   modeSelector: {

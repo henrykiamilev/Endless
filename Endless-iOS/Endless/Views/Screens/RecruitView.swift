@@ -190,41 +190,49 @@ struct RecruitView: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Welcome \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName).")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(themeManager.theme.textPrimary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                Spacer()
 
-                Text(dateFormatter.string(from: Date()))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
-
-            Spacer()
-
-            Button(action: { showingMessages = true }) {
-                ZStack(alignment: .topTrailing) {
-                    Circle()
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Text(profileManager.profile.firstName.isEmpty && profileManager.profile.lastName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)) + String(profileManager.profile.lastName.prefix(1)))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-
-                    if profileManager.messages.contains(where: { !$0.isRead }) {
+                // Messages button
+                Button(action: { showingMessages = true }) {
+                    ZStack(alignment: .topTrailing) {
                         Circle()
-                            .fill(Color.red)
-                            .frame(width: 12, height: 12)
-                            .offset(x: 2, y: -2)
+                            .fill(themeManager.theme.cardBackground)
+                            .frame(width: 40, height: 40)
+                            .overlay(
+                                Image(systemName: "envelope")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(themeManager.theme.textPrimary)
+                            )
+                            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
+
+                        if profileManager.messages.contains(where: { !$0.isRead }) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 10, height: 10)
+                                .offset(x: 1, y: -1)
+                        }
                     }
                 }
+
+                // Endless logo
+                EndlessLogo(size: 40, showText: false)
             }
+            .padding(.bottom, 20)
+
+            Text(dateFormatter.string(from: Date()).uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
+                .padding(.bottom, 6)
+
+            Text("Welcome, \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)")
+                .font(.system(size: 32, weight: .light, design: .serif))
+                .foregroundColor(themeManager.theme.textPrimary)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.top, 12)
         .padding(.bottom, 24)
     }
 
@@ -260,7 +268,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 0) {
@@ -296,7 +309,12 @@ struct RecruitView: View {
                         .padding(16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -338,7 +356,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     HStack(spacing: 0) {
                         statBox(label: "Age", value: profileManager.profile.age > 0 ? "\(profileManager.profile.age)" : "--")
@@ -362,7 +385,12 @@ struct RecruitView: View {
                         .padding(.vertical, 16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -407,7 +435,12 @@ struct RecruitView: View {
                     .padding(16)
                 }
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -531,7 +564,12 @@ struct RecruitView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(MockData.profileActivities.enumerated()), id: \.element.id) { index, activity in
@@ -546,7 +584,12 @@ struct RecruitView: View {
                     }
                 }
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             }
         }
         .padding(.horizontal, 20)
@@ -582,7 +625,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     VStack(spacing: 0) {
                         sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
@@ -606,7 +654,12 @@ struct RecruitView: View {
                         .padding(16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -645,7 +698,12 @@ struct RecruitView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -663,30 +721,22 @@ struct RecruitView: View {
     // MARK: - Helper Views
 
     private func sectionHeader(icon: String, title: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(themeManager.theme.textSecondary)
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(themeManager.theme.textSecondary)
-        }
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1.2)
+            .foregroundColor(themeManager.theme.textMuted)
     }
 
     private func editableSectionHeader(icon: String, title: String, action: @escaping () -> Void) -> some View {
         HStack {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.theme.textSecondary)
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(themeManager.theme.textSecondary)
-            }
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(themeManager.theme.textMuted)
             Spacer()
             Button(action: action) {
                 Text("Edit")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(themeManager.theme.accentGreen)
             }
         }
@@ -694,15 +744,16 @@ struct RecruitView: View {
 
     private func statBox(label: String, value: String, highlight: Bool = false) -> some View {
         VStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(themeManager.theme.textSecondary)
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.5)
+                .foregroundColor(themeManager.theme.textMuted)
             Text(value)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(highlight ? themeManager.theme.accentGreen : themeManager.theme.textPrimary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .padding(.vertical, 18)
     }
 
     private var dividerVertical: some View {

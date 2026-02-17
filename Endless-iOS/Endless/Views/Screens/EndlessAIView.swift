@@ -125,73 +125,35 @@ struct EndlessAIView: View {
 
     private var brandedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { showingMenu = true }) {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 40, height: 40)
                         .background(themeManager.theme.cardBackground)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
                 }
 
                 Spacer()
 
-                // Endless Logo with AI badge
-                ZStack(alignment: .bottomTrailing) {
-                    EndlessLogo(size: 48, showText: false)
-
-                    // AI Badge
-                    Text("AI")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            LinearGradient(
-                                colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(6)
-                        .offset(x: 4, y: 4)
-                }
+                // Beta pill
+                Text("BETA")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(themeManager.theme.accentGreen.opacity(0.12))
+                    .clipShape(Capsule())
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
 
-            // Title with gradient effect
-            VStack(alignment: .leading, spacing: 0) {
-                Text("ENDLESS")
-                    .font(.system(size: 48, weight: .heavy))
-                    .tracking(-2)
-                    .foregroundColor(themeManager.theme.textPrimary)
-
-                HStack(spacing: 12) {
-                    Text("AI")
-                        .font(.system(size: 48, weight: .heavy))
-                        .tracking(-2)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-
-                    // Beta badge
-                    Text("BETA")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(themeManager.theme.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(themeManager.theme.primary.opacity(0.15))
-                        .cornerRadius(8)
-                }
-            }
-            .padding(.bottom, 12)
+            Text("Endless AI")
+                .font(.system(size: 32, weight: .light, design: .serif))
+                .foregroundColor(themeManager.theme.textPrimary)
+                .padding(.bottom, 6)
 
             Text("Create AI-powered highlight reels from your golf videos")
                 .font(.system(size: 14, weight: .medium))
@@ -221,20 +183,31 @@ struct EndlessAIView: View {
     }
 
     private func aiFeatureChip(icon: String, title: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(themeManager.theme.primary)
+        HStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.theme.accentGreen.opacity(0.12))
+                    .frame(width: 26, height: 26)
+
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(themeManager.theme.accentGreen)
+            }
 
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(themeManager.theme.textPrimary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.leading, 6)
+        .padding(.trailing, 14)
+        .padding(.vertical, 8)
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 8, x: 0, y: 3)
     }
 
     // MARK: - Highlight Reel Card
@@ -504,17 +477,16 @@ struct EndlessAIView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.primary)
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
+                    .foregroundColor(themeManager.theme.accentGreen)
+                Text(label.localizedCapitalized)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
             }
 
             content()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 32)
+        .padding(.bottom, 28)
     }
 }
 

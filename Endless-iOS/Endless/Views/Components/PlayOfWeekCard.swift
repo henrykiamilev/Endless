@@ -54,10 +54,10 @@ struct PlayOfWeekCard: View {
                         ZStack {
                             Circle()
                                 .fill(.ultraThinMaterial)
-                                .frame(width: 56, height: 56)
+                                .frame(width: 48, height: 48)
 
                             Image(systemName: "play.fill")
-                                .font(.system(size: 20))
+                                .font(.system(size: 18))
                                 .foregroundColor(.white)
                                 .offset(x: 2)
                         }
@@ -70,10 +70,10 @@ struct PlayOfWeekCard: View {
                             HStack(spacing: 10) {
                                 Circle()
                                     .fill(themeManager.theme.accentGreen)
-                                    .frame(width: 36, height: 36)
+                                    .frame(width: 32, height: 32)
                                     .overlay(
                                         Text(String(play.playerName.prefix(1)))
-                                            .font(.system(size: 14, weight: .bold))
+                                            .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.white)
                                     )
 
@@ -114,42 +114,61 @@ struct PlayOfWeekCard: View {
             HStack(spacing: 0) {
                 // Like button
                 Button(action: toggleLike) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 18))
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
                         Text("\(likeCount)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 // Divider
                 Rectangle()
                     .fill(themeManager.theme.border)
-                    .frame(width: 1, height: 24)
+                    .frame(width: 1, height: 20)
 
                 // Comment button
                 Button(action: { showComments = true }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         Image(systemName: "bubble.right")
-                            .font(.system(size: 18))
+                            .font(.system(size: 17, weight: .medium))
                         Text("\(localComments.count)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(themeManager.theme.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Divider
+                Rectangle()
+                    .fill(themeManager.theme.border)
+                    .frame(width: 1, height: 20)
+
+                // Share button
+                Button(action: { }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
             .background(themeManager.theme.cardBackground)
         }
-        .frame(width: 280)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .frame(width: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
         .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 16, x: 0, y: 8)
         .sheet(isPresented: $showComments) {
             CardCommentsSheet(
@@ -303,10 +322,10 @@ struct CommentRow: View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
                 .fill(themeManager.theme.accentGreen)
-                .frame(width: 36, height: 36)
+                .frame(width: 32, height: 32)
                 .overlay(
                     Text(String(comment.userName.prefix(1)))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                 )
 

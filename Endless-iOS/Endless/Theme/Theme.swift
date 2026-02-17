@@ -61,15 +61,15 @@ extension AppTheme {
         primaryLight: Color.white.opacity(0.9),
         primaryDark: Color(hex: "E0E0E0"),
 
-        background: Color(hex: "000000"),
-        backgroundSecondary: Color(hex: "0A0A0A"),
-        cardBackground: Color(hex: "141414"),
-        cardBackgroundElevated: Color(hex: "1C1C1C"),
+        background: Color(hex: "121210"),
+        backgroundSecondary: Color(hex: "1A1A17"),
+        cardBackground: Color(hex: "1E1E1B"),
+        cardBackgroundElevated: Color(hex: "262622"),
 
-        textPrimary: .white,
-        textSecondary: Color(hex: "9CA3AF"),
-        textMuted: Color(hex: "6B7280"),
-        textInverse: Color(hex: "000000"),
+        textPrimary: Color(hex: "F5F2ED"),
+        textSecondary: Color(hex: "9B978F"),
+        textMuted: Color(hex: "6B6860"),
+        textInverse: Color(hex: "121210"),
 
         accent: Color(hex: "22C55E"),  // Golf green accent
         accentGreen: Color(hex: "22C55E"),  // Golf green
@@ -78,22 +78,22 @@ extension AppTheme {
         accentBlue: Color(hex: "60A5FA"),
         accentOlive: Color(hex: "84CC16"),
 
-        border: Color(hex: "262626"),
-        borderLight: Color(hex: "333333"),
+        border: Color(hex: "2A2A26"),
+        borderLight: Color(hex: "353530"),
 
         success: Color(hex: "22C55E"),
         warning: Color(hex: "FCD34D"),
         error: Color(hex: "F87171"),
         info: Color(hex: "60A5FA"),
 
-        tabBarBackground: Color(hex: "0A0A0A"),
-        tabBarActive: .white,
-        tabBarInactive: Color(hex: "6B7280"),
+        tabBarBackground: Color(hex: "1A1A17"),
+        tabBarActive: Color(hex: "F5F2ED"),
+        tabBarInactive: Color(hex: "6B6860"),
 
-        buttonPrimary: .white,
-        buttonPrimaryText: Color(hex: "000000"),
-        buttonSecondary: Color(hex: "262626"),
-        buttonSecondaryText: .white,
+        buttonPrimary: Color(hex: "F5F2ED"),
+        buttonPrimaryText: Color(hex: "121210"),
+        buttonSecondary: Color(hex: "2A2A26"),
+        buttonSecondaryText: Color(hex: "F5F2ED"),
 
         overlayDark: Color.black.opacity(0.8),
         overlayLight: Color.black.opacity(0.5),
@@ -102,18 +102,18 @@ extension AppTheme {
     )
 
     static let light = AppTheme(
-        primary: Color(hex: "1A1A1A"),
-        primaryLight: Color(hex: "333333"),
-        primaryDark: Color(hex: "000000"),
+        primary: Color(hex: "2C2C2A"),
+        primaryLight: Color(hex: "4A4A46"),
+        primaryDark: Color(hex: "1A1A18"),
 
-        background: Color(hex: "FFFFFF"),
-        backgroundSecondary: Color(hex: "F5F5F5"),
-        cardBackground: Color(hex: "FAFAFA"),
-        cardBackgroundElevated: .white,
+        background: Color(hex: "F8F6F1"),
+        backgroundSecondary: Color(hex: "F0EDE6"),
+        cardBackground: Color(hex: "FFFFFF"),
+        cardBackgroundElevated: Color(hex: "FFFFFF"),
 
-        textPrimary: Color(hex: "1A1A1A"),
-        textSecondary: Color(hex: "6B7280"),
-        textMuted: Color(hex: "9CA3AF"),
+        textPrimary: Color(hex: "2C2C2A"),
+        textSecondary: Color(hex: "8A8680"),
+        textMuted: Color(hex: "B5B0A8"),
         textInverse: .white,
 
         accent: Color(hex: "16A34A"),  // Golf green accent
@@ -123,22 +123,22 @@ extension AppTheme {
         accentBlue: Color(hex: "3B82F6"),
         accentOlive: Color(hex: "84CC16"),
 
-        border: Color(hex: "E5E5E5"),
-        borderLight: Color(hex: "D4D4D4"),
+        border: Color(hex: "E8E4DC"),
+        borderLight: Color(hex: "D8D4CC"),
 
         success: Color(hex: "16A34A"),
         warning: Color(hex: "EAB308"),
         error: Color(hex: "EF4444"),
         info: Color(hex: "3B82F6"),
 
-        tabBarBackground: .white,
-        tabBarActive: Color(hex: "1A1A1A"),
-        tabBarInactive: Color(hex: "9CA3AF"),
+        tabBarBackground: Color(hex: "FFFFFF"),
+        tabBarActive: Color(hex: "2C2C2A"),
+        tabBarInactive: Color(hex: "B5B0A8"),
 
-        buttonPrimary: Color(hex: "1A1A1A"),
+        buttonPrimary: Color(hex: "2C2C2A"),
         buttonPrimaryText: .white,
-        buttonSecondary: Color(hex: "F5F5F5"),
-        buttonSecondaryText: Color(hex: "1A1A1A"),
+        buttonSecondary: Color(hex: "F0EDE6"),
+        buttonSecondaryText: Color(hex: "2C2C2A"),
 
         overlayDark: Color.black.opacity(0.6),
         overlayLight: Color.black.opacity(0.3),
