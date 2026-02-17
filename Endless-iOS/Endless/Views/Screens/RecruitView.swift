@@ -205,7 +205,7 @@ struct RecruitView: View {
 
             Button(action: { showingMessages = true }) {
                 ZStack(alignment: .topTrailing) {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(themeManager.theme.accentGreen)
                         .frame(width: 44, height: 44)
                         .overlay(

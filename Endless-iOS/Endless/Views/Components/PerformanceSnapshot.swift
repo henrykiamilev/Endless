@@ -315,18 +315,13 @@ struct PerformanceSnapshot: View {
         VStack(spacing: 16) {
             // Header
             HStack {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(themeManager.theme.accentGreen.opacity(0.6))
-                        .frame(width: 6, height: 6)
-                    Text("Performance")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(themeManager.theme.textPrimary)
-                }
+                Text("Performance")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
 
                 Spacer()
 
-                // Customize button (+ icon)
+                // Customize button
                 Button(action: { onCustomize?() }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 22))
@@ -502,7 +497,7 @@ struct WidgetCustomizationSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -547,7 +542,7 @@ struct WidgetSelectionCard: View {
                             .foregroundColor(themeManager.theme.textMuted)
                             .frame(width: 24, height: 24)
                             .background(themeManager.theme.backgroundSecondary)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
 
@@ -677,7 +672,7 @@ struct EditWidgetValueSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }

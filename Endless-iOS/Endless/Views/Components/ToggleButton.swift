@@ -8,19 +8,19 @@ struct ToggleButton: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                Text(option.uppercased())
-                    .font(.system(size: 12, weight: .semibold))
+                Text(option)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(selectedIndex == index ?
-                        themeManager.theme.textInverse :
+                        .white :
                         themeManager.theme.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
                         selectedIndex == index ?
-                        themeManager.theme.textPrimary :
+                        themeManager.theme.accentGreen :
                         Color.clear
                     )
-                    .cornerRadius(26)
+                    .cornerRadius(12)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -31,7 +31,7 @@ struct ToggleButton: View {
         }
         .padding(4)
         .background(themeManager.theme.cardBackground)
-        .cornerRadius(30)
+        .cornerRadius(14)
     }
 }
 

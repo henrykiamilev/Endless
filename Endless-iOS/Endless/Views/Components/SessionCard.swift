@@ -34,7 +34,7 @@ struct SessionCard: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(.ultraThinMaterial)
+                    .background(Color.black.opacity(0.5))
                     .clipShape(Capsule())
                     .padding(10)
                 }
@@ -90,7 +90,7 @@ struct SessionCard: View {
             // Golf icon with subtle styling
             VStack(spacing: 8) {
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(themeManager.theme.textSecondary.opacity(0.08))
                         .frame(width: 44, height: 44)
 

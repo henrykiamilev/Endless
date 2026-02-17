@@ -138,8 +138,8 @@ struct CustomTabBar: View {
                 }
             }) {
                 ZStack {
-                    // Main button with golf green
-                    Circle()
+                    // Main button with golf green - rounded square
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
@@ -150,8 +150,8 @@ struct CustomTabBar: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 60, height: 60)
-                        .shadow(color: themeManager.theme.accentGreen.opacity(0.4), radius: 12, x: 0, y: 6)
+                        .frame(width: 56, height: 56)
+                        .shadow(color: themeManager.theme.accentGreen.opacity(0.35), radius: 14, x: 0, y: 6)
 
                     // Icon
                     Image(systemName: selectedTab == 2 ? "camera.fill" : "plus")
@@ -159,7 +159,7 @@ struct CustomTabBar: View {
                         .foregroundColor(.white)
                 }
             }
-            .offset(y: -24)
+            .offset(y: -22)
 
             TabBarButton(icon: "person.crop.rectangle.stack", label: "Recruit", isSelected: selectedTab == 3) {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -174,14 +174,18 @@ struct CustomTabBar: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 12)
+        .padding(.top, 10)
         .padding(.bottom, 28)
         .background(
-            themeManager.theme.cardBackground
-                .cornerRadius(28)
-                .shadow(color: .black.opacity(themeManager.isDark ? 0.4 : 0.08), radius: 16, x: 0, y: -2)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(themeManager.theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.4 : 0.08), radius: 24, x: 0, y: -2)
         )
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.bottom, 4)
     }
 }
@@ -195,28 +199,21 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                // Icon
+            VStack(spacing: 2) {
+                // Icon with rounded-square background
                 Image(systemName: isSelected ? "\(icon).fill" : icon)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.tabBarInactive)
-                    .frame(width: 40, height: 40)
+                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.tabBarInactive)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isSelected ? themeManager.theme.accentGreen.opacity(0.15) : Color.clear)
+                    )
 
                 // Label
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
-                    .foregroundColor(isSelected ? themeManager.theme.textPrimary : themeManager.theme.tabBarInactive)
-
-                // Selection indicator
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(themeManager.theme.accentGreen)
-                        .frame(width: 20, height: 2)
-                } else {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(Color.clear)
-                        .frame(width: 20, height: 2)
-                }
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(isSelected ? themeManager.theme.accentGreen : themeManager.theme.tabBarInactive)
             }
         }
         .frame(maxWidth: .infinity)

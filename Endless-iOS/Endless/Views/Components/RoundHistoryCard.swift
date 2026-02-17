@@ -9,9 +9,9 @@ struct RoundHistoryCard: View {
         Button(action: { action?() }) {
             HStack(spacing: 14) {
                 // Course icon
-                Circle()
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(themeManager.theme.primary.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .frame(width: 42, height: 42)
                     .overlay(
                         Image(systemName: "figure.golf")
                             .font(.system(size: 18))

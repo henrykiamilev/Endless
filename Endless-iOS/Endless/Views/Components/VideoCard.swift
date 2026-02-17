@@ -52,13 +52,13 @@ struct VideoCard: View {
 
                         // Play button overlay
                         ZStack {
-                            Circle()
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(.ultraThinMaterial)
-                                .frame(width: 40, height: 40)
+                                .frame(width: 36, height: 36)
 
-                            Circle()
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(themeManager.theme.cardBackground)
-                                .frame(width: 34, height: 34)
+                                .frame(width: 30, height: 30)
 
                             Image(systemName: "play.fill")
                                 .font(.system(size: 12, weight: .semibold))
@@ -98,8 +98,8 @@ struct VideoCard: View {
                         onShare?()
                     }) {
                         ZStack {
-                            Circle()
-                                .fill(Color.black.opacity(0.6))
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.black.opacity(0.5))
                                 .frame(width: 28, height: 28)
 
                             Image(systemName: "square.and.arrow.up")
@@ -118,8 +118,8 @@ struct VideoCard: View {
                         onDelete?()
                     }) {
                         ZStack {
-                            Circle()
-                                .fill(Color.black.opacity(0.6))
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.black.opacity(0.5))
                                 .frame(width: 28, height: 28)
 
                             Image(systemName: "xmark")

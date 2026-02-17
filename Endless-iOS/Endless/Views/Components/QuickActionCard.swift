@@ -12,10 +12,10 @@ struct QuickActionCard: View {
             VStack(spacing: 14) {
                 // Icon with subtle styling
                 ZStack {
-                    // Simple circle background
-                    Circle()
+                    // Rounded square background
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(themeManager.theme.textSecondary.opacity(0.08))
-                        .frame(width: 48, height: 48)
+                        .frame(width: 46, height: 46)
 
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .semibold))
@@ -37,9 +37,9 @@ struct QuickActionCard: View {
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(themeManager.theme.border.opacity(0.5), lineWidth: 1)
             )
         }

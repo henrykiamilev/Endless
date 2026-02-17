@@ -105,10 +105,13 @@ struct SettingsView: View {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(themeManager.theme.border, lineWidth: 1)
+                        )
                 }
 
                 Spacer()
@@ -116,13 +119,13 @@ struct SettingsView: View {
                 // Endless Logo
                 EndlessLogo(size: 48, showText: false)
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
 
-            Text("SETTINGS")
-                .font(.system(size: 48, weight: .heavy))
-                .tracking(-2)
+            Text("Settings")
+                .font(.system(size: 28, weight: .bold))
+                .tracking(-0.5)
                 .foregroundColor(themeManager.theme.textPrimary)
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
 
             Text("Manage your account and preferences")
                 .font(.system(size: 14, weight: .medium))
@@ -143,7 +146,7 @@ struct SettingsView: View {
             HStack(spacing: 18) {
                 // Profile image with gradient border
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [themeManager.theme.primary, themeManager.theme.accentBlue],
@@ -152,14 +155,14 @@ struct SettingsView: View {
                             ),
                             lineWidth: 3
                         )
-                        .frame(width: 68, height: 68)
+                        .frame(width: 64, height: 64)
 
-                    Circle()
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(themeManager.theme.accentGreen)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 56, height: 56)
                         .overlay(
                             Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.white)
                         )
                 }
@@ -379,10 +382,9 @@ struct SettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.primary)
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
+                    .foregroundColor(themeManager.theme.accentGreen)
+                Text(label.localizedCapitalized)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(themeManager.theme.textSecondary)
             }
             .padding(.leading, 4)
@@ -390,7 +392,7 @@ struct SettingsView: View {
             content()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 28)
+        .padding(.bottom, 24)
     }
 
     private func settingsRowButton(icon: String, title: String, subtitle: String?, action: @escaping () -> Void) -> some View {
@@ -423,9 +425,9 @@ struct SettingsView: View {
 
     private func settingsIcon(_ name: String) -> some View {
         ZStack {
-            Circle()
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(themeManager.theme.primary.opacity(0.12))
-                .frame(width: 42, height: 42)
+                .frame(width: 40, height: 40)
 
             Image(systemName: name)
                 .font(.system(size: 18))
@@ -654,7 +656,7 @@ struct RecruitmentProfileSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -1526,7 +1528,7 @@ struct ContactSupportSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }

@@ -91,9 +91,13 @@ struct HomeView: View {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(themeManager.theme.border, lineWidth: 1)
+                        )
                 }
 
                 Spacer()
@@ -103,33 +107,83 @@ struct HomeView: View {
                     Image(systemName: themeManager.isDark ? "sun.max.fill" : "moon.fill")
                         .font(.system(size: 18))
                         .foregroundColor(themeManager.theme.textSecondary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(themeManager.theme.border, lineWidth: 1)
+                        )
                 }
 
-                // Endless Logo
-                EndlessLogo(size: 48, showText: false)
-                    .padding(.leading, 8)
+                // Profile avatar
+                Button(action: { }) {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(themeManager.theme.accentGreen)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Text(profileManager.profile.firstName.isEmpty ? "?" : String(profileManager.profile.firstName.prefix(1)))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                }
+                .padding(.leading, 8)
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 20)
 
-            // Welcome message
-            Text("Welcome,")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(themeManager.theme.textSecondary)
+            // Date label
+            Text(formattedDate)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(themeManager.theme.textMuted)
+                .padding(.bottom, 4)
 
-            Text(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)
-                .font(.system(size: 42, weight: .heavy))
-                .tracking(-1)
+            // Greeting
+            Text("Hello, \(profileManager.profile.firstName.isEmpty ? "Golfer" : profileManager.profile.firstName)")
+                .font(.system(size: 28, weight: .bold))
+                .tracking(-0.5)
                 .foregroundColor(themeManager.theme.textPrimary)
+                .padding(.bottom, 16)
+
+            // Search bar
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16))
+                    .foregroundColor(themeManager.theme.textMuted)
+
+                Text("Search sessions, videos...")
+                    .font(.system(size: 14))
+                    .foregroundColor(themeManager.theme.textMuted)
+
+                Spacer()
+
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 16))
+                    .foregroundColor(themeManager.theme.textSecondary)
+                    .frame(width: 36, height: 36)
+                    .background(themeManager.theme.cardBackgroundElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(themeManager.theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(themeManager.theme.border, lineWidth: 1)
+            )
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
-        .padding(.bottom, 28)
+        .padding(.bottom, 24)
         .sheet(isPresented: $showingMenu) {
             MenuSheetView()
         }
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        return formatter.string(from: Date())
     }
 
     // MARK: - Featured Session Card (Clickable)
@@ -192,10 +246,10 @@ struct HomeView: View {
                         Text("PLAY BY MAY 15")
                             .font(.system(size: 10, weight: .bold))
                             .tracking(0.5)
-                            .foregroundColor(themeManager.theme.textInverse)
+                            .foregroundColor(.white)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(themeManager.theme.textPrimary)
+                            .background(Color.black.opacity(0.5))
                             .clipShape(Capsule())
 
                         Spacer()
@@ -269,12 +323,12 @@ struct HomeView: View {
                 .padding(20)
             }
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 24, x: 0, y: 12)
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.06), radius: 20, x: 0, y: 8)
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingSessionEditor) {
@@ -300,12 +354,12 @@ struct HomeView: View {
 
     private func playerRow(player: Player) -> some View {
         HStack(spacing: 14) {
-            Circle()
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(player.isCaptain ? themeManager.theme.textPrimary : themeManager.theme.accentBlue)
-                .frame(width: 44, height: 44)
+                .frame(width: 42, height: 42)
                 .overlay(
                     Text(String(player.name.prefix(1)))
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(player.isCaptain ? themeManager.theme.textInverse : .white)
                 )
 
@@ -508,10 +562,9 @@ struct HomeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
+                Text(label.localizedCapitalized)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
 
                 Spacer()
 
@@ -524,12 +577,12 @@ struct HomeView: View {
                         }
                     }) {
                         HStack(spacing: 4) {
-                            Text("View All")
-                                .font(.system(size: 12, weight: .semibold))
+                            Text("See all")
+                                .font(.system(size: 13, weight: .medium))
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.system(size: 10, weight: .medium))
                         }
-                        .foregroundColor(themeManager.theme.primary)
+                        .foregroundColor(themeManager.theme.textSecondary)
                     }
                 }
             }
@@ -537,7 +590,7 @@ struct HomeView: View {
             content()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 32)
+        .padding(.bottom, 28)
     }
 }
 
@@ -560,9 +613,9 @@ struct SessionEditorSheet: View {
                 // Header
                 VStack(spacing: 16) {
                     ZStack {
-                        Circle()
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .fill(themeManager.theme.primary.opacity(0.15))
-                            .frame(width: 72, height: 72)
+                            .frame(width: 68, height: 68)
 
                         Image(systemName: "calendar.badge.clock")
                             .font(.system(size: 32))
@@ -705,7 +758,7 @@ struct SessionEditorSheet: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -832,7 +885,7 @@ struct PerformanceDetailView: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -842,9 +895,9 @@ struct PerformanceDetailView: View {
     private func performanceCard(title: String, value: String, change: String, isPositive: Bool, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(themeManager.theme.primary.opacity(0.15))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
                     .overlay(
                         Image(systemName: icon)
                             .font(.system(size: 16))
@@ -877,9 +930,9 @@ struct PerformanceDetailView: View {
 
     private func roundRow(course: String, score: Int, date: String) -> some View {
         HStack(spacing: 14) {
-            Circle()
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(themeManager.theme.primary)
-                .frame(width: 44, height: 44)
+                .frame(width: 42, height: 42)
                 .overlay(
                     Text("\(score)")
                         .font(.system(size: 16, weight: .bold))
@@ -988,7 +1041,7 @@ struct MenuSheetView: View {
                             .foregroundColor(themeManager.theme.textSecondary)
                             .frame(width: 32, height: 32)
                             .background(themeManager.theme.cardBackground)
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
@@ -999,9 +1052,9 @@ struct MenuSheetView: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(themeManager.theme.primary.opacity(0.1))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 42, height: 42)
 
                     Image(systemName: icon)
                         .font(.system(size: 18))

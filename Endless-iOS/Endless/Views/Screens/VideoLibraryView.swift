@@ -215,10 +215,13 @@ struct VideoLibraryView: View {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(themeManager.theme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(themeManager.theme.cardBackground)
-                        .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(themeManager.theme.border, lineWidth: 1)
+                        )
                 }
 
                 Spacer()
@@ -226,32 +229,24 @@ struct VideoLibraryView: View {
                 // Endless Logo
                 EndlessLogo(size: 48, showText: false)
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
 
-            // Title with accent line
+            // Clean modern title
             HStack(alignment: .bottom, spacing: 16) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("VIDEO")
-                        .font(.system(size: 48, weight: .heavy))
-                        .tracking(-2)
-                        .foregroundColor(themeManager.theme.textPrimary)
-
-                    Text("LIBRARY")
-                        .font(.system(size: 48, weight: .heavy))
-                        .tracking(-2)
-                        .foregroundColor(themeManager.theme.primary)
-                }
+                Text("Video Library")
+                    .font(.system(size: 28, weight: .bold))
+                    .tracking(-0.5)
+                    .foregroundColor(themeManager.theme.textPrimary)
 
                 Spacer()
 
                 // Video count badge
-                VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 6) {
                     Text("\(allVideos.count)")
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
-                    Text("VIDEOS")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
+                    Text("videos")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
             }
@@ -1004,11 +999,10 @@ struct VideoLibraryView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
-                    .foregroundColor(themeManager.theme.primary)
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(themeManager.theme.textSecondary)
+                    .foregroundColor(themeManager.theme.accentGreen)
+                Text(label.localizedCapitalized)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(themeManager.theme.textPrimary)
             }
 
             content()
