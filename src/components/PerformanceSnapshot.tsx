@@ -21,12 +21,6 @@ export const PerformanceSnapshot: React.FC<PerformanceSnapshotProps> = ({ onPres
       onPress={onPress}
       activeOpacity={0.85}
     >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Performance Snapshot</Text>
-        <View style={[styles.viewButton, { backgroundColor: `${theme.primary}15` }]}>
-          <Text style={[styles.viewButtonText, { color: theme.primary }]}>VIEW ALL</Text>
-        </View>
-      </View>
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={[styles.iconBg, { backgroundColor: `${theme.accentBlue}15` }]}>
@@ -63,28 +57,8 @@ export const PerformanceSnapshot: React.FC<PerformanceSnapshotProps> = ({ onPres
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
-    padding: 22,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 22,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  viewButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-  },
-  viewButtonText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    borderRadius: 20,
+    padding: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -96,19 +70,20 @@ const styles = StyleSheet.create({
   iconBg: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     marginTop: 10,
+    letterSpacing: -0.3,
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '600',
     marginTop: 3,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });

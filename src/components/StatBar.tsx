@@ -20,7 +20,7 @@ export const StatBar: React.FC<StatBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
-        <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
+        <Text style={[styles.label, { color: theme.textMuted }]}>{label}</Text>
         <Text style={[styles.value, { color: theme.textPrimary }]}>
           {value}{typeof value === 'number' && percentage !== undefined ? '%' : ''}
         </Text>
@@ -36,7 +36,7 @@ export const StatBar: React.FC<StatBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   labelRow: {
     flexDirection: 'row',
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   value: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
   },
   barContainer: {

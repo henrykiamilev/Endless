@@ -19,7 +19,7 @@ export const TabNavigator: React.FC = () => {
   const CustomRecordButton = ({ onPress }: { onPress?: () => void }) => (
     <TouchableOpacity style={styles.recordButton} onPress={onPress} activeOpacity={0.85}>
       <View style={[styles.recordButtonInner, { backgroundColor: theme.primary }]}>
-        <Ionicons name="add" size={32} color={theme.textInverse} />
+        <Ionicons name="add" size={28} color={theme.textInverse} />
       </View>
     </TouchableOpacity>
   );
@@ -33,9 +33,10 @@ export const TabNavigator: React.FC = () => {
           {
             backgroundColor: theme.cardBackground,
             borderTopColor: 'transparent',
+            borderColor: theme.border,
           }
         ],
-        tabBarActiveTintColor: theme.textPrimary,
+        tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.tabBarInactive,
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -46,11 +47,11 @@ export const TabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}20` }]}>
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}15` }]}>
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={22}
-                color={focused ? theme.textPrimary : theme.tabBarInactive}
+                color={focused ? theme.primary : theme.tabBarInactive}
               />
             </View>
           ),
@@ -61,11 +62,11 @@ export const TabNavigator: React.FC = () => {
         component={VideoLibraryScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}20` }]}>
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}15` }]}>
               <Ionicons
                 name={focused ? 'videocam' : 'videocam-outline'}
                 size={22}
-                color={focused ? theme.textPrimary : theme.tabBarInactive}
+                color={focused ? theme.primary : theme.tabBarInactive}
               />
             </View>
           ),
@@ -87,11 +88,11 @@ export const TabNavigator: React.FC = () => {
         component={EndlessAIScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}20` }]}>
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}15` }]}>
               <Ionicons
                 name={focused ? 'sparkles' : 'sparkles-outline'}
                 size={22}
-                color={focused ? theme.textPrimary : theme.tabBarInactive}
+                color={focused ? theme.primary : theme.tabBarInactive}
               />
             </View>
           ),
@@ -102,11 +103,11 @@ export const TabNavigator: React.FC = () => {
         component={SettingsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}20` }]}>
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: `${theme.primary}15` }]}>
               <Ionicons
                 name={focused ? 'settings' : 'settings-outline'}
                 size={22}
-                color={focused ? theme.textPrimary : theme.tabBarInactive}
+                color={focused ? theme.primary : theme.tabBarInactive}
               />
             </View>
           ),
@@ -119,47 +120,48 @@ export const TabNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 0,
-    height: 90,
+    height: 88,
     paddingBottom: 28,
-    paddingTop: 12,
+    paddingTop: 10,
     position: 'absolute',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 28,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 12,
   },
   tabBarLabel: {
     fontSize: 10,
     fontWeight: '600',
-    marginTop: 4,
-    letterSpacing: 0.3,
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   tabIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   recordButton: {
-    top: -24,
+    top: -22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   recordButtonInner: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#00D4AA',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
     elevation: 10,
   },
 });

@@ -34,15 +34,20 @@ export const VideoLibraryScreen: React.FC = () => {
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Filter Header */}
       <View style={styles.filterHeader}>
-        <Text style={[styles.filterText, { color: theme.textSecondary }]}>Showing matches from October 2025</Text>
-        <TouchableOpacity style={[styles.filterButton, { backgroundColor: theme.cardBackground }]}>
+        <Text style={[styles.filterText, { color: theme.textMuted }]}>Showing matches from October 2025</Text>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <Ionicons name="options" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Match Videos Section */}
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>MATCH VIDEOS</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Match Videos</Text>
+          <TouchableOpacity>
+            <Text style={[styles.seeAll, { color: theme.primary }]}>See all</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.videosGrid}>
@@ -59,13 +64,10 @@ export const VideoLibraryScreen: React.FC = () => {
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Recent Round Stats */}
       <View style={styles.statsSection}>
-        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>RECENT ROUND STATS</Text>
-        <View style={[
-          styles.statsCard,
-          {
-            backgroundColor: theme.cardBackground,
-          }
-        ]}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Round Stats</Text>
+        </View>
+        <View style={[styles.statsCard, { backgroundColor: theme.cardBackground }]}>
           <StatBar label="Greens in Regulation" value="72" percentage={72} />
           <StatBar label="Fairways Hit" value="65" percentage={65} />
           <StatBar label="Avg Putts per Round" value="28.4" percentage={71} />
@@ -75,34 +77,31 @@ export const VideoLibraryScreen: React.FC = () => {
 
       {/* Launch Monitor Data */}
       <View style={styles.statsSection}>
-        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>LAUNCH MONITOR DATA</Text>
-        <View style={[
-          styles.launchMonitorCard,
-          {
-            backgroundColor: theme.cardBackground,
-          }
-        ]}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Launch Monitor</Text>
+        </View>
+        <View style={[styles.launchMonitorCard, { backgroundColor: theme.cardBackground }]}>
           <View style={[styles.launchMonitorIcon, { backgroundColor: `${theme.primary}15` }]}>
-            <Ionicons name="hardware-chip" size={32} color={theme.primary} />
+            <Ionicons name="hardware-chip" size={28} color={theme.primary} />
           </View>
           <Text style={[styles.launchMonitorText, { color: theme.textSecondary }]}>
             Connect your launch monitor to track club data
           </Text>
           <TouchableOpacity style={[styles.connectButton, { backgroundColor: theme.primary }]}>
-            <Text style={[styles.connectButtonText, { color: theme.textInverse }]}>CONNECT GCQUAD</Text>
+            <Text style={[styles.connectButtonText, { color: theme.textInverse }]}>Connect GCQuad</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Round History */}
       <View style={styles.statsSection}>
-        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ROUND HISTORY</Text>
-        <View style={[
-          styles.roundHistoryCard,
-          {
-            backgroundColor: theme.cardBackground,
-          }
-        ]}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Round History</Text>
+          <TouchableOpacity>
+            <Text style={[styles.seeAll, { color: theme.primary }]}>See all</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.roundHistoryCard, { backgroundColor: theme.cardBackground }]}>
           {mockRoundHistory.map((round) => (
             <RoundHistoryCard key={round.id} round={round} />
           ))}
@@ -118,15 +117,15 @@ export const VideoLibraryScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground }]}>
-            <Ionicons name="menu" size={22} color={theme.textPrimary} />
+          <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+            <Ionicons name="menu" size={20} color={theme.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.profileButton, { backgroundColor: theme.primary }]}>
             <Text style={[styles.profileInitial, { color: theme.textInverse }]}>W</Text>
           </TouchableOpacity>
         </View>
-        <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
-          VIDEO{'\n'}LIBRARY
+        <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
+          Video Library
         </Text>
       </View>
 
@@ -152,33 +151,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   menuButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
-  heroTitle: {
-    fontSize: 48,
-    fontWeight: '800',
-    letterSpacing: -2,
-    lineHeight: 48,
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
   profileButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -187,12 +186,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   toggleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   filterHeader: {
     flexDirection: 'row',
@@ -206,16 +205,26 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     padding: 10,
-    borderRadius: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   sectionHeader: {
+    marginBottom: 4,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 14,
   },
-  sectionLabel: {
-    fontSize: 11,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 14,
+    letterSpacing: -0.3,
+  },
+  seeAll: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   videosGrid: {
     flexDirection: 'row',
@@ -223,24 +232,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statsSection: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   statsCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 20,
   },
   launchMonitorCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 28,
     alignItems: 'center',
   },
   launchMonitorIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   launchMonitorText: {
     fontSize: 14,
@@ -251,15 +260,14 @@ const styles = StyleSheet.create({
   connectButton: {
     paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: 28,
+    borderRadius: 14,
   },
   connectButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    fontWeight: '600',
   },
   roundHistoryCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 18,
   },
   bottomPadding: {

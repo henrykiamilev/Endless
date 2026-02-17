@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { PlayOfTheWeek } from '../types';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.8;
+const CARD_WIDTH = width * 0.75;
 
 interface PlayOfWeekCardProps {
   play: PlayOfTheWeek;
@@ -35,13 +35,13 @@ export const PlayOfWeekCard: React.FC<PlayOfWeekCardProps> = ({ play, onPress })
             <Image source={{ uri: play.thumbnail }} style={styles.thumbnail} />
           ) : (
             <View style={styles.placeholderContent}>
-              <Ionicons name="golf" size={64} color={theme.primary} style={{ opacity: 0.3 }} />
+              <Ionicons name="golf" size={56} color={theme.primary} style={{ opacity: 0.25 }} />
             </View>
           )}
         </View>
 
         {/* Friends/viewers badge */}
-        <View style={[styles.viewersBadge, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.viewersBadge, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={styles.viewersAvatars}>
             <View style={[styles.miniAvatar, { backgroundColor: theme.primary }]}>
               <Text style={styles.miniAvatarText}>H</Text>
@@ -50,25 +50,25 @@ export const PlayOfWeekCard: React.FC<PlayOfWeekCardProps> = ({ play, onPress })
               <Text style={styles.miniAvatarText}>J</Text>
             </View>
           </View>
-          <Text style={[styles.viewersText, { color: theme.textSecondary }]}>4 FRIENDS ARE HERE</Text>
+          <Text style={styles.viewersText}>4 FRIENDS ARE HERE</Text>
         </View>
 
         {/* Play button */}
         <View style={[styles.playButton, { backgroundColor: theme.primary }]}>
-          <Ionicons name="play" size={28} color={theme.textInverse} style={{ marginLeft: 3 }} />
+          <Ionicons name="play" size={24} color={theme.textInverse} style={{ marginLeft: 2 }} />
         </View>
       </LinearGradient>
 
       {/* Bottom info section */}
       <View style={[styles.infoSection, { backgroundColor: theme.cardBackground }]}>
         <Text style={[styles.courseName, { color: theme.textPrimary }]}>{play.location || 'Prydeland Spring'}</Text>
-        <Text style={[styles.courseDescription, { color: theme.textSecondary }]} numberOfLines={2}>
+        <Text style={[styles.courseDescription, { color: theme.textMuted }]} numberOfLines={2}>
           Its unique 47 holes layouts, comprising of a trio of testing nine hole circuits.
         </Text>
 
         <TouchableOpacity style={[styles.startButton, { backgroundColor: theme.primary }]}>
           <Ionicons name="flag" size={16} color={theme.textInverse} />
-          <Text style={[styles.startButtonText, { color: theme.textInverse }]}>START ROUND</Text>
+          <Text style={[styles.startButtonText, { color: theme.textInverse }]}>Start Round</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -78,12 +78,12 @@ export const PlayOfWeekCard: React.FC<PlayOfWeekCardProps> = ({ play, onPress })
 const styles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
-    marginRight: 16,
-    borderRadius: 28,
+    marginRight: 14,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   gradientBackground: {
-    height: 240,
+    height: 220,
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
@@ -105,77 +105,78 @@ const styles = StyleSheet.create({
   },
   viewersBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: 14,
+    left: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
     paddingLeft: 8,
-    borderRadius: 20,
+    borderRadius: 12,
   },
   viewersAvatars: {
     flexDirection: 'row',
     marginRight: 8,
   },
   miniAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   miniAvatarOffset: {
-    marginLeft: -10,
+    marginLeft: -8,
   },
   miniAvatarText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   viewersText: {
     fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
   },
   playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     elevation: 8,
   },
   infoSection: {
-    padding: 20,
+    padding: 18,
   },
   courseName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   courseDescription: {
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 28,
+    borderRadius: 14,
   },
   startButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    fontWeight: '600',
     marginLeft: 8,
   },
 });

@@ -23,30 +23,30 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onPress }) =>
             colors={theme.isDark ? ['#1A3A2E', '#0D1F17'] : ['#D4E5DC', '#A8C5B5']}
             style={[styles.thumbnail, styles.placeholderThumbnail]}
           >
-            <Ionicons name="golf" size={28} color={theme.primary} style={{ opacity: 0.6 }} />
+            <Ionicons name="golf" size={24} color={theme.primary} style={{ opacity: 0.5 }} />
           </LinearGradient>
         )}
         {/* Location badge */}
-        <View style={[styles.locationBadge, { backgroundColor: theme.cardBackground }]}>
-          <Ionicons name="location" size={10} color={theme.textSecondary} />
-          <Text style={[styles.locationText, { color: theme.textSecondary }]}>{session.location}</Text>
+        <View style={[styles.locationBadge, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <Ionicons name="location" size={9} color="#FFFFFF" />
+          <Text style={styles.locationText}>{session.location}</Text>
         </View>
       </View>
       <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{session.title}</Text>
-      <Text style={[styles.date, { color: theme.textSecondary }]}>{session.date}</Text>
+      <Text style={[styles.date, { color: theme.textMuted }]}>{session.date}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 140,
-    marginRight: 14,
+    width: 150,
+    marginRight: 12,
   },
   thumbnailContainer: {
-    width: 140,
-    height: 100,
-    borderRadius: 20,
+    width: 150,
+    height: 110,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 10,
     position: 'relative',
@@ -67,17 +67,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   locationText: {
     fontSize: 9,
     fontWeight: '600',
     marginLeft: 3,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   date: {
     fontSize: 12,
