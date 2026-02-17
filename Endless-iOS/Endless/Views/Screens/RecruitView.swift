@@ -268,7 +268,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 0) {
@@ -304,7 +309,12 @@ struct RecruitView: View {
                         .padding(16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -346,7 +356,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     HStack(spacing: 0) {
                         statBox(label: "Age", value: profileManager.profile.age > 0 ? "\(profileManager.profile.age)" : "--")
@@ -370,7 +385,12 @@ struct RecruitView: View {
                         .padding(.vertical, 16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -415,7 +435,12 @@ struct RecruitView: View {
                     .padding(16)
                 }
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -539,7 +564,12 @@ struct RecruitView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(MockData.profileActivities.enumerated()), id: \.element.id) { index, activity in
@@ -554,7 +584,12 @@ struct RecruitView: View {
                     }
                 }
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             }
         }
         .padding(.horizontal, 20)
@@ -590,7 +625,12 @@ struct RecruitView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 32)
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 } else {
                     VStack(spacing: 0) {
                         sponsorRow(label: "Club Sponsor", value: profileManager.profile.clubSponsor ?? "Add sponsor")
@@ -614,7 +654,12 @@ struct RecruitView: View {
                         .padding(16)
                     }
                     .background(themeManager.theme.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -653,7 +698,12 @@ struct RecruitView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
                 .background(themeManager.theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -694,15 +744,16 @@ struct RecruitView: View {
 
     private func statBox(label: String, value: String, highlight: Bool = false) -> some View {
         VStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(themeManager.theme.textSecondary)
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.5)
+                .foregroundColor(themeManager.theme.textMuted)
             Text(value)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(highlight ? themeManager.theme.accentGreen : themeManager.theme.textPrimary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .padding(.vertical, 18)
     }
 
     private var dividerVertical: some View {

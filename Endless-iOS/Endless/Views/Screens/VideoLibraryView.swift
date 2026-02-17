@@ -444,7 +444,7 @@ struct VideoLibraryView: View {
                                     .foregroundColor(themeManager.theme.textMuted)
                                     .padding(.top, 2)
 
-                                Text("e.g. \"Best drives and approaches from my last 3 rounds\"")
+                                Text("Describe your highlight reel — e.g. best drives from my last 3 rounds")
                                     .font(.system(size: 13))
                                     .foregroundColor(themeManager.theme.textMuted)
                                     .multilineTextAlignment(.leading)
@@ -562,12 +562,12 @@ struct VideoLibraryView: View {
                 // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(themeManager.theme.accentBlue.opacity(0.12))
+                        .fill(themeManager.theme.accentGreen.opacity(0.12))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "figure.golf")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(themeManager.theme.accentBlue)
+                        .foregroundColor(themeManager.theme.accentGreen)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -590,7 +590,7 @@ struct VideoLibraryView: View {
 
                     Circle()
                         .trim(from: 0, to: CGFloat(swingVideoManager.videoCount) / 5.0)
-                        .stroke(themeManager.theme.accentBlue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .stroke(themeManager.theme.accentGreen, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                         .frame(width: 36, height: 36)
                         .rotationEffect(.degrees(-90))
 
@@ -660,10 +660,10 @@ struct VideoLibraryView: View {
                     Text("Add Swing Video")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(themeManager.theme.accentBlue)
+                .foregroundColor(themeManager.theme.accentGreen)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(themeManager.theme.accentBlue.opacity(0.08))
+                .background(themeManager.theme.accentGreen.opacity(0.08))
                 .clipShape(Capsule())
             }
             .padding(.horizontal, 20)
@@ -749,30 +749,53 @@ struct VideoLibraryView: View {
             statItem(value: "--", label: "AVG SCORE", icon: "flag.fill")
 
             Rectangle()
-                .fill(themeManager.theme.border)
+                .fill(themeManager.theme.border.opacity(0.5))
                 .frame(width: 1)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
 
             statItem(value: "0", label: "ROUNDS", icon: "repeat")
 
             Rectangle()
-                .fill(themeManager.theme.border)
+                .fill(themeManager.theme.border.opacity(0.5))
                 .frame(width: 1)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
 
             statItem(value: "--", label: "HANDICAP", icon: "chart.line.uptrend.xyaxis")
         }
-        .padding(.vertical, 20)
-        .background(themeManager.theme.cardBackground)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+        .padding(.vertical, 22)
+        .background(
+            ZStack {
+                themeManager.theme.cardBackground
+                VStack {
+                    LinearGradient(
+                        colors: [themeManager.theme.accentGreen.opacity(0.03), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 30)
+                    Spacer()
+                }
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 14, x: 0, y: 6)
     }
 
     private func statItem(value: String, label: String, icon: String) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(themeManager.theme.primary)
+            ZStack {
+                Circle()
+                    .fill(themeManager.theme.accentGreen.opacity(0.1))
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(themeManager.theme.accentGreen)
+            }
 
             Text(value)
                 .font(.system(size: 24, weight: .bold))
@@ -781,7 +804,7 @@ struct VideoLibraryView: View {
             Text(label)
                 .font(.system(size: 9, weight: .bold))
                 .tracking(0.8)
-                .foregroundColor(themeManager.theme.textSecondary)
+                .foregroundColor(themeManager.theme.textMuted)
         }
         .frame(maxWidth: .infinity)
     }
@@ -1800,7 +1823,7 @@ struct SwingVideoRow: View {
 
                 Image(systemName: "figure.golf")
                     .font(.system(size: 24, weight: .light))
-                    .foregroundColor(themeManager.theme.accentBlue.opacity(0.7))
+                    .foregroundColor(themeManager.theme.accentGreen.opacity(0.7))
             }
 
             VStack(alignment: .leading, spacing: 5) {
@@ -1854,9 +1877,9 @@ struct SwingVideoRow: View {
                 Button(action: onAnalyze) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(themeManager.theme.accentBlue)
+                        .foregroundColor(themeManager.theme.accentGreen)
                         .frame(width: 34, height: 34)
-                        .background(themeManager.theme.accentBlue.opacity(0.1))
+                        .background(themeManager.theme.accentGreen.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
 

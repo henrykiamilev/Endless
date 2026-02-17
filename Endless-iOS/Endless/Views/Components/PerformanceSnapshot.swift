@@ -391,12 +391,17 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(spacing: 4) {
-                // Icon
-                Image(systemName: widget.icon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(themeManager.theme.accentGreen)
-                    .padding(.bottom, 2)
+            VStack(spacing: 6) {
+                // Icon with subtle background
+                ZStack {
+                    Circle()
+                        .fill(themeManager.theme.accentGreen.opacity(0.1))
+                        .frame(width: 32, height: 32)
+
+                    Image(systemName: widget.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
 
                 // Large bold value
                 Text(widget.value)
@@ -407,15 +412,34 @@ struct WidgetCard: View {
 
                 // Small label
                 Text(widget.shortLabel)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(themeManager.theme.textMuted)
                     .lineLimit(1)
+                    .textCase(.uppercase)
+                    .tracking(0.3)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 86)
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 3)
+            .frame(height: 100)
+            .background(
+                ZStack {
+                    themeManager.theme.cardBackground
+                    VStack {
+                        LinearGradient(
+                            colors: [themeManager.theme.accentGreen.opacity(0.03), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 30)
+                        Spacer()
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(PlainButtonStyle())
     }

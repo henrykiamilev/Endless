@@ -280,8 +280,12 @@ struct HomeView: View {
                 .padding(20)
             }
             .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 16, x: 0, y: 6)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 20, x: 0, y: 8)
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingSessionEditor) {
@@ -307,36 +311,61 @@ struct HomeView: View {
 
     private func playerRow(player: Player) -> some View {
         HStack(spacing: 14) {
-            Circle()
-                .fill(player.isCaptain ? themeManager.theme.textPrimary : themeManager.theme.accentBlue)
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Text(String(player.name.prefix(1)))
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(player.isCaptain ? themeManager.theme.textInverse : .white)
-                )
+            // Avatar with gradient ring
+            ZStack {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: player.isCaptain ?
+                                [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.5)] :
+                                [themeManager.theme.textSecondary.opacity(0.3), themeManager.theme.textSecondary.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 3) {
+                Circle()
+                    .fill(player.isCaptain ? themeManager.theme.accentGreen : themeManager.theme.textSecondary.opacity(0.2))
+                    .frame(width: 38, height: 38)
+                    .overlay(
+                        Text(String(player.name.prefix(1)))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(player.isCaptain ? .white : themeManager.theme.textPrimary)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(player.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
 
-                Text("HCP: \(String(format: "%.1f", player.handicap))")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(themeManager.theme.textSecondary)
+                HStack(spacing: 4) {
+                    Text("HCP")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(themeManager.theme.textMuted)
+                    Text(String(format: "%.1f", player.handicap))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                }
             }
 
             Spacer()
 
             if player.isCaptain {
-                Text("CAPTAIN")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(0.8)
-                    .foregroundColor(themeManager.theme.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(themeManager.theme.textPrimary.opacity(0.1))
-                    .cornerRadius(12)
+                HStack(spacing: 4) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 8))
+                    Text("CAPTAIN")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.8)
+                }
+                .foregroundColor(themeManager.theme.accentGreen)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(themeManager.theme.accentGreen.opacity(0.1))
+                .clipShape(Capsule())
             }
         }
     }
@@ -845,24 +874,35 @@ struct PerformanceDetailView: View {
     private func performanceCard(title: String, value: String, change: String, isPositive: Bool, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Circle()
-                    .fill(themeManager.theme.primary.opacity(0.1))
-                    .frame(width: 38, height: 38)
-                    .overlay(
-                        Image(systemName: icon)
-                            .font(.system(size: 16))
-                            .foregroundColor(themeManager.theme.primary)
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [themeManager.theme.accentGreen.opacity(0.12), themeManager.theme.accentGreen.opacity(0.04)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(themeManager.theme.accentGreen)
+                }
 
                 Spacer()
 
-                HStack(spacing: 2) {
+                HStack(spacing: 3) {
                     Image(systemName: isPositive ? "arrow.up.right" : "arrow.down.right")
                         .font(.system(size: 10, weight: .bold))
                     Text(change)
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundColor(isPositive ? themeManager.theme.accentGreen : themeManager.theme.error)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((isPositive ? themeManager.theme.accentGreen : themeManager.theme.error).opacity(0.1))
+                .clipShape(Capsule())
             }
 
             Text(value)
@@ -870,44 +910,75 @@ struct PerformanceDetailView: View {
                 .foregroundColor(themeManager.theme.textPrimary)
 
             Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(themeManager.theme.textSecondary)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(themeManager.theme.textMuted)
+                .textCase(.uppercase)
+                .tracking(0.3)
         }
-        .padding(18)
-        .background(themeManager.theme.cardBackground)
-        .cornerRadius(20)
+        .padding(20)
+        .background(
+            ZStack {
+                themeManager.theme.cardBackground
+                VStack {
+                    LinearGradient(
+                        colors: [themeManager.theme.accentGreen.opacity(0.02), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 30)
+                    Spacer()
+                }
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
     }
 
     private func roundRow(course: String, score: Int, date: String) -> some View {
         HStack(spacing: 14) {
-            Circle()
-                .fill(themeManager.theme.primary)
-                .frame(width: 42, height: 42)
-                .overlay(
-                    Text("\(score)")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                )
+            // Score circle with gradient
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: score <= 72 ?
+                                [themeManager.theme.accentGreen, themeManager.theme.accentGreen.opacity(0.8)] :
+                                [themeManager.theme.textSecondary.opacity(0.3), themeManager.theme.textSecondary.opacity(0.15)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+                    .shadow(color: (score <= 72 ? themeManager.theme.accentGreen : .clear).opacity(0.2), radius: 6, x: 0, y: 3)
 
-            VStack(alignment: .leading, spacing: 3) {
+                Text("\(score)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(score <= 72 ? .white : themeManager.theme.textPrimary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(course)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
 
                 Text(date)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(themeManager.theme.textSecondary)
             }
 
             Spacer()
 
             Text(score <= 72 ? "Under Par" : "Over Par")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundColor(score <= 72 ? themeManager.theme.accentGreen : themeManager.theme.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background((score <= 72 ? themeManager.theme.accentGreen : themeManager.theme.textSecondary).opacity(0.15))
-                .cornerRadius(10)
+                .background((score <= 72 ? themeManager.theme.accentGreen : themeManager.theme.textSecondary).opacity(0.1))
+                .clipShape(Capsule())
         }
         .padding(16)
     }

@@ -9,21 +9,27 @@ struct QuickActionCard: View {
 
     var body: some View {
         Button(action: { action?() }) {
-            VStack(spacing: 12) {
-                // Icon with circle background
+            VStack(spacing: 14) {
+                // Icon with gradient background
                 ZStack {
                     Circle()
-                        .fill(themeManager.theme.textSecondary.opacity(0.08))
-                        .frame(width: 44, height: 44)
+                        .fill(
+                            LinearGradient(
+                                colors: [themeManager.theme.accentGreen.opacity(0.15), themeManager.theme.accentGreen.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
 
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(themeManager.theme.textPrimary.opacity(0.7))
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(themeManager.theme.accentGreen)
                 }
 
-                VStack(spacing: 3) {
+                VStack(spacing: 4) {
                     Text(title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(themeManager.theme.textPrimary)
                         .lineLimit(1)
 
@@ -32,12 +38,30 @@ struct QuickActionCard: View {
                         .foregroundColor(themeManager.theme.textSecondary)
                 }
             }
-            .padding(.vertical, 18)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 20)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
-            .background(themeManager.theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 10, x: 0, y: 4)
+            .background(
+                ZStack {
+                    themeManager.theme.cardBackground
+                    // Subtle top highlight
+                    VStack {
+                        LinearGradient(
+                            colors: [themeManager.theme.accentGreen.opacity(0.03), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 40)
+                        Spacer()
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(themeManager.theme.border.opacity(0.5), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
     }

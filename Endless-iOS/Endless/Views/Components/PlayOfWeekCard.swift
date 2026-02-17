@@ -114,43 +114,62 @@ struct PlayOfWeekCard: View {
             HStack(spacing: 0) {
                 // Like button
                 Button(action: toggleLike) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 18))
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
                         Text("\(likeCount)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundColor(isLiked ? .red : themeManager.theme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 // Divider
                 Rectangle()
                     .fill(themeManager.theme.border)
-                    .frame(width: 1, height: 24)
+                    .frame(width: 1, height: 20)
 
                 // Comment button
                 Button(action: { showComments = true }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         Image(systemName: "bubble.right")
-                            .font(.system(size: 18))
+                            .font(.system(size: 17, weight: .medium))
                         Text("\(localComments.count)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(themeManager.theme.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Divider
+                Rectangle()
+                    .fill(themeManager.theme.border)
+                    .frame(width: 1, height: 20)
+
+                // Share button
+                Button(action: { }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(themeManager.theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
             .background(themeManager.theme.cardBackground)
         }
-        .frame(width: 280)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.25 : 0.06), radius: 14, x: 0, y: 6)
+        .frame(width: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(themeManager.theme.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.3 : 0.08), radius: 16, x: 0, y: 8)
         .sheet(isPresented: $showComments) {
             CardCommentsSheet(
                 play: play,

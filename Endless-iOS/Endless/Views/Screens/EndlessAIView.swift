@@ -183,20 +183,31 @@ struct EndlessAIView: View {
     }
 
     private func aiFeatureChip(icon: String, title: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundColor(themeManager.theme.accentGreen)
+        HStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.theme.accentGreen.opacity(0.12))
+                    .frame(width: 26, height: 26)
+
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(themeManager.theme.accentGreen)
+            }
 
             Text(title)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(themeManager.theme.textPrimary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.leading, 6)
+        .padding(.trailing, 14)
+        .padding(.vertical, 8)
         .background(themeManager.theme.cardBackground)
         .clipShape(Capsule())
-        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 6, x: 0, y: 2)
+        .overlay(
+            Capsule()
+                .stroke(themeManager.theme.border.opacity(0.4), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.05), radius: 8, x: 0, y: 3)
     }
 
     // MARK: - Highlight Reel Card
