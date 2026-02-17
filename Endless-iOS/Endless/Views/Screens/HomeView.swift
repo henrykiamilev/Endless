@@ -113,6 +113,10 @@ struct HomeView: View {
 
                 // Profile avatar
                 Button(action: { }) {
+                    EndlessLogo(size: 40, showText: false)
+                }
+
+                Button(action: { }) {
                     Circle()
                         .fill(themeManager.theme.accentGreen)
                         .frame(width: 40, height: 40)
@@ -138,24 +142,6 @@ struct HomeView: View {
                 .font(.system(size: 32, weight: .light, design: .serif))
                 .foregroundColor(themeManager.theme.textPrimary)
                 .padding(.bottom, 8)
-
-            // Search bar
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(themeManager.theme.textMuted)
-
-                Text("Search sessions, videos...")
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.theme.textMuted)
-
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
-            .background(themeManager.theme.cardBackground)
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 2)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)

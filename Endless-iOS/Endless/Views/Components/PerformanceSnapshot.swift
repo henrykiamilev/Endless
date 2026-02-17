@@ -391,10 +391,16 @@ struct WidgetCard: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
+                // Icon
+                Image(systemName: widget.icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(themeManager.theme.accentGreen)
+                    .padding(.bottom, 2)
+
                 // Large bold value
                 Text(widget.value)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(themeManager.theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -406,7 +412,7 @@ struct WidgetCard: View {
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 72)
+            .frame(height: 86)
             .background(themeManager.theme.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: .black.opacity(themeManager.isDark ? 0.2 : 0.04), radius: 8, x: 0, y: 3)

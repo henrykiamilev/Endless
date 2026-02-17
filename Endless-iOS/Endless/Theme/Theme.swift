@@ -71,8 +71,8 @@ extension AppTheme {
         textMuted: Color(hex: "6B6860"),
         textInverse: Color(hex: "121210"),
 
-        accent: Color(hex: "22C55E"),  // Golf green accent
-        accentGreen: Color(hex: "22C55E"),  // Golf green
+        accent: Color(hex: "6B9F78"),  // Muted sage green
+        accentGreen: Color(hex: "6B9F78"),  // Muted sage green
         accentYellow: Color(hex: "FCD34D"),
         accentRed: Color(hex: "F87171"),
         accentBlue: Color(hex: "60A5FA"),
@@ -81,7 +81,7 @@ extension AppTheme {
         border: Color(hex: "2A2A26"),
         borderLight: Color(hex: "353530"),
 
-        success: Color(hex: "22C55E"),
+        success: Color(hex: "6B9F78"),
         warning: Color(hex: "FCD34D"),
         error: Color(hex: "F87171"),
         info: Color(hex: "60A5FA"),
@@ -116,8 +116,8 @@ extension AppTheme {
         textMuted: Color(hex: "B5B0A8"),
         textInverse: .white,
 
-        accent: Color(hex: "16A34A"),  // Golf green accent
-        accentGreen: Color(hex: "16A34A"),  // Golf green
+        accent: Color(hex: "7A9E7E"),  // Muted sage green
+        accentGreen: Color(hex: "7A9E7E"),  // Muted sage green
         accentYellow: Color(hex: "EAB308"),
         accentRed: Color(hex: "EF4444"),
         accentBlue: Color(hex: "3B82F6"),
@@ -126,7 +126,7 @@ extension AppTheme {
         border: Color(hex: "E8E4DC"),
         borderLight: Color(hex: "D8D4CC"),
 
-        success: Color(hex: "16A34A"),
+        success: Color(hex: "7A9E7E"),
         warning: Color(hex: "EAB308"),
         error: Color(hex: "EF4444"),
         info: Color(hex: "3B82F6"),
